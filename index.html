@@ -1134,9 +1134,7 @@ function buildNav(){
   const itms=[];
   if(a)itms.push({sep:'개요'},{p:'dashboard',ic:'📊',l:'대시보드'});
   itms.push({sep:'운영'},{p:'receipt',ic:'📋',l:'접수 관리'});
-  if(a){itms.push({p:'order',ic:'📦',l:'발주 관리'});itms.push({p:'draft',ic:'📄',l:'발주서 작성'});}
-  else itms.push({p:'order',ic:'📦',l:'발주 현황'});
-  itms.push({p:'install',ic:'🔧',l:'설치 현황'});
+  if(a){itms.push({p:'order',ic:'📦',l:'발주 관리'});itms.push({p:'draft',ic:'📄',l:'발주서 작성'});itms.push({p:'install',ic:'🔧',l:'설치 현황'});}
   if(a){itms.push({sep:'정산'},{p:'monthly',ic:'📅',l:'월마감 정산'},{sep:'설정'},{p:'branches',ic:'🏢',l:'지점 관리'});}
   if(sa)itms.push({p:'users',ic:'👥',l:'사용자 관리'});
   document.getElementById('sb-nav').innerHTML=itms.map(i=>i.sep?`<div class="sg">${i.sep}</div>`:`<div class="ni" data-p="${i.p}" onclick="goP('${i.p}')"><span class="ic">${i.ic}</span>${i.l}</div>`).join('');
