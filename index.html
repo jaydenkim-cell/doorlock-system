@@ -476,6 +476,21 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <div class="panel"><div class="ph"><span class="pt">🏢 지점별 현황 (이번달)</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>접수</th><th>발주</th><th>설치</th><th>결제</th></tr></thead><tbody id="d-br"></tbody></table></div></div>
       </div>
 
+      <!-- 객실현황 -->
+      <div class="page" id="page-rooms">
+        <div class="frow">
+          <select class="fsel" id="rm-b" onchange="renderRooms()"><option value="">전체 지점</option></select>
+        </div>
+        <div class="panel" style="margin-bottom:0">
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead><tr><th>지점</th><th>객실</th><th>상태</th><th>설치일</th><th>모델</th><th>접수ID</th></tr></thead>
+              <tbody id="rooms-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- 접수 -->
       <div class="page" id="page-receipt">
         <div class="pipeline" id="pipe-r">
@@ -637,6 +652,18 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
       <!-- 지점 관리 (admin) -->
       <div class="page" id="page-branches">
         <div class="bgrid" id="bgrid"></div>
+        <div class="panel" style="margin-top:16px">
+          <div class="ph">
+            <span class="pt">🚪 객실현황</span>
+            <select class="fsel" id="br-rm-sel" onchange="renderBrRooms()" style="width:auto;min-width:140px"><option value="">지점 선택</option></select>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="tbl">
+              <thead><tr><th>객실</th><th>상태</th><th>설치일</th><th>모델</th><th>접수ID</th></tr></thead>
+              <tbody id="br-rooms-body"></tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <!-- 사용자 관리 (superadmin only) -->
@@ -1139,7 +1166,7 @@ function startApp(){
 function buildNav(){
   const sa=isSA(), a=isAdm();
   const itms=[];
-  if(a)itms.push({sep:'개요'},{p:'dashboard',ic:'📊',l:'대시보드'});
+  if(a)itms.push({sep:'개요'},{p:'dashboard',ic:'📊',l:'대시보드'},{p:'rooms',ic:'🚪',l:'객실현황'});
   itms.push({sep:'운영'},{p:'receipt',ic:'📋',l:'접수 관리'});
   if(a){itms.push({p:'order',ic:'📦',l:'발주 관리'});itms.push({p:'draft',ic:'📄',l:'발주서 작성'});}
   itms.push({p:'install',ic:'🔧',l:'설치 현황'});
@@ -1148,9 +1175,9 @@ function buildNav(){
   document.getElementById('sb-nav').innerHTML=itms.map(i=>i.sep?`<div class="sg">${i.sep}</div>`:`<div class="ni" data-p="${i.p}" onclick="goP('${i.p}')"><span class="ic">${i.ic}</span>${i.l}</div>`).join('');
 }
 
-const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],branches:['지점 관리','지점 정보 및 계정'],users:['사용자 관리','접속 권한 부여 및 역할 설정']};
+const PM={dashboard:['대시보드','전체 현황'],rooms:['객실현황','지점별 도어락 설치 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],branches:['지점 관리','지점 정보 및 계정'],users:['사용자 관리','접속 권한 부여 및 역할 설정']};
 function goP(p){
-  if((p==='order'||p==='draft'||p==='dashboard'||p==='monthly'||p==='branches')&&!isAdm()){toast('e','권한 없음','관리자만 접근할 수 있습니다.');return;}
+  if((p==='order'||p==='draft'||p==='dashboard'||p==='rooms'||p==='monthly'||p==='branches')&&!isAdm()){toast('e','권한 없음','관리자만 접근할 수 있습니다.');return;}
   if(p==='users'&&!isSA()){toast('e','권한 없음','최고관리자만 접근할 수 있습니다.');return;}
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(e=>e.classList.remove('on'));
@@ -1159,7 +1186,7 @@ function goP(p){
   const[t,s]=PM[p]||[p,''];
   document.getElementById('pg-t').textContent=t;document.getElementById('pg-s').textContent=s;
   document.getElementById('tb-r').innerHTML='';
-  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,branches:renderBr,users:renderUsers};
+  const fns={dashboard:renderD,rooms:renderRooms,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,branches:()=>{renderBr();renderBrRooms();},users:renderUsers};
   if(fns[p])fns[p]();
 }
 
@@ -1167,7 +1194,7 @@ function goP(p){
 function populateSels(){
   const bns=getBr().map(b=>b.name);
   const branchLocked=S.branchLocked===true; // 로컬 지점계정만 제한, SSO 직원은 전체 선택 가능
-  ['fr-b','fo-b','fi-b','fm-b'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const f=e.options[0];e.innerHTML='';e.appendChild(f);bns.forEach(n=>e.appendChild(new Option(n,n)));if(branchLocked){e.value=S.branch;e.disabled=true;}});
+  ['fr-b','fo-b','fi-b','fm-b','rm-b','br-rm-sel'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const f=e.options[0];e.innerHTML='';e.appendChild(f);bns.forEach(n=>e.appendChild(new Option(n,n)));if(branchLocked){e.value=S.branch;e.disabled=true;}});
   ['r-branch','m-branch'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const f=e.options[0];e.innerHTML='';e.appendChild(f);bns.forEach(n=>e.appendChild(new Option(n,n)));if(branchLocked){e.value=S.branch;e.disabled=true;}});
   // draft-branch는 행별 select로 대체됨 (addDraftRow에서 cDone 필터 적용)
   const ors=getOr();
@@ -1422,6 +1449,29 @@ function submitAddUser(){
   const users=getUsers();if(users.find(u=>u.id===uid)){toast('w','중복','이미 등록된 계정입니다.');return;}
   users.push({id:uid,email:uid,name:nm,role,approvedAt:new Date().toISOString(),approvedBy:S.id,loginAt:null});
   sv(K.U,users);closeMo('mo-adduser');renderUsers();toast('s','추가 완료',`${nm} (${role}) 등록됨`);
+}
+
+/* ── ROOMS ── */
+function getRoomSummary(branchFilter){
+  const rcs=getRc();const roomMap={};
+  rcs.forEach(r=>{const key=r.branch+'::'+r.room;if(!roomMap[key]||(r.date||'')>(roomMap[key].date||''))roomMap[key]=r;});
+  let rooms=Object.values(roomMap);
+  if(branchFilter)rooms=rooms.filter(r=>r.branch===branchFilter);
+  return rooms.sort((a,b)=>a.branch.localeCompare(b.branch)||a.room.localeCompare(b.room));
+}
+function renderRooms(){
+  const bv=document.getElementById('rm-b')?.value;
+  const rooms=getRoomSummary(bv);
+  const tbody=document.getElementById('rooms-body');
+  if(!rooms.length){tbody.innerHTML=emp(6);return;}
+  tbody.innerHTML=rooms.map(r=>`<tr><td>${r.branch}</td><td>${r.room}</td><td>${badg(r.status)}</td><td style="color:var(--green)">${r.installDate||'—'}</td><td style="color:var(--text3)">${r.installModel||'—'}</td><td class="idc">${r.id}</td></tr>`).join('');
+}
+function renderBrRooms(){
+  const bv=document.getElementById('br-rm-sel')?.value;
+  const rooms=getRoomSummary(bv);
+  const tbody=document.getElementById('br-rooms-body');
+  if(!rooms.length){tbody.innerHTML=emp(5);return;}
+  tbody.innerHTML=rooms.map(r=>`<tr><td>${r.room}</td><td>${badg(r.status)}</td><td style="color:var(--green)">${r.installDate||'—'}</td><td style="color:var(--text3)">${r.installModel||'—'}</td><td class="idc">${r.id}</td></tr>`).join('');
 }
 
 /* ── BRANCHES ── */
