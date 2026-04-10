@@ -1763,7 +1763,7 @@ function openRMo(){
   document.getElementById('tgl').style.background='var(--border2)';
   document.getElementById('tgld').style.transform='translateX(0)';
   document.getElementById('r-room').value='';document.getElementById('r-qty').value='1';document.getElementById('r-open-date').value='';document.getElementById('r-memo').value='';
-  if(S.role==='user'){document.getElementById('r-branch').value=S.branch;document.getElementById('r-branch').disabled=true;}
+  if(S.branchLocked){document.getElementById('r-branch').value=S.branch;document.getElementById('r-branch').disabled=true;}
   else{document.getElementById('r-branch').disabled=false;document.getElementById('r-branch').value='';}
   openMo('mo-r');
 }
@@ -1772,8 +1772,7 @@ function editR(id){
   document.getElementById('r-edit-id').value=id;
   document.getElementById('mo-r-title').textContent='📋 접수 수정';
   document.getElementById('r-branch').value=r.branch;
-  if(S.role==='user')document.getElementById('r-branch').disabled=true;
-  else document.getElementById('r-branch').disabled=false;
+  document.getElementById('r-branch').disabled=!!S.branchLocked;
   document.getElementById('r-room').value=r.room||'';
   document.getElementById('r-type').value=r.type||'신규 설치';
   document.getElementById('r-qty').value=r.qty||1;
