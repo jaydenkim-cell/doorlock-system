@@ -1340,7 +1340,7 @@ function deleteO(id){
 /* ── INSTALL ── */
 function renderI(){
   let list=getRc().filter(r=>['발주','설치','결제'].includes(r.status));
-  if(S.role==='user')list=list.filter(r=>r.branch===S.branch);
+  if(S.role==='user'&&S.branch&&S.branch!=='본사')list=list.filter(r=>r.branch===S.branch);
   const bv=document.getElementById('fi-b')?.value;if(bv)list=list.filter(r=>r.branch===bv);
   const tbody=document.getElementById('i-body');if(!list.length){tbody.innerHTML=emp(8);return;}
   tbody.innerHTML=list.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>{
