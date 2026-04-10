@@ -487,6 +487,7 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         </div>
         <div class="frow">
           <select class="fsel" id="fr-b" onchange="renderR()"><option value="">전체 지점</option></select>
+          <input class="finp" id="fr-m" type="month" onchange="renderR()" style="width:140px">
           <input class="finp" id="fr-s" placeholder="객실번호 / ID 검색..." oninput="renderR()">
         </div>
         <div class="panel" style="margin-bottom:0">
@@ -1076,7 +1077,7 @@ function doLocalLogin() {
   const accs = getAc();
   const acc = accs.find(a => (a.id === id || a.email === id) && a.pw === pw);
   if (acc) {
-    S = {...acc};
+    S = {...acc, branchLocked: acc.branch && acc.branch !== '본사'};
     if (getSAIds().includes(acc.id)) S.role = 'superadmin';
     startApp(); return;
   }
@@ -1085,7 +1086,7 @@ function doLocalLogin() {
     const branches = getBr();
     const matchBr = branches.find(b => b.account === id || b.name === id);
     if (matchBr) {
-      const newAcc = {id, pw:'1234', role:'user', name:matchBr.name+' 담당자', branch:matchBr.name};
+      const newAcc = {id, pw:'1234', role:'user', name:matchBr.name+' 담당자', branch:matchBr.name, branchLocked:true};
       accs.push(newAcc);
       sv(K.A, accs);
       S = newAcc;
@@ -1143,6 +1144,8 @@ function buildNav(){
 
 const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],branches:['지점 관리','지점 정보 및 계정'],users:['사용자 관리','접속 권한 부여 및 역할 설정']};
 function goP(p){
+  if((p==='order'||p==='draft'||p==='dashboard'||p==='install'||p==='monthly'||p==='branches')&&!isAdm()){toast('e','권한 없음','관리자만 접근할 수 있습니다.');return;}
+  if(p==='users'&&!isSA()){toast('e','권한 없음','최고관리자만 접근할 수 있습니다.');return;}
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(e=>e.classList.remove('on'));
   const pg=document.getElementById('page-'+p);if(pg)pg.classList.add('on');
@@ -1157,8 +1160,9 @@ function goP(p){
 /* ── SELECTS ── */
 function populateSels(){
   const bns=getBr().map(b=>b.name);
-  ['fr-b','fo-b','fi-b','fm-b'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const f=e.options[0];e.innerHTML='';e.appendChild(f);bns.forEach(n=>e.appendChild(new Option(n,n)));if(S.role==='user'){e.value=S.branch;e.disabled=true;}});
-  ['r-branch','m-branch'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const f=e.options[0];e.innerHTML='';e.appendChild(f);bns.forEach(n=>e.appendChild(new Option(n,n)));if(S.role==='user'){e.value=S.branch;e.disabled=true;}});
+  const branchLocked=S.branchLocked===true; // 로컬 지점계정만 제한, SSO 직원은 전체 선택 가능
+  ['fr-b','fo-b','fi-b','fm-b'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const f=e.options[0];e.innerHTML='';e.appendChild(f);bns.forEach(n=>e.appendChild(new Option(n,n)));if(branchLocked){e.value=S.branch;e.disabled=true;}});
+  ['r-branch','m-branch'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const f=e.options[0];e.innerHTML='';e.appendChild(f);bns.forEach(n=>e.appendChild(new Option(n,n)));if(branchLocked){e.value=S.branch;e.disabled=true;}});
   // draft-branch는 행별 select로 대체됨 (addDraftRow에서 cDone 필터 적용)
   const ors=getOr();
   const ms=[...new Set(ors.map(o=>(o.orderDate||'').substring(0,7)).filter(Boolean))].sort().reverse();
@@ -1194,6 +1198,7 @@ function renderR(){
   ['접수','발주','설치','결제'].forEach((s,i)=>document.getElementById(['pr-r','pr-o','pr-i','pr-d'][i]).textContent=all.filter(r=>r.status===s).length);
   let list=pipeR==='all'?all:all.filter(r=>r.status===pipeR);
   const bv=document.getElementById('fr-b')?.value;if(bv)list=list.filter(r=>r.branch===bv);
+  const mv=document.getElementById('fr-m')?.value;if(mv)list=list.filter(r=>(r.createdAt||r.date||'').startsWith(mv));
   const sv2=document.getElementById('fr-s')?.value.toLowerCase();if(sv2)list=list.filter(r=>(r.id||'').toLowerCase().includes(sv2)||(r.room||'').toLowerCase().includes(sv2));
   const tbody=document.getElementById('r-body');
   if(!list.length){tbody.innerHTML=emp(11);return;}
