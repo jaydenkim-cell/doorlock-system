@@ -848,7 +848,14 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids'};
 const DATA_VERSION='v4';
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}};
-const sv=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const sv=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));sbSet(k,v);};
+
+/* ── SUPABASE SYNC ── */
+const SB_URL='https://vsklmsiuxntcsiowrwsl.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZza2xtc2l1eG50Y3Npb3dyd3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODg0NDEsImV4cCI6MjA5MTM2NDQ0MX0.ZqCKdT1kxilUpag6D-9Ka1zVOOBDm34ddxXEQQZpMTw';
+const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
+async function sbSet(k,v){try{await fetch(SB_URL+'/rest/v1/kv_store',{method:'POST',headers:{...SB_H,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key:k,value:v,updated_at:new Date().toISOString()})});}catch{}}
+async function sbSync(){try{const r=await fetch(SB_URL+'/rest/v1/kv_store?select=key,value',{headers:SB_H});if(!r.ok)return;const rows=await r.json();rows.forEach(row=>localStorage.setItem(row.key,JSON.stringify(row.value)));}catch{}}
 
 /* ── 초기 데이터: 29개 지점 (엑셀 발주시트 기준) ── */
 const INIT_BRANCHES=[
@@ -1830,8 +1837,14 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelect
 // m-qty 변경 시 onBrSel 재호출 → 10개 이상 지점 설치비 22,000원 자동 체크
 const _mqty=document.getElementById('m-qty');if(_mqty)_mqty.addEventListener('input',onBrSel);
 ['m-price','m-install','m-extra'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',calcT);});
-// SSO 콜백 처리 (Keycloak → redirect back with ?code=)
-(async()=>{ await handleSSOCallback(); })();
+// 시작: Supabase 동기화 → SSO 콜백 처리
+(async()=>{
+  const btn=document.getElementById('l-btn'),txt=document.getElementById('l-btn-txt');
+  if(btn){btn.disabled=true;txt.textContent='동기화 중...';}
+  await sbSync();
+  if(btn){btn.disabled=false;txt.textContent='Plott SSO 로그인';}
+  await handleSSOCallback();
+})();
 </script>
 </body>
 </html>
