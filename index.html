@@ -1845,7 +1845,7 @@ function submitR(){
   }
   const rcs=getRc(),now=new Date(),ym=now.toISOString().substring(2,4)+now.toISOString().substring(5,7),seq=String(rcs.length+1).padStart(3,'0');
   rcs.push({id:`DL-${ym}-${seq}`,branch:br,room:rm,type:document.getElementById('r-type').value,qty:parseInt(document.getElementById('r-qty').value)||1,openDate:document.getElementById('r-open-date').value||'',urgent:urgOn,status:'접수',memo:document.getElementById('r-memo').value,date:now.toISOString().substring(0,10),regBy:S.name||S.id||'unknown',installDate:'',installModel:'',installMemo:''});
-  sv(K.R,rcs);closeMo('mo-r');renderR();toast('s','접수 완료',`${br} ${rm} (DL-${ym}-${seq})`);
+  sv(K.R,rcs);closeMo('mo-r');renderR();renderD();toast('s','접수 완료',`${br} ${rm} (DL-${ym}-${seq})`);
 }
 
 /* ── INSTALL MODAL ── */
@@ -1883,6 +1883,15 @@ const _mqty=document.getElementById('m-qty');if(_mqty)_mqty.addEventListener('in
   if(btn){btn.disabled=false;txt.textContent='Plott SSO 로그인';}
   await handleSSOCallback();
 })();
+
+// 자동 동기화: 30초마다 Supabase에서 최신 데이터 로드 후 현재 페이지 갱신
+const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:()=>typeof renderR==='function'&&renderR(),order:()=>typeof renderO==='function'&&renderO(),install:()=>typeof renderI==='function'&&renderI(),monthly:()=>typeof renderM==='function'&&renderM()};
+setInterval(async()=>{
+  if(!S)return; // 로그인 전엔 동기화 안 함
+  await sbSync();
+  const cur=document.querySelector('.page.on')?.id?.replace('page-','');
+  if(cur&&PAGE_RENDER[cur])PAGE_RENDER[cur]();
+},30000);
 </script>
 </body>
 </html>
