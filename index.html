@@ -1302,16 +1302,33 @@ function advR(id,ns){
     }
   }
 
+  // 설치/결제 시 발주 레코드 없으면 자동 생성하는 헬퍼
+  function ensureOrder(rid,receipt){
+    const ors=getOr();
+    if(ors.find(x=>x.receiptId===rid))return ors;
+    const b=getBr().find(x=>x.name===receipt.branch);
+    const rQty=receipt.qty||1;
+    const tmap={'신규 설치':'신규','교체(노후화)':'교체','교체(고장)':'교체','추가 설치':'추가'};
+    const nid=ors.length>0?Math.max(...ors.map(o=>typeof o.id==='number'?o.id:0))+1:1;
+    ors.push({id:nid,receiptId:rid,branch:receipt.branch,room:receipt.room,qty:rQty,
+      type:tmap[receipt.type]||receipt.type||'신규',price:b?.lockPrice||132000,
+      install:rQty>=10?22000:(b?.instCost||55000),extra:b?.extraCost||0,
+      orderDate:new Date().toISOString().substring(0,10),openDate:receipt.openDate||'',
+      doneDate:'',installed:false,paid:false,note:'자동생성('+rid+')'});
+    sv(K.O,ors);
+    return getOr();
+  }
+
   // 설치 완료 시 ORDERS 연동
   if(ns==='설치'){
-    const ors=getOr();
+    const ors=ensureOrder(id,r);
     const o=ors.find(x=>x.receiptId===id);
     if(o){o.installed=true;o.doneDate=new Date().toISOString().substring(0,10);sv(K.O,ors);}
   }
 
   // 결제 완료 시 ORDERS 연동
   if(ns==='결제'){
-    const ors=getOr();
+    const ors=ensureOrder(id,r);
     const o=ors.find(x=>x.receiptId===id);
     if(o){o.paid=true;sv(K.O,ors);}
   }
