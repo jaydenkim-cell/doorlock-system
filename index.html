@@ -866,13 +866,27 @@ const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'app
 async function sbSet(k,v){try{await fetch(SB_URL+'/rest/v1/kv_store',{method:'POST',headers:{...SB_H,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key:k,value:v,updated_at:new Date().toISOString()})});}catch{}}
 async function sbSync(){
   try{
-    const r=await fetch(SB_URL+'/rest/v1/kv_store?select=key,value',{headers:SB_H});
+    const r=await fetch(SB_URL+'/rest/v1/kv_store?select=key,value,updated_at',{headers:SB_H});
     if(!r.ok)return;
     const rows=await r.json();
     const sbKeys=new Set(rows.map(r=>r.key));
-    // Supabase → localStorage (Supabase가 최신 데이터)
-    rows.forEach(row=>localStorage.setItem(row.key,JSON.stringify(row.value)));
-    // localStorage → Supabase (최초 마이그레이션: Supabase에 없는 키 업로드)
+    // Supabase → localStorage: 배열은 Supabase가 더 많거나 같을 때만 덮어씀 (로컬 최신 데이터 보호)
+    rows.forEach(row=>{
+      const local=localStorage.getItem(row.key);
+      const sbVal=row.value;
+      if(Array.isArray(sbVal)&&local){
+        try{
+          const localArr=JSON.parse(local);
+          if(Array.isArray(localArr)&&localArr.length>sbVal.length){
+            // 로컬이 더 많음 → Supabase로 업로드 (로컬 우선)
+            sbSet(row.key,localArr);
+            return;
+          }
+        }catch{}
+      }
+      localStorage.setItem(row.key,JSON.stringify(sbVal));
+    });
+    // localStorage → Supabase (최초 마이그레이션)
     const migrKeys=[K.B,K.O,K.R,K.U,K.A,K.SA];
     for(const k of migrKeys){
       if(!sbKeys.has(k)){const v=localStorage.getItem(k);if(v)await sbSet(k,JSON.parse(v));}
