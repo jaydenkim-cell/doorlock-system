@@ -1626,11 +1626,15 @@ function onDraftBrSel(idx){
   const bn=sel.value;const b=getBr().find(x=>x.name===bn);
   if(b){
     document.getElementById(`dr-price-${idx}`).value=b.lockPrice||0;
-    // 동일지점 기존 발주 수량 합계로 10개+ 이면 설치비 22,000원
     const curQty=parseInt(document.getElementById(`dr-qty-${idx}`)?.value)||1;
-    // 현재 행 수량만 기준으로 10개 이상 판단 (기존 발주 누적 합산 X)
     document.getElementById(`dr-install-${idx}`).value=(curQty>=10)?22000:(b.instCost||0);
     document.getElementById(`dr-extra-${idx}`).value=b.extraCost||0;
+    // 해당 지점의 가장 최근 접수에서 오픈예정일 자동 반영
+    const openEl=document.getElementById(`dr-open-${idx}`);
+    if(openEl&&!openEl.value){
+      const rc=getRc().filter(r=>r.branch===bn&&r.openDate).sort((a,b)=>b.date.localeCompare(a.date));
+      if(rc[0]?.openDate)openEl.value=rc[0].openDate;
+    }
     calcDraftRow(idx);
   }
 }
