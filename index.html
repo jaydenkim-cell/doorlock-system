@@ -473,7 +473,16 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
           <div class="panel"><div class="ph"><span class="pt">📋 최근 접수</span><button class="btn bo bsm" onclick="goP('receipt')">전체 →</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>상태</th><th>일자</th></tr></thead><tbody id="d-rec"></tbody></table></div></div>
           <div class="panel"><div class="ph"><span class="pt">⚡ 긴급 미처리</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>일자</th><th></th></tr></thead><tbody id="d-urg"></tbody></table></div></div>
         </div>
-        <div class="panel"><div class="ph"><span class="pt">🏢 지점별 현황 (이번달)</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>접수</th><th>발주</th><th>설치</th><th>결제</th></tr></thead><tbody id="d-br"></tbody></table></div></div>
+        <div class="panel">
+          <div class="ph">
+            <span class="pt">🏢 지점별 현황</span>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="finp" id="db-m" type="month" onchange="renderD()" style="width:130px">
+              <select class="fsel" id="db-b" onchange="renderD()" style="width:120px"><option value="">전체 지점</option></select>
+            </div>
+          </div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>접수</th><th>발주</th><th>설치</th><th>결제</th></tr></thead><tbody id="d-br"></tbody></table></div>
+        </div>
       </div>
 
       <!-- 접수 -->
@@ -1207,7 +1216,22 @@ function renderD(){
   document.getElementById('d-rec').innerHTML=recent.map(r=>`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td>${badg(r.status)}</td><td style="color:var(--text3)">${r.date}</td></tr>`).join('')||emp(5);
   const urg=getRc().filter(r=>r.urgent&&!['결제','취소'].includes(r.status));
   document.getElementById('d-urg').innerHTML=urg.map(r=>`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td style="color:var(--text3)">${r.date}</td><td><button class="btn bp bsm" onclick="goP('receipt')">처리</button></td></tr>`).join('')||`<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--green)">긴급 미처리 없음 ✓</td></tr>`;
-  document.getElementById('d-br').innerHTML=getBr().map(b=>{const brc=rc.filter(r=>r.branch===b.name);return`<tr><td style="font-weight:600">${b.name}</td><td>${brc.filter(r=>r.status==='접수').length}</td><td>${brc.filter(r=>r.status==='발주').length}</td><td>${brc.filter(r=>r.status==='설치').length}</td><td style="color:var(--green)">${brc.filter(r=>r.status==='결제').length}</td></tr>`;}).join('')||emp(5);
+  // 지점별 현황 필터
+  const dbm=document.getElementById('db-m')?.value||ym;
+  const dbb=document.getElementById('db-b')?.value||'';
+  // db-b 옵션 채우기 (최초 1회)
+  const dbSel=document.getElementById('db-b');
+  if(dbSel&&dbSel.options.length===1){getBr().forEach(b=>dbSel.appendChild(new Option(b.name,b.name)));}
+  const brRc=getRc().filter(r=>(r.date||'').startsWith(dbm));
+  let brs=getBr();
+  if(dbb)brs=brs.filter(b=>b.name===dbb);
+  const rows=brs.map(b=>{
+    const brc=brRc.filter(r=>r.branch===b.name);
+    const tot=brc.length;
+    if(!tot)return null; // 이슈 없는 지점 숨김
+    return`<tr><td style="font-weight:600">${b.name}</td><td>${brc.filter(r=>r.status==='접수').length}</td><td>${brc.filter(r=>r.status==='발주').length}</td><td>${brc.filter(r=>r.status==='설치').length}</td><td style="color:var(--green)">${brc.filter(r=>r.status==='결제').length}</td></tr>`;
+  }).filter(Boolean);
+  document.getElementById('d-br').innerHTML=rows.join('')||`<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--text3)">${dbm} 이슈 없음</td></tr>`;
 }
 
 /* ── RECEIPT ── */
