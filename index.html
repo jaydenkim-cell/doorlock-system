@@ -466,8 +466,8 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
         <div class="krow">
           <div class="kpi kbl"><div class="kl">이번달 접수</div><div class="kv" id="d-tot">0</div><div class="ks">전체 지점</div></div>
           <div class="kpi kye"><div class="kl">발주 진행</div><div class="kv" id="d-ord">0</div><div class="ks">처리 대기</div></div>
-          <div class="kpi kre"><div class="kl">설치 진행</div><div class="kv" id="d-ins">0</div><div class="ks">현장 설치 중</div></div>
-          <div class="kpi kgr"><div class="kl">결제 완료</div><div class="kv" id="d-don">0</div><div class="ks">이번달</div></div>
+          <div class="kpi kre"><div class="kl">설치 진행</div><div class="kv" id="d-ins">0</div><div class="ks">설치일정확인중</div></div>
+          <div class="kpi kgr"><div class="kl">결제 완료</div><div class="kv" id="d-don">0</div><div class="ks">이번달 <span id="d-pay-wait" style="font-size:11px;color:#ea580c"></span></div></div>
         </div>
         <div class="p2">
           <div class="panel"><div class="ph"><span class="pt">📋 최근 접수</span><button class="btn bo bsm" onclick="goP('receipt')">전체 →</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>상태</th><th>일자</th></tr></thead><tbody id="d-rec"></tbody></table></div></div>
@@ -1238,9 +1238,18 @@ function renderD(){
   document.getElementById('d-tot').textContent=rc.length;
   document.getElementById('d-ord').textContent=rc.filter(r=>r.status==='발주').length;
   document.getElementById('d-ins').textContent=rc.filter(r=>r.status==='설치').length;
-  document.getElementById('d-don').textContent=rc.filter(r=>r.status==='결제').length;
+  const payDone=rc.filter(r=>r.status==='결제'&&r.paymentDone).length;
+  const payWait=rc.filter(r=>r.status==='결제'&&!r.paymentDone).length;
+  document.getElementById('d-don').textContent=payDone;
+  const pw=document.getElementById('d-pay-wait');if(pw)pw.textContent=payWait?`(대기 ${payWait}건)`:'';
   const recent=[...getRc()].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
-  document.getElementById('d-rec').innerHTML=recent.map(r=>`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td>${badg(r.status)}</td><td style="color:var(--text3)">${r.date}</td></tr>`).join('')||emp(5);
+  document.getElementById('d-rec').innerHTML=recent.map(r=>{
+    let badge='';
+    if(r.status==='설치') badge=r.expectedInstallDate?`<span class="badge b-i">설치예정 ${r.expectedInstallDate}</span>`:`<span class="badge b-i">설치일정확인중</span>`;
+    else if(r.status==='결제') badge=r.paymentDone?`<span class="badge b-d">결제완료</span>`:`<span class="badge" style="background:rgba(234,88,12,.1);color:#ea580c;border:1px solid rgba(234,88,12,.2);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">결제대기</span>`;
+    else badge=badg(r.status);
+    return`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td>${badge}</td><td style="color:var(--text3)">${r.date}</td></tr>`;
+  }).join('')||emp(5);
   const urg=getRc().filter(r=>r.urgent&&!['결제','취소'].includes(r.status));
   document.getElementById('d-urg').innerHTML=urg.map(r=>`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td style="color:var(--text3)">${r.date}</td><td><button class="btn bp bsm" onclick="goP('receipt')">처리</button></td></tr>`).join('')||`<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--green)">긴급 미처리 없음 ✓</td></tr>`;
   // 지점별 현황 필터
