@@ -1222,7 +1222,10 @@ function renderD(){
   // db-b 옵션 채우기 (최초 1회)
   const dbSel=document.getElementById('db-b');
   if(dbSel&&dbSel.options.length===1){getBr().forEach(b=>dbSel.appendChild(new Option(b.name,b.name)));}
-  const brRc=getRc().filter(r=>(r.date||'').startsWith(dbm));
+  // 접수일 OR 발주일 기준으로 해당 월 포함된 접수건 표시
+  const ors=getOr();
+  const brRcIds=new Set(ors.filter(o=>(o.orderDate||'').startsWith(dbm)).map(o=>o.receiptId).filter(Boolean));
+  const brRc=getRc().filter(r=>(r.date||'').startsWith(dbm)||brRcIds.has(r.id));
   let brs=getBr();
   if(dbb)brs=brs.filter(b=>b.name===dbb);
   const rows=brs.map(b=>{
