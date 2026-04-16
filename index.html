@@ -752,6 +752,19 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 </div>
 
 <!-- 설치 확인 모달 -->
+<!-- 예상 설치일정 입력 모달 -->
+<div class="mo" id="mo-exp">
+<div class="mb">
+  <div class="mh"><span class="mt2">📅 예상 설치일정 입력</span><button class="mx" onclick="closeMo('mo-exp')">✕</button></div>
+  <div class="mbody">
+    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="exp-noti">접수 ID: —</div>
+    <div class="fg"><label>예상 설치일 <span class="req">*</span></label><input class="fi" id="exp-date" type="date"></div>
+    <div class="fg"><label>메모 (선택)</label><input class="fi" id="exp-memo" placeholder="예: 오전 10시 방문 예정"></div>
+  </div>
+  <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-exp')">취소</button><button class="btn bp" onclick="submitExpDate()">일정 저장</button></div>
+</div>
+</div>
+
 <div class="mo" id="mo-i">
 <div class="mb">
   <div class="mh"><span class="mt2">🔧 설치 완료 확인</span><button class="mx" onclick="closeMo('mo-i')">✕</button></div>
@@ -1268,14 +1281,26 @@ function renderR(){
   const tbody=document.getElementById('r-body');
   if(!list.length){tbody.innerHTML=emp(11);return;}
   tbody.innerHTML=list.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(r=>{
-    let act='';
+    let act='',badge='';
+    // 뱃지
+    if(r.status==='설치'){
+      badge=r.expectedInstallDate?`<span class="badge b-i">설치예정 ${r.expectedInstallDate}</span>`:`<span class="badge b-i">설치일정확인중</span>`;
+    } else if(r.status==='결제'){
+      badge=r.paymentDone?`<span class="badge b-d">결제완료</span>`:`<span class="badge" style="background:rgba(234,88,12,.1);color:#ea580c;border:1px solid rgba(234,88,12,.2);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">결제대기</span>`;
+    } else badge=badg(r.status);
+    // 버튼
     if(isAdm()&&r.status==='접수')act=`<button class="btn bo bsm" onclick="advR('${r.id}','발주')">발주 처리</button>`;
     else if(isAdm()&&r.status==='발주')act=`<button class="btn bo bsm" style="color:var(--purple);border-color:var(--purple)" onclick="advR('${r.id}','설치')">설치 시작</button>`;
-    else if(canWriteInstall()&&r.status==='설치')act=`<button class="btn bg bsm" onclick="openIMo('${r.id}')">설치 완료 확인</button>`;
-    else if(r.status==='결제')act=`<span style="color:var(--green);font-size:12px">✓ 완료</span>`;
-    else if(!canWriteInstall()&&r.status==='설치')act=`<span style="color:var(--text3);font-size:12px">설치 중</span>`;
+    else if(r.status==='설치'){
+      if(isAdm())act=`<button class="btn bp bsm" onclick="openExpDateMo('${r.id}')">📅 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button>`;
+      else act=r.expectedInstallDate?`<span style="color:var(--purple);font-size:12px">📅 ${r.expectedInstallDate}</span>`:`<span style="color:var(--text3);font-size:12px">설치일정 확인중</span>`;
+    } else if(r.status==='결제'){
+      if(!r.paymentDone&&isAdm())act=`<button class="btn bg bsm" onclick="confirmPayment('${r.id}')">결제완료 처리</button>`;
+      else if(r.paymentDone)act=`<span style="color:var(--green);font-size:12px">✓ 결제완료</span>`;
+      else act=`<span style="color:#ea580c;font-size:12px">결제 대기중</span>`;
+    }
     const mgmt=isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="editR('${r.id}')">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteR('${r.id}')">삭제</button>`:'';
-    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td>${r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:11px">${r.openDate||'—'}</td><td>${badg(r.status)}</td><td>${r.urgent?'<span style="color:var(--red);font-size:11px;font-weight:700">⚡</span>':'—'}</td><td style="color:var(--text3);font-size:11px">${r.regBy||'—'}</td><td style="color:var(--text3)">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
+    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td>${r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:11px">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?'<span style="color:var(--red);font-size:11px;font-weight:700">⚡</span>':'—'}</td><td style="color:var(--text3);font-size:11px">${r.regBy||'—'}</td><td style="color:var(--text3)">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
   }).join('');
 }
 function setPipe(el,t){el.closest('.pipeline').querySelectorAll('.ps').forEach(s=>s.classList.remove('on'));el.classList.add('on');if(t==='r'){pipeR=el.dataset.s;renderR();}}
@@ -1420,8 +1445,20 @@ function renderI(){
   const bv=document.getElementById('fi-b')?.value;if(bv)list=list.filter(r=>r.branch===bv);
   const tbody=document.getElementById('i-body');if(!list.length){tbody.innerHTML=emp(6);return;}
   tbody.innerHTML=list.sort((a,b)=>(b.installDate||b.date||'').localeCompare(a.installDate||a.date||'')).map(r=>{
-    let act=(r.status==='발주'||r.status==='설치')?`<button class="btn bg bsm" onclick="openIMo('${r.id}')">설치 완료 확인</button>`:r.status==='결제'?'<span style="color:var(--green);font-size:12px">✓</span>':'<span style="color:var(--text3);font-size:12px">대기</span>';
-    return`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td style="color:var(--green)">${r.installDate||'—'}</td><td>${badg(r.status)}</td><td>${act}</td></tr>`;
+    let act='',badge='';
+    if(r.status==='설치'){
+      badge=r.expectedInstallDate?`<span class="badge b-i">설치예정 ${r.expectedInstallDate}</span>`:`<span class="badge b-i">설치일정확인중</span>`;
+      if(isAdm())act=`<button class="btn bp bsm" onclick="openExpDateMo('${r.id}')">📅 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button>`;
+      else act=r.expectedInstallDate?`<span style="color:var(--purple);font-size:12px">📅 ${r.expectedInstallDate}</span>`:`<span style="color:var(--text3);font-size:12px">설치일정 확인중</span>`;
+    } else if(r.status==='발주'){
+      badge=badg(r.status);
+      act=`<button class="btn bg bsm" onclick="openIMo('${r.id}')">설치 완료 확인</button>`;
+    } else if(r.status==='결제'){
+      badge=r.paymentDone?`<span class="badge b-d">결제완료</span>`:`<span class="badge" style="background:rgba(234,88,12,.1);color:#ea580c;border:1px solid rgba(234,88,12,.2);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">결제대기</span>`;
+      if(!r.paymentDone&&isAdm())act=`<button class="btn bg bsm" onclick="confirmPayment('${r.id}')">결제완료 처리</button>`;
+      else act=r.paymentDone?'<span style="color:var(--green);font-size:12px">✓</span>':'<span style="color:#ea580c;font-size:12px">결제 대기중</span>';
+    }
+    return`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td style="color:var(--green)">${r.installDate||'—'}</td><td>${badge}</td><td>${act}</td></tr>`;
   }).join('');
 }
 
@@ -1918,13 +1955,44 @@ function submitI(){
   r.installModel=document.getElementById('inst-model').value;
   r.installMemo=document.getElementById('inst-memo').value;
   r.status='결제';
+  r.paymentDone=false; // 설치완료 후 결제대기 상태
   sv(K.R,rcs);
-  // ORDERS 연동: 설치+결제 완료
+  // ORDERS 연동: 설치 완료 (결제는 별도 처리)
   const ors=getOr();
   const o=ors.find(x=>x.receiptId===instId);
-  if(o){o.installed=true;o.paid=true;o.doneDate=r.installDate||new Date().toISOString().substring(0,10);sv(K.O,ors);}
+  if(o){o.installed=true;o.doneDate=r.installDate||new Date().toISOString().substring(0,10);sv(K.O,ors);}
   closeMo('mo-i');renderR();renderI();
-  toast('s','설치 완료',`${r.branch} ${r.room}`);
+  toast('s','설치 완료',`${r.branch} ${r.room} — 결제대기 상태로 전환`);
+}
+// 예상 설치일정 모달
+let expId='';
+function openExpDateMo(id){
+  expId=id;
+  const r=getRc().find(x=>x.id===id);
+  document.getElementById('exp-noti').innerHTML=`📌 ${r?.branch||''} ${r?.room||''} (${id})`;
+  document.getElementById('exp-date').value=r?.expectedInstallDate||'';
+  document.getElementById('exp-memo').value=r?.expectedInstallMemo||'';
+  openMo('mo-exp');
+}
+function submitExpDate(){
+  const d=document.getElementById('exp-date').value;
+  if(!d){toast('e','오류','예상 설치일을 입력해주세요.');return;}
+  const rcs=getRc(),r=rcs.find(x=>x.id===expId);if(!r)return;
+  r.expectedInstallDate=d;
+  r.expectedInstallMemo=document.getElementById('exp-memo').value;
+  sv(K.R,rcs);
+  closeMo('mo-exp');renderR();renderI();
+  toast('s','일정 저장',`${r.branch} ${r.room} 예상 설치일: ${d}`);
+}
+// 결제완료 처리
+function confirmPayment(id){
+  const rcs=getRc(),r=rcs.find(x=>x.id===id);if(!r)return;
+  r.paymentDone=true;
+  sv(K.R,rcs);
+  const ors=getOr();const o=ors.find(x=>x.receiptId===id);
+  if(o){o.paid=true;sv(K.O,ors);}
+  renderR();renderI();
+  toast('s','결제완료',`${r.branch} ${r.room}`);
 }
 
 /* ── UTILS ── */
