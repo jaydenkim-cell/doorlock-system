@@ -1872,6 +1872,11 @@ function importOrdersToDraft(){
   const ids=[...document.querySelectorAll('.ord-chk:checked')].map(c=>parseInt(c.value));
   if(!ids.length){toast('e','오류','선택된 발주가 없습니다.');return;}
   const ors=getOr();
+  // 접수 ID 오름차순 정렬 (접수관리 순서대로 발주서에 표시)
+  ids.sort((a,b)=>{
+    const oa=ors.find(x=>x.id===a),ob=ors.find(x=>x.id===b);
+    return (oa?.receiptId||'').localeCompare(ob?.receiptId||'')||a-b;
+  });
   const brs=getBr();
   goP('draft');
   setTimeout(()=>{
@@ -1901,11 +1906,13 @@ function importOrdersToDraft(){
         const instEl=document.getElementById(`dr-install-${idx}`);
         const extraEl=document.getElementById(`dr-extra-${idx}`);
         const memoEl=document.getElementById(`dr-memo-${idx}`);
+        const openEl=document.getElementById(`dr-open-${idx}`);
         if(roomEl)roomEl.value=o.room||'';
         if(qtyEl)qtyEl.value=o.qty||1;
         if(priceEl)priceEl.value=o.price||0;
         if(instEl)instEl.value=o.install||0;
         if(extraEl)extraEl.value=o.extra||0;
+        if(openEl)openEl.value=o.openDate||'';
         // 비고: 접수 메모 + 발주 메모 합산
         const receipt=getRc().find(r=>r.id===o.receiptId);
         const memoText=[receipt?.memo,o.note].filter(Boolean).join(' / ');
