@@ -867,7 +867,9 @@ body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text
 <script>
 'use strict';
 /* ── localStorage keys (기존 그대로 유지) ── */
-const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids'};
+const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles'};
+const getSlackProfile=(email)=>{const sp=ld(K.SP,{});return sp[(email||'').toLowerCase()]||null;};
+const slackAvatar=(email,name)=>{const p=getSlackProfile(email);if(p?.avatar)return`<img src="${p.avatar}" alt="${p.name||name||''}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${p.name||name||email||'—'}`;const initials=(name||email||'?').charAt(0).toUpperCase();return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${name||email||'—'}</span>`;};
 const DATA_VERSION='v4';
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}};
 const sv=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));sbSet(k,v);};
@@ -900,7 +902,7 @@ async function sbSync(){
       localStorage.setItem(row.key,JSON.stringify(sbVal));
     });
     // localStorage → Supabase (최초 마이그레이션)
-    const migrKeys=[K.B,K.O,K.R,K.U,K.A,K.SA];
+    const migrKeys=[K.B,K.O,K.R,K.U,K.A,K.SA,K.SP];
     for(const k of migrKeys){
       if(!sbKeys.has(k)){const v=localStorage.getItem(k);if(v)await sbSet(k,JSON.parse(v));}
     }
@@ -1309,7 +1311,7 @@ function renderR(){
       else act=`<span style="color:#ea580c;font-size:12px">결제 대기중</span>`;
     }
     const mgmt=isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="editR('${r.id}')">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteR('${r.id}')">삭제</button>`:'';
-    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td>${r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:11px">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?'<span style="color:var(--red);font-size:11px;font-weight:700">⚡</span>':'—'}</td><td style="color:var(--text3);font-size:11px">${r.regBy||'—'}</td><td style="color:var(--text3)">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
+    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td>${r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:11px">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?'<span style="color:var(--red);font-size:11px;font-weight:700">⚡</span>':'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3)">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
   }).join('');
 }
 function setPipe(el,t){el.closest('.pipeline').querySelectorAll('.ps').forEach(s=>s.classList.remove('on'));el.classList.add('on');if(t==='r'){pipeR=el.dataset.s;renderR();}}
@@ -1952,7 +1954,7 @@ function submitR(){
     sv(K.R,rcs);closeMo('mo-r');renderR();toast('s','수정 완료',`${br} ${rm} 접수 수정됨`);return;
   }
   const rcs=getRc(),now=new Date(),ym=now.toISOString().substring(2,4)+now.toISOString().substring(5,7),seq=String(rcs.length+1).padStart(3,'0');
-  rcs.push({id:`DL-${ym}-${seq}`,branch:br,room:rm,type:document.getElementById('r-type').value,qty:parseInt(document.getElementById('r-qty').value)||1,openDate:document.getElementById('r-open-date').value||'',urgent:urgOn,status:'접수',memo:document.getElementById('r-memo').value,date:now.toISOString().substring(0,10),regBy:S.name||S.id||'unknown',installDate:'',installModel:'',installMemo:''});
+  rcs.push({id:`DL-${ym}-${seq}`,branch:br,room:rm,type:document.getElementById('r-type').value,qty:parseInt(document.getElementById('r-qty').value)||1,openDate:document.getElementById('r-open-date').value||'',urgent:urgOn,status:'접수',memo:document.getElementById('r-memo').value,date:now.toISOString().substring(0,10),regBy:S.name||S.id||'unknown',regEmail:S.email||S.id||'',installDate:'',installModel:'',installMemo:''});
   sv(K.R,rcs);closeMo('mo-r');renderR();renderD();toast('s','접수 완료',`${br} ${rm} (DL-${ym}-${seq})`);
 }
 
