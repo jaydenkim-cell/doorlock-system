@@ -1503,7 +1503,7 @@ function renderUsers(){
     const roleSel=isThisSA||isSelf?`<span class="role-badge ${ROLE_BADGE[u.role]||'rb-pending'}">${ROLE_LABELS[u.role]||u.role}</span>`:
       `<select class="role-sel" onchange="setUserRole('${u.id}',this.value)"><option value="" disabled>변경</option>${roleOpts}</select>`;
     return`<tr>
-      <td style="font-weight:600">${u.name||'—'}</td>
+      <td style="font-weight:600">${slackAvatar(u.email||u.id,u.name)}</td>
       <td class="idc">${u.id}</td>
       <td><span class="role-badge ${ROLE_BADGE[u.role]||'rb-pending'}">${ROLE_LABELS[u.role]||u.role}</span></td>
       <td style="color:var(--text3)">${u.approvedAt?u.approvedAt.substring(0,10):'—'}</td>
