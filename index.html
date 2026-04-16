@@ -1253,7 +1253,7 @@ function renderR(){
   const sv2=document.getElementById('fr-s')?.value.toLowerCase();if(sv2)list=list.filter(r=>(r.id||'').toLowerCase().includes(sv2)||(r.room||'').toLowerCase().includes(sv2));
   const tbody=document.getElementById('r-body');
   if(!list.length){tbody.innerHTML=emp(11);return;}
-  tbody.innerHTML=list.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>{
+  tbody.innerHTML=list.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(r=>{
     let act='';
     if(isAdm()&&r.status==='접수')act=`<button class="btn bo bsm" onclick="advR('${r.id}','발주')">발주 처리</button>`;
     else if(isAdm()&&r.status==='발주')act=`<button class="btn bo bsm" style="color:var(--purple);border-color:var(--purple)" onclick="advR('${r.id}','설치')">설치 시작</button>`;
@@ -1388,7 +1388,7 @@ function renderI(){
   if(S.role==='user'&&S.branch&&S.branch!=='본사')list=list.filter(r=>r.branch===S.branch);
   const bv=document.getElementById('fi-b')?.value;if(bv)list=list.filter(r=>r.branch===bv);
   const tbody=document.getElementById('i-body');if(!list.length){tbody.innerHTML=emp(6);return;}
-  tbody.innerHTML=list.sort((a,b)=>b.date.localeCompare(a.date)).map(r=>{
+  tbody.innerHTML=list.sort((a,b)=>(b.installDate||b.date||'').localeCompare(a.installDate||a.date||'')).map(r=>{
     let act=(r.status==='발주'||r.status==='설치')?`<button class="btn bg bsm" onclick="openIMo('${r.id}')">설치 완료 확인</button>`:r.status==='결제'?'<span style="color:var(--green);font-size:12px">✓</span>':'<span style="color:var(--text3);font-size:12px">대기</span>';
     return`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td style="color:var(--green)">${r.installDate||'—'}</td><td>${badg(r.status)}</td><td>${act}</td></tr>`;
   }).join('');
