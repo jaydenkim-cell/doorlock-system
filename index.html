@@ -286,7 +286,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 .mo.show{display:flex;}
 .mb{background:var(--white);border-radius:14px;width:600px;max-width:100%;box-shadow:var(--shadow-md);}
 .mh{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.mt2{font-size:15px;font-weight:700;}
+.mt2{font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px;}
 .mx{background:var(--surface);border:1px solid var(--border);color:var(--text3);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;}
 .mbody{padding:18px 22px;}
 .mfoot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
@@ -466,12 +466,12 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <div class="kpi kgr"><div class="kl">결제 완료</div><div class="kv" id="d-don">0</div><div class="ks">이번달 <span id="d-pay-wait" style="font-size:11px;color:#ea580c"></span></div></div>
         </div>
         <div class="p2">
-          <div class="panel"><div class="ph"><span class="pt">📋 최근 접수</span><button class="btn bo bsm" onclick="goP('receipt')">전체 →</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>상태</th><th>일자</th></tr></thead><tbody id="d-rec"></tbody></table></div></div>
-          <div class="panel"><div class="ph"><span class="pt">⚡ 긴급 미처리</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>일자</th><th></th></tr></thead><tbody id="d-urg"></tbody></table></div></div>
+          <div class="panel"><div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 최근 접수</span><button class="btn bo bsm" onclick="goP('receipt')">전체 →</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>상태</th><th>일자</th></tr></thead><tbody id="d-rec"></tbody></table></div></div>
+          <div class="panel"><div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 긴급 미처리</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>일자</th><th></th></tr></thead><tbody id="d-urg"></tbody></table></div></div>
         </div>
         <div class="panel">
           <div class="ph">
-            <span class="pt">🏢 지점별 현황</span>
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="9" y1="13" x2="9.01" y2="13"/><line x1="15" y1="13" x2="15.01" y2="13"/></svg> 지점별 현황</span>
             <div style="display:flex;gap:8px;align-items:center">
               <input class="finp" id="db-m" type="month" onchange="renderD()" style="width:130px">
               <select class="fsel" id="db-b" onchange="renderD()" style="width:120px"><option value="">전체 지점</option></select>
@@ -496,7 +496,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <input class="finp" id="fr-s" placeholder="객실번호 / ID 검색..." oninput="renderR()">
         </div>
         <div class="panel" style="margin-bottom:0">
-          <div class="ph"><span class="pt">📋 접수 목록</span><button class="btn bp bsm" onclick="openRMo()">+ 접수 등록</button></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 접수 목록</span><button class="btn bp bsm" onclick="openRMo()">+ 접수 등록</button></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>접수ID</th><th>지점</th><th>객실</th><th>유형</th><th>수량</th><th>오픈예정</th><th>상태</th><th>긴급</th><th>접수자</th><th>접수일</th><th>처리/관리</th></tr></thead><tbody id="r-body"></tbody></table></div>
         </div>
       </div>
@@ -510,10 +510,10 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
         </div>
         <div class="panel" style="margin-bottom:0">
           <div class="ph">
-            <span class="pt">📦 발주 목록</span>
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> 발주 목록</span>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
               <button class="btn bp bsm" id="new-ord-btn" onclick="openOMo(null)">+ 발주 등록</button>
-              <button class="btn bo bsm" id="draft-btn" onclick="goToDraft()">📄 발주서 작성</button>
+              <button class="btn bo bsm" id="draft-btn" onclick="goToDraft()" style="display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 발주서 작성</button>
             </div>
           </div>
           <div style="overflow-x:auto"><table class="tbl">
@@ -528,7 +528,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
         <!-- 기본 설정 패널 -->
         <div class="p2" style="margin-bottom:16px">
           <div class="panel">
-            <div class="ph"><span class="pt">📄 발주처 정보</span><button class="btn bo bsm" onclick="saveDraftCfg()">설정 저장</button></div>
+            <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 발주처 정보</span><button class="btn bo bsm" onclick="saveDraftCfg()">설정 저장</button></div>
             <div class="pb">
               <div class="fr2">
                 <div class="fg"><label>회사명</label><input class="fi" id="drc-ord-company" placeholder="발주처 회사명"></div>
@@ -542,7 +542,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
             </div>
           </div>
           <div class="panel">
-            <div class="ph"><span class="pt">🏭 공급사 정보</span></div>
+            <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20V9l6-4v4l6-4v4l6-4v15H2z"/><rect x="6" y="14" width="3" height="6"/><rect x="12" y="14" width="3" height="6"/></svg> 공급사 정보</span></div>
             <div class="pb">
               <div class="fr2">
                 <div class="fg"><label>회사명</label><input class="fi" id="drc-sup-company" placeholder="공급사 회사명"></div>
@@ -560,7 +560,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
         <!-- 발주서 작성 패널 -->
         <div class="panel">
           <div class="ph">
-            <span class="pt">📋 발주 내역 작성</span>
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 발주 내역 작성</span>
             <div style="display:flex;gap:8px;align-items:center">
               <div class="fg" style="margin:0;display:flex;align-items:center;gap:8px">
                 <label style="white-space:nowrap;font-size:12px;color:var(--text2)">발주일</label>
@@ -605,9 +605,9 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <div class="pb" style="padding-top:12px">
             <div class="fg"><label>특이사항 / 메모</label><textarea class="fta" id="draft-note" placeholder="발주서 하단에 표시될 특이사항" style="height:60px"></textarea></div>
             <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
-              <button class="btn bp" onclick="genDraft()" style="flex:1;min-width:120px">👁️ 미리보기 생성</button>
-              <button class="btn bo" onclick="sendDraftMail()" style="flex:1;min-width:120px">📧 이메일 발송</button>
-              <button class="btn bo" onclick="printDraft()" style="flex:1;min-width:120px">🖨️ 인쇄</button>
+              <button class="btn bp" onclick="genDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 미리보기 생성</button>
+              <button class="btn bo" onclick="sendDraftMail()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg> 이메일 발송</button>
+              <button class="btn bo" onclick="printDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/></svg> 인쇄</button>
             </div>
           </div>
         </div>
@@ -619,7 +619,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
       <div class="page" id="page-install">
         <div class="frow"><select class="fsel" id="fi-b" onchange="renderI()"><option value="">전체 지점</option></select></div>
         <div class="panel" style="margin-bottom:0">
-          <div class="ph"><span class="pt">🔧 설치 현황</span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 설치 현황</span></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>접수ID</th><th>지점</th><th>객실</th><th>설치완료일</th><th>상태</th><th>처리</th></tr></thead><tbody id="i-body"></tbody></table></div>
         </div>
       </div>
@@ -635,7 +635,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <div class="mcc"><div class="ml">마감 상태</div><div class="mv" id="mc-st" style="font-size:15px;color:var(--yellow)">미마감</div><div class="ms" id="mc-ss">처리 전</div></div>
         </div>
         <div class="panel">
-          <div class="ph"><span class="pt">📊 지점별 정산</span><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 지점별 정산</span><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>완료건</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계</th></tr></thead><tbody id="m-body"></tbody></table></div>
         </div>
       </div>
@@ -649,7 +649,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
       <div class="page" id="page-users">
         <div class="panel" style="margin-bottom:16px">
           <div class="ph">
-            <span class="pt">👥 사용자 목록</span>
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 사용자 목록</span>
             <button class="btn bp bsm" onclick="openAddUserMo()">+ 직접 추가</button>
           </div>
           <div class="user-table-wrap">
@@ -665,7 +665,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           </div>
         </div>
         <div class="panel">
-          <div class="ph"><span class="pt">⏳ 승인 대기 중</span><span id="pend-cnt" style="font-size:12px;color:var(--yellow);font-weight:700;margin-left:8px"></span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 승인 대기 중</span><span id="pend-cnt" style="font-size:12px;color:var(--yellow);font-weight:700;margin-left:8px"></span></div>
           <div class="user-table-wrap">
             <table class="tbl">
               <thead><tr><th>계정 ID</th><th>로그인 시각</th><th>처리</th></tr></thead>
@@ -682,7 +682,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <!-- 접수 등록 모달 -->
 <div class="mo" id="mo-r">
 <div class="mb">
-  <div class="mh"><span class="mt2" id="mo-r-title">📋 설치 접수 등록</span><button class="mx" onclick="closeMo('mo-r')">✕</button></div>
+  <div class="mh"><span class="mt2" id="mo-r-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 설치 접수 등록</span><button class="mx" onclick="closeMo('mo-r')">✕</button></div>
   <div class="mbody">
     <input type="hidden" id="r-edit-id">
     <div class="fr2">
@@ -699,7 +699,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
     </div>
     <div class="fg">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--red-l);border:1px solid #fecaca;border-radius:7px;cursor:pointer" onclick="toggleUrg()">
-        <div><div style="font-size:13px;font-weight:700;color:var(--red)">⚡ 긴급 요청</div><div style="font-size:11px;color:#f87171;margin-top:1px">당일 처리 — 담당자 즉시 알림</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 긴급 요청</div><div style="font-size:11px;color:#f87171;margin-top:1px">당일 처리 — 담당자 즉시 알림</div></div>
         <div id="tgl" style="width:40px;height:22px;background:var(--border2);border-radius:11px;position:relative;transition:background .2s"><div id="tgld" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)"></div></div>
       </div>
     </div>
@@ -712,7 +712,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <!-- 발주 등록/수정 모달 (기존 modal id 유지) -->
 <div class="mo" id="modal">
 <div class="mb" style="width:640px">
-  <div class="mh"><span class="mt2" id="modal-title">📦 발주 등록</span><button class="mx" onclick="closeMo('modal')">✕</button></div>
+  <div class="mh"><span class="mt2" id="modal-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> 발주 등록</span><button class="mx" onclick="closeMo('modal')">✕</button></div>
   <div class="mbody">
     <input type="hidden" id="edit-order-id">
     <div class="fr2">
@@ -752,7 +752,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <!-- 예상 설치일정 입력 모달 -->
 <div class="mo" id="mo-exp">
 <div class="mb">
-  <div class="mh"><span class="mt2">📅 예상 설치일정 입력</span><button class="mx" onclick="closeMo('mo-exp')">✕</button></div>
+  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg> 예상 설치일정 입력</span><button class="mx" onclick="closeMo('mo-exp')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="exp-noti">접수 ID: —</div>
     <div class="fg"><label>예상 설치일 <span class="req">*</span></label><input class="fi" id="exp-date" type="date"></div>
@@ -764,7 +764,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 
 <div class="mo" id="mo-i">
 <div class="mb">
-  <div class="mh"><span class="mt2">🔧 설치 완료 확인</span><button class="mx" onclick="closeMo('mo-i')">✕</button></div>
+  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 설치 완료 확인</span><button class="mx" onclick="closeMo('mo-i')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="inst-noti">접수 ID: —</div>
     <div class="fr2">
@@ -780,7 +780,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <!-- 지점 관리 모달 (br-modal — 기존 필드 완전 유지) -->
 <div class="mo" id="br-modal">
 <div class="mb" style="width:660px">
-  <div class="mh"><span class="mt2" id="br-modal-title">🏢 지점 정보</span><button class="mx" onclick="closeMo('br-modal')">✕</button></div>
+  <div class="mh"><span class="mt2" id="br-modal-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="9" y1="13" x2="9.01" y2="13"/><line x1="15" y1="13" x2="15.01" y2="13"/></svg> 지점 정보</span><button class="mx" onclick="closeMo('br-modal')">✕</button></div>
   <div class="mbody">
     <input type="hidden" id="br-edit-id">
     <div class="fr2">
@@ -1196,6 +1196,28 @@ const NI={
   branches:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
   users:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
 };
+// 콘텐츠 영역 아이콘 (15px, currentColor)
+const _s='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
+const CI={
+  clipboard:`<svg ${_s} width="15" height="15"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`,
+  bolt:`<svg ${_s} width="13" height="13"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  building:`<svg ${_s} width="15" height="15"><rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="9" y1="13" x2="9.01" y2="13"/><line x1="15" y1="13" x2="15.01" y2="13"/></svg>`,
+  box:`<svg ${_s} width="15" height="15"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+  file:`<svg ${_s} width="14" height="14"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`,
+  factory:`<svg ${_s} width="15" height="15"><path d="M2 20V9l6-4v4l6-4v4l6-4v15H2z"/><rect x="6" y="14" width="3" height="6"/><rect x="12" y="14" width="3" height="6"/></svg>`,
+  wrench:`<svg ${_s} width="14" height="14"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+  chart:`<svg ${_s} width="15" height="15"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>`,
+  people:`<svg ${_s} width="15" height="15"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  clock:`<svg ${_s} width="15" height="15"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`,
+  calendar:`<svg ${_s} width="14" height="14"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>`,
+  eye:`<svg ${_s} width="15" height="15"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  mail:`<svg ${_s} width="15" height="15"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>`,
+  printer:`<svg ${_s} width="15" height="15"><polyline points="6 9 6 2 18 2 18 9"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/></svg>`,
+  door:`<svg ${_s} width="13" height="13"><rect x="3" y="2" width="18" height="20" rx="1"/><circle cx="14.5" cy="12" r="1"/></svg>`,
+  key:`<svg ${_s} width="13" height="13"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg>`,
+  money:`<svg ${_s} width="13" height="13"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>`,
+  trash:`<svg ${_s} width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+};
 function buildNav(){
   const sa=isSA(), a=isAdm();
   const itms=[];
@@ -1311,15 +1333,15 @@ function renderR(){
     if(isAdm()&&r.status==='접수')act=`<button class="btn bo bsm" onclick="advR('${r.id}','발주')">발주 처리</button>`;
     else if(isAdm()&&r.status==='발주')act=`<button class="btn bo bsm" style="color:var(--purple);border-color:var(--purple)" onclick="advR('${r.id}','설치')">설치 시작</button>`;
     else if(r.status==='설치'){
-      if(isAdm())act=`<button class="btn bp bsm" onclick="openExpDateMo('${r.id}')">📅 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button>`;
-      else act=r.expectedInstallDate?`<span style="color:var(--purple);font-size:12px">📅 ${r.expectedInstallDate}</span>`:`<span style="color:var(--text3);font-size:12px">설치일정 확인중</span>`;
+      if(isAdm())act=`<button class="btn bp bsm" style="display:inline-flex;align-items:center;gap:4px" onclick="openExpDateMo('${r.id}')">${CI.calendar} 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button>`;
+      else act=r.expectedInstallDate?`<span style="color:var(--purple);font-size:12px;display:inline-flex;align-items:center;gap:3px">${CI.calendar} ${r.expectedInstallDate}</span>`:`<span style="color:var(--text3);font-size:12px">설치일정 확인중</span>`;
     } else if(r.status==='결제'){
       if(!r.paymentDone&&isAdm())act=`<button class="btn bg bsm" onclick="confirmPayment('${r.id}')">결제완료 처리</button>`;
       else if(r.paymentDone)act=`<span style="color:var(--green);font-size:12px">✓ 결제완료</span>`;
       else act=`<span style="color:#ea580c;font-size:12px">결제 대기중</span>`;
     }
     const mgmt=isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="editR('${r.id}')">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteR('${r.id}')">삭제</button>`:'';
-    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td>${r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:11px">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?'<span style="color:var(--red);font-size:11px;font-weight:700">⚡</span>':'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3)">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
+    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td>${r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:11px">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span style="color:var(--red);display:inline-flex;align-items:center">${CI.bolt}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3)">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
   }).join('');
 }
 function setPipe(el,t){el.closest('.pipeline').querySelectorAll('.ps').forEach(s=>s.classList.remove('on'));el.classList.add('on');if(t==='r'){pipeR=el.dataset.s;renderR();}}
@@ -1415,12 +1437,12 @@ function renderO(){
 function openOMo(id){
   const today=new Date().toISOString().substring(0,10);
   if(id===null){
-    document.getElementById('edit-order-id').value='';document.getElementById('modal-title').textContent='📦 발주 등록';
+    document.getElementById('edit-order-id').value='';document.getElementById('modal-title').innerHTML=`${CI.box} 발주 등록`;
     document.getElementById('m-branch').value=S.role==='user'?S.branch:'';document.getElementById('m-room').value='';document.getElementById('m-qty').value='1';document.getElementById('m-type').value='신규';document.getElementById('m-price').value='';document.getElementById('m-install').value='';document.getElementById('m-extra').value='';document.getElementById('m-total').value='';document.getElementById('m-order-date').value=today;document.getElementById('m-open-date').value='';document.getElementById('m-done-date').value='';document.getElementById('m-installed').value='false';document.getElementById('m-paid').value='false';document.getElementById('m-memo').value='';
     if(S.role==='user')onBrSel();
   }else{
     const o=getOr().find(x=>x.id===id);if(!o)return;
-    document.getElementById('edit-order-id').value=o.id;document.getElementById('modal-title').textContent='📦 발주 수정';
+    document.getElementById('edit-order-id').value=o.id;document.getElementById('modal-title').innerHTML=`${CI.box} 발주 수정`;
     document.getElementById('m-branch').value=o.branch;document.getElementById('m-room').value=o.room;document.getElementById('m-qty').value=o.qty||1;document.getElementById('m-type').value=o.type||'신규';document.getElementById('m-price').value=o.price||0;document.getElementById('m-install').value=o.install||0;document.getElementById('m-extra').value=o.extra||0;document.getElementById('m-order-date').value=o.orderDate||today;document.getElementById('m-open-date').value=o.openDate||'';document.getElementById('m-done-date').value=o.doneDate||'';document.getElementById('m-installed').value=o.installed?'true':'false';document.getElementById('m-paid').value=o.paid?'true':'false';document.getElementById('m-memo').value=o.note||'';calcT();
   }
   openMo('modal');
@@ -1450,7 +1472,7 @@ function saveOrder(){
 }
 function deleteO(id){
   const o=getOr().find(x=>x.id===id);if(!o)return;
-  showCfm('🗑️','발주 삭제',`${o.branch} ${o.room} 발주를 삭제하시겠습니까?`,()=>{
+  showCfm(CI.trash,'발주 삭제',`${o.branch} ${o.room} 발주를 삭제하시겠습니까?`,()=>{
     sv(K.O,getOr().filter(x=>x.id!==id));
     renderO();
     toast('s','삭제 완료',`${o.branch} ${o.room} 발주가 삭제되었습니다.`);
@@ -1467,8 +1489,8 @@ function renderI(){
     let act='',badge='';
     if(r.status==='설치'){
       badge=r.expectedInstallDate?`<span class="badge b-i">설치예정 ${r.expectedInstallDate}</span>`:`<span class="badge b-i">설치일정확인중</span>`;
-      if(isAdm())act=`<button class="btn bp bsm" onclick="openExpDateMo('${r.id}')">📅 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button>`;
-      else act=r.expectedInstallDate?`<span style="color:var(--purple);font-size:12px">📅 ${r.expectedInstallDate}</span>`:`<span style="color:var(--text3);font-size:12px">설치일정 확인중</span>`;
+      if(isAdm())act=`<button class="btn bp bsm" style="display:inline-flex;align-items:center;gap:4px" onclick="openExpDateMo('${r.id}')">${CI.calendar} 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button>`;
+      else act=r.expectedInstallDate?`<span style="color:var(--purple);font-size:12px;display:inline-flex;align-items:center;gap:3px">${CI.calendar} ${r.expectedInstallDate}</span>`:`<span style="color:var(--text3);font-size:12px">설치일정 확인중</span>`;
     } else if(r.status==='발주'){
       badge=badg(r.status);
       act=`<button class="btn bg bsm" onclick="openIMo('${r.id}')">설치 완료 확인</button>`;
@@ -1490,7 +1512,7 @@ function renderM(){
   const rows=getBr().map(b=>{const bo=ors.filter(o=>o.branch===b.name);const p=bo.reduce((s,o)=>s+(o.price||0)*(o.qty||1),0),i=bo.reduce((s,o)=>s+(o.install||0)*(o.qty||1),0),e=bo.reduce((s,o)=>s+(o.extra||0)*(o.qty||1),0),t=p+i+e;tc+=t;if(!bo.length)return'';return`<tr><td style="font-weight:600">${b.name}</td><td>${bo.length}건</td><td style="font-family:'JetBrains Mono',monospace">${p.toLocaleString()}</td><td style="font-family:'JetBrains Mono',monospace">${i.toLocaleString()}</td><td style="font-family:'JetBrains Mono',monospace">${e.toLocaleString()}</td><td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent)">${t.toLocaleString()}</td></tr>`;}).join('');
   document.getElementById('mc-c').textContent=tc.toLocaleString()+'원';document.getElementById('mc-n').textContent=ors.length+'건 결제완료 기준';document.getElementById('m-body').innerHTML=rows||emp(6);
 }
-function doClose(){showCfm('📅','월마감 실행','현재 데이터로 월마감을 처리합니다.',()=>{document.getElementById('mc-st').textContent='마감 완료';document.getElementById('mc-st').style.color='var(--green)';document.getElementById('mc-ss').textContent=new Date().toLocaleDateString('ko-KR')+' 처리';toast('s','월마감 완료','정산이 확정되었습니다.');});}
+function doClose(){showCfm(CI.calendar,'월마감 실행','현재 데이터로 월마감을 처리합니다.',()=>{document.getElementById('mc-st').textContent='마감 완료';document.getElementById('mc-st').style.color='var(--green)';document.getElementById('mc-ss').textContent=new Date().toLocaleDateString('ko-KR')+' 처리';toast('s','월마감 완료','정산이 확정되었습니다.');});}
 
 /* ── USER MANAGEMENT (superadmin only) ── */
 const ROLE_LABELS = {superadmin:'최고관리자',admin:'관리자',user:'직원',pending:'대기'};
@@ -1541,7 +1563,7 @@ function setUserRole(uid, role){
   u.role=role;u.approvedBy=S.id;sv(K.U,users);renderUsers();toast('s','역할 변경',`${uid} → ${ROLE_LABELS[role]}`);
 }
 function removeUser(uid){
-  showCfm('🗑️','사용자 삭제',`${uid} 의 접근 권한을 제거합니다.`,()=>{
+  showCfm(CI.trash,'사용자 삭제',`${uid} 의 접근 권한을 제거합니다.`,()=>{
     sv(K.U,getUsers().filter(u=>u.id!==uid));renderUsers();toast('s','삭제 완료',`${uid} 권한이 제거되었습니다.`);
   });
 }
@@ -1560,11 +1582,11 @@ function submitAddUser(){
 function renderBr(){
   const brs=getBr();
   document.getElementById('bgrid').innerHTML=`<div class="bc" onclick="openBrMo(null)" style="border:2px dashed var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;min-height:110px;flex-direction:column;gap:8px;color:var(--text3)"><div style="font-size:28px">+</div><div style="font-size:13px;font-weight:600">지점 추가</div></div>`
-    +brs.map(b=>`<div class="bc" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span>🚪 ${b.rooms||0}실</span><span>🔑 ${b.lockNew||'—'}</span><span>💰 ${(b.lockPrice||0).toLocaleString()}원</span></div></div>`).join('');
+    +brs.map(b=>`<div class="bc" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div></div>`).join('');
 }
 function openBrMo(id){
   const b=id?getBr().find(x=>x.id===id):null;
-  document.getElementById('br-edit-id').value=id||'';document.getElementById('br-modal-title').textContent=id?'🏢 지점 수정':'🏢 지점 추가';document.getElementById('br-del-btn').style.display=id?'':'none';brDelId=id;
+  document.getElementById('br-edit-id').value=id||'';document.getElementById('br-modal-title').innerHTML=id?`${CI.building} 지점 수정`:`${CI.building} 지점 추가`;document.getElementById('br-del-btn').style.display=id?'':'none';brDelId=id;
   ['br-name','br-short','br-addr','br-loc','br-manager','br-recipient','br-phone','br-email','br-lockOld','br-lockNew','br-note','br-account'].forEach(i=>{document.getElementById(i).value=b?.[i.replace('br-','')]||'';});
   document.getElementById('br-rooms').value=b?.rooms||'';document.getElementById('br-lockPrice').value=b?.lockPrice||'';document.getElementById('br-instCost').value=b?.instCost||'';document.getElementById('br-extraCost').value=b?.extraCost||'';document.getElementById('br-cDone').value=b?.cDone?'true':'false';document.getElementById('br-pw-new').value='';
   openMo('br-modal');
@@ -1578,7 +1600,7 @@ function saveBr(){
   if(acct){const accs=getAc();const ai=accs.findIndex(a=>a.branch===nm||a.id===acct);if(ai>=0){accs[ai].branch=nm;accs[ai].id=acct;if(npw)accs[ai].pw=npw;}else accs.push({id:acct,pw:npw||'1234',role:'user',name:nm+' 담당자',branch:nm});sv(K.A,accs);}
   closeMo('br-modal');populateSels();renderBr();toast('s','저장 완료','지점 정보가 저장되었습니다.');
 }
-function cfmDelBr(){showCfm('🗑️','지점 삭제','삭제하시겠습니까? 발주 데이터는 유지됩니다.',()=>{sv(K.B,getBr().filter(b=>b.id!=brDelId));closeMo('br-modal');renderBr();toast('s','삭제 완료','지점이 삭제되었습니다.');});}
+function cfmDelBr(){showCfm(CI.trash,'지점 삭제','삭제하시겠습니까? 발주 데이터는 유지됩니다.',()=>{sv(K.B,getBr().filter(b=>b.id!=brDelId));closeMo('br-modal');renderBr();toast('s','삭제 완료','지점이 삭제되었습니다.');});}
 
 /* ── DRAFT ── */
 let draftRowIdx=0;
@@ -1716,7 +1738,7 @@ function genDraft(){
   const CV=CS;
   document.getElementById('draft-area').innerHTML=`
 <div class="draft-preview" style="font-family:'Noto Sans KR',sans-serif;font-size:10.5px;padding:14px 18px;max-width:820px;margin:0 auto;background:#fff">
-  <button class="btn bp bsm no-print" style="position:absolute;top:10px;right:10px" onclick="printDraft()">🖨️ 인쇄</button>
+  <button class="btn bp bsm no-print" style="position:absolute;top:10px;right:10px;display:inline-flex;align-items:center;gap:5px" onclick="printDraft()"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/></svg> 인쇄</button>
   <!-- 헤더 -->
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;padding-bottom:7px;border-bottom:2px solid #222">
     <div>
@@ -1863,10 +1885,12 @@ function onOrdChkChange(){
   if(btn){
     if(cnt>0){
       btn.className='btn bp bsm';
-      btn.innerHTML=`📄 선택 ${cnt}건 → 발주서 작성`;
+      btn.style.cssText='display:inline-flex;align-items:center;gap:5px';
+      btn.innerHTML=`${CI.file} 선택 ${cnt}건 → 발주서 작성`;
     } else {
       btn.className='btn bo bsm';
-      btn.innerHTML='📄 발주서 작성';
+      btn.style.cssText='display:inline-flex;align-items:center;gap:5px';
+      btn.innerHTML=`${CI.file} 발주서 작성`;
     }
   }
   const all=document.querySelectorAll('.ord-chk');
@@ -1938,7 +1962,7 @@ function importOrdersToDraft(){
 function openRMo(){
   urgOn=false;
   document.getElementById('r-edit-id').value='';
-  document.getElementById('mo-r-title').textContent='📋 설치 접수 등록';
+  document.getElementById('mo-r-title').innerHTML=`${CI.clipboard} 설치 접수 등록`;
   document.getElementById('tgl').style.background='var(--border2)';
   document.getElementById('tgld').style.transform='translateX(0)';
   document.getElementById('r-room').value='';document.getElementById('r-qty').value='1';document.getElementById('r-open-date').value='';document.getElementById('r-memo').value='';
@@ -1949,7 +1973,7 @@ function openRMo(){
 function editR(id){
   const r=getRc().find(x=>x.id===id);if(!r)return;
   document.getElementById('r-edit-id').value=id;
-  document.getElementById('mo-r-title').textContent='📋 접수 수정';
+  document.getElementById('mo-r-title').innerHTML=`${CI.clipboard} 접수 수정`;
   document.getElementById('r-branch').value=r.branch;
   document.getElementById('r-branch').disabled=!!S.branchLocked;
   document.getElementById('r-room').value=r.room||'';
@@ -1963,7 +1987,7 @@ function editR(id){
   openMo('mo-r');
 }
 function deleteR(id){
-  showCfm('🗑️','접수 삭제','이 접수건을 삭제하시겠습니까?',()=>{
+  showCfm(CI.trash,'접수 삭제','이 접수건을 삭제하시겠습니까?',()=>{
     sv(K.R,getRc().filter(r=>r.id!==id));renderR();toast('s','삭제 완료','접수가 삭제되었습니다.');
   });
 }
@@ -2033,7 +2057,7 @@ function confirmPayment(id){
 /* ── UTILS ── */
 function openMo(id){document.getElementById(id).classList.add('show');}
 function closeMo(id){document.getElementById(id).classList.remove('show');}
-function showCfm(icon,title,msg,cb){document.getElementById('cfm-i').textContent=icon;document.getElementById('cfm-t').textContent=title;document.getElementById('cfm-s').textContent=msg;cfmCb=cb;document.getElementById('cfm').classList.add('show');}
+function showCfm(icon,title,msg,cb){document.getElementById('cfm-i').innerHTML=icon;document.getElementById('cfm-t').textContent=title;document.getElementById('cfm-s').textContent=msg;cfmCb=cb;document.getElementById('cfm').classList.add('show');}
 function closeCfm(ok){document.getElementById('cfm').classList.remove('show');if(ok&&cfmCb)cfmCb();cfmCb=null;}
 function toast(type,title,desc){const w=document.getElementById('tw'),el=document.createElement('div');const ic={s:'✅',e:'❌',i:'💡',w:'⚠️'};el.className=`toast t${type}`;el.innerHTML=`<div class="tic">${ic[type]||'ℹ️'}</div><div><div class="tt2">${title}</div><div class="td">${desc}</div></div>`;w.appendChild(el);setTimeout(()=>el.classList.add('show'),10);setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),350);},3500);}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo.show,.cfm.show').forEach(m=>m.classList.remove('show'));});
