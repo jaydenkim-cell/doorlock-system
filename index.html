@@ -368,7 +368,20 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 
 <!-- LOGIN — Plott Design -->
 <div id="login-screen">
-  <div class="l-icon">🔐</div>
+  <div class="l-icon">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" fill="#fff">
+      <rect x="7.5" y="12" width="1" height="1.5"/>
+      <rect x="7.5" y="15" width="1" height="1.5"/>
+      <rect x="7.5" y="18" width="1" height="1.5"/>
+      <rect x="10.5" y="12" width="1" height="1.5"/>
+      <rect x="10.5" y="15" width="1" height="1.5"/>
+      <rect x="10.5" y="18" width="1" height="1.5"/>
+      <rect x="13.5" y="12" width="1" height="1.5"/>
+      <rect x="13.5" y="15" width="1" height="1.5"/>
+      <rect x="13.5" y="18" width="1" height="1.5"/>
+      <path d="M20.995,5.5h-3.507v-3h-.5c-.551,0-.999-.449-.999-1v-.5H5.995v.5c0,.551-.448,1-1,1h-.5v19h.5c.551,0,1,.448,1,1v.5h9.995v-.5c0-.552.448-1,.999-1h.5v-12.5h3.507v-3.5ZM16.488,20.563c-.701.182-1.254.734-1.436,1.437H6.931c-.181-.702-.734-1.255-1.436-1.437V3.437c.702-.181,1.255-.735,1.436-1.437h8.122c.181.702.734,1.255,1.436,1.437v2.063h-6.987v3.5h6.987v11.563ZM19.995,8h-9.494v-1.5h9.494v1.5Z"/>
+    </svg>
+  </div>
   <div class="l-brand">plott</div>
   <div class="l-sub">도어락 통합관리 시스템</div>
   <div class="lc">
@@ -377,7 +390,8 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
     <div class="lerr" id="lerr"></div>
     <div class="lload-bar" id="lbar"><div class="lload-bar-inner"></div></div>
     <button class="lbtn" id="l-btn" onclick="doSSOLogin()">
-      <span>🔑</span><span id="l-btn-txt">Plott 계정으로 로그인</span>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#fff" style="flex-shrink:0"><rect x="8.941" y="11.775" width="1.412" height="2.826"/><path d="M17.882,9.204c.446.14.92.216,1.412.216,2.599,0,4.706-2.109,4.706-4.71S21.893,0,19.294,0c-1.54,0-2.906.74-3.765,1.884H1.882v17.899s-1.882,0-1.882,0v1.413h2.719l10.457,2.804v-2.804h10.353v-1.413h-5.647v-10.578ZM17.436,3.768l1.384,1.361,2.329-2.331.998.999-3.318,3.321-2.381-2.342.989-1.008ZM11.765,22.159l-8.471-2.272V3.511l8.471,2.272v16.377ZM7.949,3.297h6.855c-.14.446-.216.921-.216,1.413,0,1.541.739,2.909,1.883,3.768v11.304h-3.294V4.699l-5.228-1.402Z"/></svg>
+      <span id="l-btn-txt">Plott 계정으로 로그인</span>
     </button>
     <div id="branch-login-form" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid #f0e8e0;">
       <div class="ff">
