@@ -737,10 +737,10 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
     </div>
     <div class="fr2">
       <div class="fg"><label>설치완료일</label><input class="fi" id="m-done-date" type="date"></div>
-      <div class="fg"><label>설치 상태</label><select class="fs" id="m-installed"><option value="false">미완료</option><option value="true">설치 완료</option></select></div>
+      <div class="fg"><label>설치 상태 <span style="font-size:10px;color:var(--text3);font-weight:400">(전용 버튼으로만 변경)</span></label><div class="fi" id="m-installed-view" style="background:var(--surface);color:var(--text3);display:flex;align-items:center;pointer-events:none">—</div><input type="hidden" id="m-installed"></div>
     </div>
     <div class="fr2">
-      <div class="fg"><label>결제 상태</label><select class="fs" id="m-paid"><option value="false">미결제</option><option value="true">결제 완료</option></select></div>
+      <div class="fg"><label>결제 상태 <span style="font-size:10px;color:var(--text3);font-weight:400">(전용 버튼으로만 변경)</span></label><div class="fi" id="m-paid-view" style="background:var(--surface);color:var(--text3);display:flex;align-items:center;pointer-events:none">—</div><input type="hidden" id="m-paid"></div>
       <div class="fg"><label>메모</label><input class="fi" id="m-memo" placeholder="메모"></div>
     </div>
   </div>
@@ -1431,11 +1431,18 @@ function openOMo(id){
   if(id===null){
     document.getElementById('edit-order-id').value='';document.getElementById('modal-title').innerHTML=`${CI.box} 발주 등록`;
     document.getElementById('m-branch').value=S.role==='user'?S.branch:'';document.getElementById('m-room').value='';document.getElementById('m-qty').value='1';document.getElementById('m-type').value='신규';document.getElementById('m-price').value='';document.getElementById('m-install').value='';document.getElementById('m-extra').value='';document.getElementById('m-total').value='';document.getElementById('m-order-date').value=today;document.getElementById('m-open-date').value='';document.getElementById('m-done-date').value='';document.getElementById('m-installed').value='false';document.getElementById('m-paid').value='false';document.getElementById('m-memo').value='';
+    document.getElementById('m-installed-view').textContent='미완료';document.getElementById('m-installed-view').style.color='var(--text3)';
+    document.getElementById('m-paid-view').textContent='미결제';document.getElementById('m-paid-view').style.color='var(--text3)';
     if(S.role==='user')onBrSel();
   }else{
     const o=getOr().find(x=>x.id===id);if(!o)return;
     document.getElementById('edit-order-id').value=o.id;document.getElementById('modal-title').innerHTML=`${CI.box} 발주 수정`;
-    document.getElementById('m-branch').value=o.branch;document.getElementById('m-room').value=o.room;document.getElementById('m-qty').value=o.qty||1;document.getElementById('m-type').value=o.type||'신규';document.getElementById('m-price').value=o.price||0;document.getElementById('m-install').value=o.install||0;document.getElementById('m-extra').value=o.extra||0;document.getElementById('m-order-date').value=o.orderDate||today;document.getElementById('m-open-date').value=o.openDate||'';document.getElementById('m-done-date').value=o.doneDate||'';document.getElementById('m-installed').value=o.installed?'true':'false';document.getElementById('m-paid').value=o.paid?'true':'false';document.getElementById('m-memo').value=o.note||'';calcT();
+    document.getElementById('m-branch').value=o.branch;document.getElementById('m-room').value=o.room;document.getElementById('m-qty').value=o.qty||1;document.getElementById('m-type').value=o.type||'신규';document.getElementById('m-price').value=o.price||0;document.getElementById('m-install').value=o.install||0;document.getElementById('m-extra').value=o.extra||0;document.getElementById('m-order-date').value=o.orderDate||today;document.getElementById('m-open-date').value=o.openDate||'';document.getElementById('m-done-date').value=o.doneDate||'';document.getElementById('m-installed').value=o.installed?'true':'false';document.getElementById('m-paid').value=o.paid?'true':'false';document.getElementById('m-memo').value=o.note||'';
+    document.getElementById('m-installed-view').textContent=o.installed?'✓ 설치 완료':'미완료';
+    document.getElementById('m-installed-view').style.color=o.installed?'var(--green)':'var(--text3)';
+    document.getElementById('m-paid-view').textContent=o.paid?'✓ 결제 완료':'미결제';
+    document.getElementById('m-paid-view').style.color=o.paid?'var(--green)':'var(--text3)';
+    calcT();
   }
   openMo('modal');
 }
@@ -1445,9 +1452,12 @@ function saveOrder(){
   const br=document.getElementById('m-branch').value,rm=document.getElementById('m-room').value.trim(),od=document.getElementById('m-order-date').value;
   if(!br||!rm||!od){toast('e','입력 오류','지점, 객실번호, 발주일은 필수입니다.');return;}
   const ors=getOr(),eid=document.getElementById('edit-order-id').value;
-  const data={branch:br,room:rm,qty:parseInt(document.getElementById('m-qty').value)||1,type:document.getElementById('m-type').value,price:parseInt(document.getElementById('m-price').value)||0,install:parseInt(document.getElementById('m-install').value)||0,extra:parseInt(document.getElementById('m-extra').value)||0,orderDate:od,openDate:document.getElementById('m-open-date').value,doneDate:document.getElementById('m-done-date').value,installed:document.getElementById('m-installed').value==='true',paid:document.getElementById('m-paid').value==='true',note:document.getElementById('m-memo').value};
-  if(eid){const idx=ors.findIndex(o=>o.id==eid);if(idx>=0)ors[idx]={...ors[idx],...data};toast('s','수정 완료',`${br} ${rm} 발주 수정됨`);}
-  else{const nid=ors.length>0?Math.max(...ors.map(o=>o.id))+1:1;ors.push({id:nid,...data});toast('s','발주 등록',`${br} ${rm} 발주 등록됨`);}
+  const data={branch:br,room:rm,qty:parseInt(document.getElementById('m-qty').value)||1,type:document.getElementById('m-type').value,price:parseInt(document.getElementById('m-price').value)||0,install:parseInt(document.getElementById('m-install').value)||0,extra:parseInt(document.getElementById('m-extra').value)||0,orderDate:od,openDate:document.getElementById('m-open-date').value,doneDate:document.getElementById('m-done-date').value,note:document.getElementById('m-memo').value};
+  if(eid){
+    const idx=ors.findIndex(o=>o.id==eid);
+    if(idx>=0)ors[idx]={...ors[idx],...data}; // installed/paid는 기존 값 유지
+    toast('s','수정 완료',`${br} ${rm} 발주 수정됨`);
+  }else{const nid=ors.length>0?Math.max(...ors.map(o=>o.id))+1:1;ors.push({id:nid,...data,installed:false,paid:false});toast('s','발주 등록',`${br} ${rm} 발주 등록됨`);}
   sv(K.O,ors);
   // 신규 발주 등록 시 → 해당 지점+객실의 '접수' 상태 접수건을 '발주'로 자동 전환
   if(!eid){
