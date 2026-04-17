@@ -409,7 +409,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
             style="padding-right:42px">
           <button type="button" onclick="togglePwVis()" id="pw-toggle"
             style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#9a9490;padding:4px"
-            title="비밀번호 보기">👁</button>
+            title="비밀번호 보기"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
         </div>
       </div>
       <button class="lbtn" onclick="doLocalLogin()">로그인</button>
@@ -834,7 +834,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <!-- 사용자 직접 추가 모달 -->
 <div class="mo" id="mo-adduser">
 <div class="mb" style="width:460px">
-  <div class="mh"><span class="mt2">👤 사용자 직접 추가</span><button class="mx" onclick="closeMo('mo-adduser')">✕</button></div>
+  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 사용자 직접 추가</span><button class="mx" onclick="closeMo('mo-adduser')">✕</button></div>
   <div class="mbody">
     <div class="fg"><label>이름 <span class="req">*</span></label><input class="fi" id="au-name" placeholder="홍길동"></div>
     <div class="fg"><label>계정 ID / 이메일 <span class="req">*</span></label><input class="fi" id="au-id" placeholder="user@handys.co.kr"></div>
@@ -1016,8 +1016,10 @@ function toggleBranchLogin() {
 /* ── 비밀번호 보기/숨기기 ── */
 function togglePwVis(){
   const inp=document.getElementById('l-pw'),btn=document.getElementById('pw-toggle');
-  if(inp.type==='password'){inp.type='text';btn.textContent='🙈';btn.title='비밀번호 숨기기';}
-  else{inp.type='password';btn.textContent='👁';btn.title='비밀번호 보기';}
+  const eyeOn=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
+  const eyeOff=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+  if(inp.type==='password'){inp.type='text';btn.innerHTML=eyeOff;btn.title='비밀번호 숨기기';}
+  else{inp.type='password';btn.innerHTML=eyeOn;btn.title='비밀번호 보기';}
 }
 
 /* ── PKCE helpers ── */
@@ -2007,7 +2009,7 @@ function submitR(){
 }
 
 /* ── INSTALL MODAL ── */
-function openIMo(id){instId=id;document.getElementById('inst-noti').innerHTML=`📌 접수 ID: <strong>${id}</strong>`;document.getElementById('inst-date').value=new Date().toISOString().substring(0,10);document.getElementById('inst-model').value='';document.getElementById('inst-memo').value='';openMo('mo-i');}
+function openIMo(id){instId=id;document.getElementById('inst-noti').innerHTML=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> 접수 ID: <strong>${id}</strong>`;document.getElementById('inst-date').value=new Date().toISOString().substring(0,10);document.getElementById('inst-model').value='';document.getElementById('inst-memo').value='';openMo('mo-i');}
 function submitI(){
   const rcs=getRc(),r=rcs.find(x=>x.id===instId);if(!r)return;
   r.installDate=document.getElementById('inst-date').value;
@@ -2028,7 +2030,7 @@ let expId='';
 function openExpDateMo(id){
   expId=id;
   const r=getRc().find(x=>x.id===id);
-  document.getElementById('exp-noti').innerHTML=`📌 ${r?.branch||''} ${r?.room||''} (${id})`;
+  document.getElementById('exp-noti').innerHTML=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${r?.branch||''} ${r?.room||''} (${id})`;
   document.getElementById('exp-date').value=r?.expectedInstallDate||'';
   document.getElementById('exp-memo').value=r?.expectedInstallMemo||'';
   openMo('mo-exp');
