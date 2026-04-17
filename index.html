@@ -1292,20 +1292,17 @@ function renderD(){
   // db-b 옵션 채우기 (최초 1회)
   const dbSel=document.getElementById('db-b');
   if(dbSel&&dbSel.options.length===1){getBr().forEach(b=>dbSel.appendChild(new Option(b.name,b.name)));}
-  // 발주일 기준 집계 (레거시 호환)
-  const ors=getOr();
-  const mOrs=ors.filter(o=>(o.orderDate||'').startsWith(dbm));
+  // 접수 status 기준 집계
   const mRcs=getRc().filter(r=>(r.date||'').startsWith(dbm));
   let brs=getBr();
   if(dbb)brs=brs.filter(b=>b.name===dbb);
   const rows=brs.map(b=>{
-    const bo=mOrs.filter(o=>o.branch===b.name);
-    const br=mRcs.filter(r=>r.branch===b.name&&r.status==='접수');
-    if(!bo.length&&!br.length)return null;
-    const 접수=br.length;
-    const 발주=bo.filter(o=>!o.installed&&!o.paid).length;
-    const 설치=bo.filter(o=>o.installed&&!o.paid).length;
-    const 결제=bo.filter(o=>o.paid).length;
+    const br=mRcs.filter(r=>r.branch===b.name);
+    if(!br.length)return null;
+    const 접수=br.filter(r=>r.status==='접수').length;
+    const 발주=br.filter(r=>r.status==='발주').length;
+    const 설치=br.filter(r=>r.status==='설치').length;
+    const 결제=br.filter(r=>r.status==='결제').length;
     return`<tr><td style="font-weight:600">${b.name}</td><td>${접수}</td><td>${발주}</td><td>${설치}</td><td style="color:var(--green)">${결제}</td></tr>`;
   }).filter(Boolean);
   document.getElementById('d-br').innerHTML=rows.join('')||`<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--text3)">${dbm} 이슈 없음</td></tr>`;
