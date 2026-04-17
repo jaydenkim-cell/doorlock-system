@@ -1335,7 +1335,7 @@ function renderR(){
     if(isAdm()&&r.status==='접수')act=`<button class="btn bo bsm" onclick="advR('${r.id}','발주')">발주 처리</button>`;
     else if(isAdm()&&r.status==='발주')act=`<button class="btn bo bsm" style="color:var(--purple);border-color:var(--purple)" onclick="advR('${r.id}','설치')">설치 시작</button>`;
     else if(r.status==='설치'){
-      if(isAdm())act=`<button class="btn bp bsm" style="display:inline-flex;align-items:center;gap:4px" onclick="openExpDateMo('${r.id}')">${CI.calendar} 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button>`;
+      if(isAdm())act=`<button class="btn bp bsm" style="display:inline-flex;align-items:center;gap:4px" onclick="openExpDateMo('${r.id}')">${CI.calendar} 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button> <button class="btn bo bsm" style="color:var(--yellow);border-color:var(--yellow)" onclick="revertToOrder('${r.id}')">↩ 발주로</button>`;
       else act=r.expectedInstallDate?`<span style="color:var(--purple);font-size:12px;display:inline-flex;align-items:center;gap:3px">${CI.calendar} ${r.expectedInstallDate}</span>`:`<span style="color:var(--text3);font-size:12px">설치일정 확인중</span>`;
     } else if(r.status==='결제'){
       if(!r.paymentDone&&isAdm())act=`<button class="btn bg bsm" onclick="confirmPayment('${r.id}')">결제완료 처리</button>`;
@@ -1399,13 +1399,6 @@ function advR(id,ns){
       doneDate:'',installed:false,paid:false,note:'자동생성('+rid+')'});
     sv(K.O,ors);
     return getOr();
-  }
-
-  // 설치 완료 시 ORDERS 연동
-  if(ns==='설치'){
-    const ors=ensureOrder(id,r);
-    const o=ors.find(x=>x.receiptId===id);
-    if(o){o.installed=true;o.doneDate=new Date().toISOString().substring(0,10);sv(K.O,ors);}
   }
 
   // 결제 완료 시 ORDERS 연동
@@ -2046,6 +2039,16 @@ function submitExpDate(){
   toast('s','일정 저장',`${r.branch} ${r.room} 예상 설치일: ${d}`);
 }
 // 결제완료 처리
+function revertToOrder(id){
+  const rcs=getRc(),r=rcs.find(x=>x.id===id);if(!r||r.status!=='설치')return;
+  showCfm(CI.box,'발주로 되돌리기',`${r.branch} ${r.room}을 발주 상태로 되돌립니까?`,()=>{
+    r.status='발주';r.expectedInstallDate='';r.installDate='';sv(K.R,rcs);
+    const ors=getOr(),o=ors.find(x=>x.receiptId===id);
+    if(o){o.installed=false;o.doneDate='';sv(K.O,ors);}
+    renderR();renderI();
+    toast('s','되돌리기 완료',`${r.branch} ${r.room} → 발주 상태`);
+  });
+}
 function confirmPayment(id){
   const rcs=getRc(),r=rcs.find(x=>x.id===id);if(!r)return;
   r.paymentDone=true;
