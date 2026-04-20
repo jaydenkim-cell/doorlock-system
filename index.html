@@ -864,7 +864,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <script>
 'use strict';
 /* ── localStorage keys (기존 그대로 유지) ── */
-const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles'};
+const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms'};
 const getSlackProfile=(email)=>{const sp=ld(K.SP,{});return sp[(email||'').toLowerCase()]||null;};
 const getUserEmailByName=(name)=>{if(!name)return null;const users=ld(K.U,[]);const u=users.find(u=>u.name===name);return u?.email||null;};
 const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${p.avatar}" alt="${p.name||name||''}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${p.name||name||email||'—'}`;const initials=(name||email||'?').charAt(0).toUpperCase();return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${name||email||'—'}</span>`;};
@@ -1581,10 +1581,43 @@ function submitAddUser(){
 }
 
 /* ── BRANCHES ── */
+// Duck 이름 → 도어락 이름 매핑 (이름이 다른 지점만)
+const DUCK_NAME_MAP={'플라트더각양양':'양양브라운스톤'};
+async function syncDuckRooms(){
+  try{
+    const r=await fetch(SB_URL+'/rest/v1/kv_store?key=eq.'+K.DR+'&select=value',{headers:SB_H});
+    if(!r.ok)return false;
+    const rows=await r.json();
+    if(!rows.length||!rows[0].value)return false;
+    const duck=rows[0].value;
+    if(!duck.rooms)return false;
+    const brs=getBr();
+    let cnt=0;
+    brs.forEach(b=>{
+      const duckName=Object.entries(DUCK_NAME_MAP).find(([_,dl])=>dl===b.name)?.[0]||b.name;
+      if(duck.rooms[duckName]!==undefined){b.rooms=duck.rooms[duckName];cnt++;}
+    });
+    if(cnt>0){sv(K.B,brs);}
+    return duck;
+  }catch{return false;}
+}
 function renderBr(){
-  const brs=getBr();
-  document.getElementById('bgrid').innerHTML=`<div class="bc" onclick="openBrMo(null)" style="border:2px dashed var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;min-height:110px;flex-direction:column;gap:8px;color:var(--text3)"><div style="font-size:28px">+</div><div style="font-size:13px;font-weight:600">지점 추가</div></div>`
-    +brs.map(b=>`<div class="bc" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div></div>`).join('');
+  // 툴바 버튼
+  document.getElementById('tb-r').innerHTML=`<button class="btn" onclick="syncDuckRoomsAndRender()" style="font-size:12px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button>`;
+  // Duck 캐시 적용 후 렌더
+  syncDuckRooms().then(duck=>{
+    const brs=getBr();
+    const syncAt=duck?.updatedAt?`<span style="font-size:11px;color:var(--text3);padding:4px 8px">마지막 Duck 동기화: ${duck.updatedAt.substring(0,10)}</span>`:'';
+    document.getElementById('bgrid').innerHTML=`<div class="bc" onclick="openBrMo(null)" style="border:2px dashed var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;min-height:110px;flex-direction:column;gap:8px;color:var(--text3)"><div style="font-size:28px">+</div><div style="font-size:13px;font-weight:600">지점 추가</div></div>`
+      +brs.map(b=>`<div class="bc" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div></div>`).join('');
+    if(syncAt)document.getElementById('bgrid').insertAdjacentHTML('beforebegin',`<div style="display:flex;justify-content:flex-end;margin-bottom:4px">${syncAt}</div>`);
+  });
+}
+async function syncDuckRoomsAndRender(){
+  const duck=await syncDuckRooms();
+  renderBr();
+  if(duck)toast('s','Duck 동기화 완료',`객실수 업데이트 완료 (${duck.updatedAt?.substring(0,10)||''})`);
+  else toast('w','동기화 데이터 없음','스케줄 작업이 아직 실행되지 않았습니다');
 }
 function openBrMo(id){
   const b=id?getBr().find(x=>x.id===id):null;
