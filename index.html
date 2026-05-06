@@ -631,12 +631,13 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <select class="fsel" id="fm-b" onchange="renderM()"><option value="">전체 지점</option></select>
         </div>
         <div class="mcg">
-          <div class="mcc"><div class="ml">설치비용 합계</div><div class="mv" id="mc-c">0원</div><div class="ms" id="mc-n">0건</div></div>
+          <div class="mcc"><div class="ml">합계 (부가세 별도)</div><div class="mv" id="mc-c">0원</div><div class="ms" id="mc-n">0건</div></div>
+          <div class="mcc"><div class="ml">합계 (부가세 포함)</div><div class="mv" id="mc-cv" style="color:var(--accent)">0원</div><div class="ms" id="mc-tax">부가세 0원</div></div>
           <div class="mcc"><div class="ml">마감 상태</div><div class="mv" id="mc-st" style="font-size:15px;color:var(--yellow)">미마감</div><div class="ms" id="mc-ss">처리 전</div></div>
         </div>
         <div class="panel">
           <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 지점별 정산</span><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></div>
-          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>완료건</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계</th></tr></thead><tbody id="m-body"></tbody></table></div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>완료건</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body"></tbody></table></div>
         </div>
       </div>
 
@@ -1511,8 +1512,21 @@ function renderM(){
   let ors=getOr().filter(o=>o.installed&&o.paid);
   if(mv)ors=ors.filter(o=>(o.orderDate||'').startsWith(mv));if(bv)ors=ors.filter(o=>o.branch===bv);
   let tc=0;
-  const rows=getBr().map(b=>{const bo=ors.filter(o=>o.branch===b.name);const p=bo.reduce((s,o)=>s+(o.price||0)*(o.qty||1),0),i=bo.reduce((s,o)=>s+(o.install||0)*(o.qty||1),0),e=bo.reduce((s,o)=>s+(o.extra||0)*(o.qty||1),0),t=p+i+e;tc+=t;if(!bo.length)return'';return`<tr><td style="font-weight:600">${b.name}</td><td>${bo.length}건</td><td style="font-family:'JetBrains Mono',monospace">${p.toLocaleString()}</td><td style="font-family:'JetBrains Mono',monospace">${i.toLocaleString()}</td><td style="font-family:'JetBrains Mono',monospace">${e.toLocaleString()}</td><td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent)">${t.toLocaleString()}</td></tr>`;}).join('');
-  document.getElementById('mc-c').textContent=tc.toLocaleString()+'원';document.getElementById('mc-n').textContent=ors.length+'건 결제완료 기준';document.getElementById('m-body').innerHTML=rows||emp(6);
+  const mono="font-family:'JetBrains Mono',monospace";
+  const rows=getBr().map(b=>{
+    const bo=ors.filter(o=>o.branch===b.name);
+    const p=bo.reduce((s,o)=>s+(o.price||0)*(o.qty||1),0),i=bo.reduce((s,o)=>s+(o.install||0)*(o.qty||1),0),e=bo.reduce((s,o)=>s+(o.extra||0)*(o.qty||1),0),t=p+i+e;
+    const tEx=Math.round(t*10/11),tTax=t-tEx;
+    tc+=t;
+    if(!bo.length)return'';
+    return`<tr><td style="font-weight:600">${b.name}</td><td>${bo.length}건</td><td style="${mono}">${p.toLocaleString()}</td><td style="${mono}">${i.toLocaleString()}</td><td style="${mono}">${e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${tEx.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${tTax.toLocaleString()}</td><td style="${mono};font-weight:700;color:var(--accent)">${t.toLocaleString()}</td></tr>`;
+  }).join('');
+  const tcEx=Math.round(tc*10/11),tcTax=tc-tcEx;
+  document.getElementById('mc-c').textContent=tcEx.toLocaleString()+'원';
+  document.getElementById('mc-cv').textContent=tc.toLocaleString()+'원';
+  document.getElementById('mc-tax').textContent='부가세 '+tcTax.toLocaleString()+'원';
+  document.getElementById('mc-n').textContent=ors.length+'건 결제완료 기준';
+  document.getElementById('m-body').innerHTML=rows||emp(8);
 }
 function doClose(){showCfm(CI.calendar,'월마감 실행','현재 데이터로 월마감을 처리합니다.',()=>{document.getElementById('mc-st').textContent='마감 완료';document.getElementById('mc-st').style.color='var(--green)';document.getElementById('mc-ss').textContent=new Date().toLocaleDateString('ko-KR')+' 처리';toast('s','월마감 완료','정산이 확정되었습니다.');});}
 
