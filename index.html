@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
 <title>Plott — 도어락 통합관리</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -637,12 +639,8 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <div class="mcc"><div class="ml">마감 상태</div><div class="mv" id="mc-st" style="font-size:15px;color:var(--yellow)">미마감</div><div class="ms" id="mc-ss">처리 전</div></div>
         </div>
         <div class="panel">
-          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 신규/추가 설치 <span style="font-size:11px;font-weight:400;color:var(--text3);background:var(--surface);padding:2px 6px;border-radius:4px">선급금/집기출금 · 코드 6200</span></span><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></div>
-          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>완료건</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-new"></tbody></table></div>
-        </div>
-        <div class="panel" style="margin-top:14px">
-          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 교체 설치 <span style="font-size:11px;font-weight:400;color:var(--text3);background:var(--surface);padding:2px 6px;border-radius:4px">수선비/지점출금 · 코드 6055</span></span></div>
-          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>완료건</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-rep"></tbody></table></div>
+          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>유형</th><th>완료건</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-all"></tbody></table></div>
         </div>
       </div>
 
@@ -1263,7 +1261,7 @@ function populateSels(){
   const ors=getOr();
   const ms=[...new Set(ors.map(o=>(o.orderDate||'').substring(0,7)).filter(Boolean))].sort().reverse();
   const fom=document.getElementById('fo-m');if(fom){const f0=fom.options[0];fom.innerHTML='';fom.appendChild(f0);ms.forEach(m=>fom.appendChild(new Option(m,m)));}
-  const fmm=document.getElementById('fm-m');if(fmm){const f0=fmm.options[0];fmm.innerHTML='';fmm.appendChild(f0);const all=[...new Set([...ors.map(o=>(o.orderDate||'').substring(0,7)),...getRc().map(r=>(r.date||'').substring(0,7))].filter(Boolean))].sort().reverse();all.forEach(m=>fmm.appendChild(new Option(m,m)));if(all[0])fmm.value=all[0];}
+  const fmm=document.getElementById('fm-m');if(fmm){const f0=fmm.options[0];fmm.innerHTML='';fmm.appendChild(f0);const all=[...new Set(ors.filter(o=>o.installed&&o.doneDate).map(o=>(o.doneDate||'').substring(0,7)).filter(Boolean))].sort().reverse();all.forEach(m=>fmm.appendChild(new Option(m,m)));if(all[0])fmm.value=all[0];}
 }
 
 /* ── BADGE ── */
@@ -1513,30 +1511,64 @@ function renderI(){
 
 /* ── MONTHLY ── */
 function renderM(){
-  const mv=document.getElementById('fm-m')?.value,bv=document.getElementById('fm-b')?.value;
-  let ors=getOr().filter(o=>o.installed&&o.paid);
-  if(mv)ors=ors.filter(o=>(o.orderDate||'').startsWith(mv));if(bv)ors=ors.filter(o=>o.branch===bv);
-  // 신규/추가 (코드 6200) vs 교체 (코드 6055)
+  // 1) 설치완료 발주 전체 (doneDate 기준)
+  const allOrs=getOr();
+  const doneOrs=allOrs.filter(o=>o.installed===true&&o.doneDate&&o.doneDate.length>0);
+
+  // 2) 월 선택지 갱신 (옵션을 하나씩 제거하는 안전한 방법)
+  const fmm=document.getElementById('fm-m');
+  if(fmm){
+    const months=[...new Set(doneOrs.map(o=>o.doneDate.substring(0,7)))].sort().reverse();
+    const prev=fmm.value;
+    while(fmm.options.length>1)fmm.options[fmm.options.length-1].remove();
+    months.forEach(m=>{const opt=document.createElement('option');opt.value=m;opt.textContent=m;fmm.appendChild(opt);});
+    fmm.value=(months.includes(prev))?prev:(months.length>0?months[0]:'');
+  }
+
+  // 3) 필터 적용
+  const mv=(fmm&&fmm.value)||'';
+  const bv=document.getElementById('fm-b')?.value||'';
+  let ors=doneOrs;
+  if(mv)ors=ors.filter(o=>o.doneDate.startsWith(mv));
+  if(bv)ors=ors.filter(o=>o.branch===bv);
+
+  // 4) 신규/추가 vs 교체 분류
   const isNew=o=>o.type==='신규'||o.type==='추가'||!o.type;
-  const orsNew=ors.filter(isNew), orsRep=ors.filter(o=>!isNew(o));
+  const orsNew=ors.filter(o=>isNew(o));
+  const orsRep=ors.filter(o=>!isNew(o));
   const mono="font-family:'JetBrains Mono',monospace";
-  const mkRows=(list,accentColor)=>getBr().map(b=>{
-    const bo=list.filter(o=>o.branch===b.name);
-    if(!bo.length)return'';
-    const p=bo.reduce((s,o)=>s+(o.price||0)*(o.qty||1),0),i=bo.reduce((s,o)=>s+(o.install||0)*(o.qty||1),0),e=bo.reduce((s,o)=>s+(o.extra||0)*(o.qty||1),0),t=p+i+e;
+
+  // 5) 행 생성
+  const mkRow=(bo,bn,label,color,sub)=>{
+    if(!bo||!bo.length)return'';
+    const p=bo.reduce((s,o)=>s+(Number(o.price)||0)*(Number(o.qty)||1),0);
+    const i=bo.reduce((s,o)=>s+(Number(o.install)||0)*(Number(o.qty)||1),0);
+    const e=bo.reduce((s,o)=>s+(Number(o.extra)||0)*(Number(o.qty)||1),0);
+    const t=p+i+e;
     const tEx=Math.round(t*10/11),tTax=t-tEx;
-    return`<tr><td style="font-weight:600">${b.name}</td><td>${bo.length}건</td><td style="${mono}">${p.toLocaleString()}</td><td style="${mono}">${i.toLocaleString()}</td><td style="${mono}">${e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${tEx.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${tTax.toLocaleString()}</td><td style="${mono};font-weight:700;color:${accentColor}">${t.toLocaleString()}</td></tr>`;
-  }).join('');
-  const sumOf=list=>{const t=list.reduce((s,o)=>s+(o.price||0)*(o.qty||1)+(o.install||0)*(o.qty||1)+(o.extra||0)*(o.qty||1),0);return{t,ex:Math.round(t*10/11),tax:t-Math.round(t*10/11)};};
-  const sN=sumOf(orsNew),sR=sumOf(orsRep),tc=sN.t+sR.t,tcEx=sN.ex+sR.ex,tcTax=sN.tax+sR.tax;
+    const isAccent=color==='var(--accent)';
+    const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${isAccent?'rgba(26,86,219,.1)':'rgba(245,158,11,.1)'};color:${color}">${label}</span><div style="font-size:10px;color:var(--text3);margin-top:2px">${sub}</div>`;
+    return`<tr><td style="font-weight:600">${bn}</td><td style="white-space:nowrap">${badge}</td><td>${bo.length}건</td><td style="${mono}">${p.toLocaleString()}</td><td style="${mono}">${i.toLocaleString()}</td><td style="${mono}">${e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${tEx.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${tTax.toLocaleString()}</td><td style="${mono};font-weight:700;color:${color}">${t.toLocaleString()}</td></tr>`;
+  };
+  const bNames=[...new Set(ors.map(o=>o.branch).filter(Boolean))].sort();
+  const allRows=bNames.flatMap(bn=>[
+    mkRow(orsNew.filter(o=>o.branch===bn),bn,'신규','var(--accent)','선급금/집기출금 · 6200'),
+    mkRow(orsRep.filter(o=>o.branch===bn),bn,'교체','var(--yellow)','수선비/지점출금 · 6055')
+  ]).filter(Boolean).join('');
+
+  // 6) 요약 카드 업데이트
+  const sumOf=list=>{const t=list.reduce((s,o)=>s+(Number(o.price)||0)*(Number(o.qty)||1)+(Number(o.install)||0)*(Number(o.qty)||1)+(Number(o.extra)||0)*(Number(o.qty)||1),0);return{t,ex:Math.round(t*10/11),tax:t-Math.round(t*10/11)};};
+  const sN=sumOf(orsNew),sR=sumOf(orsRep),tc=sN.t+sR.t,tcTax=sN.tax+sR.tax;
   document.getElementById('mc-new').textContent=sN.t.toLocaleString()+'원';
   document.getElementById('mc-new-sub').textContent=orsNew.length+'건 · 별도 '+sN.ex.toLocaleString()+'원';
   document.getElementById('mc-rep').textContent=sR.t.toLocaleString()+'원';
   document.getElementById('mc-rep-sub').textContent=orsRep.length+'건 · 별도 '+sR.ex.toLocaleString()+'원';
   document.getElementById('mc-cv').textContent=tc.toLocaleString()+'원';
   document.getElementById('mc-tax').textContent='부가세 '+tcTax.toLocaleString()+'원';
-  document.getElementById('m-body-new').innerHTML=mkRows(orsNew,'var(--accent)')||emp(8);
-  document.getElementById('m-body-rep').innerHTML=mkRows(orsRep,'var(--yellow)')||emp(8);
+
+  // 7) 테이블 렌더링
+  const tbody=document.getElementById('m-body-all');
+  if(tbody)tbody.innerHTML=allRows||emp(9);
 }
 function doClose(){showCfm(CI.calendar,'월마감 실행','현재 데이터로 월마감을 처리합니다.',()=>{document.getElementById('mc-st').textContent='마감 완료';document.getElementById('mc-st').style.color='var(--green)';document.getElementById('mc-ss').textContent=new Date().toLocaleDateString('ko-KR')+' 처리';toast('s','월마감 완료','정산이 확정되었습니다.');});}
 
