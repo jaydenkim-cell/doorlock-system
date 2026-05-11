@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>Plott — 도어락 통합관리</title>
+<title>도어락발주시스템</title>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
@@ -385,8 +385,8 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
       <path d="M20.995,5.5h-3.507v-3h-.5c-.551,0-.999-.449-.999-1v-.5H5.995v.5c0,.551-.448,1-1,1h-.5v19h.5c.551,0,1,.448,1,1v.5h9.995v-.5c0-.552.448-1,.999-1h.5v-12.5h3.507v-3.5ZM16.488,20.563c-.701.182-1.254.734-1.436,1.437H6.931c-.181-.702-.734-1.255-1.436-1.437V3.437c.702-.181,1.255-.735,1.436-1.437h8.122c.181.702.734,1.255,1.436,1.437v2.063h-6.987v3.5h6.987v11.563ZM19.995,8h-9.494v-1.5h9.494v1.5Z"/>
     </svg>
   </div>
-  <div class="l-brand">plott</div>
-  <div class="l-sub">도어락 통합관리 시스템</div>
+  <div class="l-brand">도어락발주시스템</div>
+  <div class="l-sub">발주 통합관리</div>
   <div class="lc">
     <div class="lc-title">로그인</div>
     <div class="lc-desc">Plott 사내 계정으로 로그인해 주세요</div>
@@ -446,7 +446,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <!-- APP -->
 <div id="app">
   <aside class="sb">
-    <div class="sb-logo"><div class="brand">plott<span style="opacity:.5;font-weight:300">.</span></div><div class="tag">도어락 통합관리</div></div>
+    <div class="sb-logo"><div class="brand">도어락발주시스템</div><div class="tag">발주 통합관리</div></div>
     <div style="padding:10px 12px 0">
       <div class="sb-user"><div class="un" id="sb-n">—</div><div class="ub" id="sb-b">—</div><span class="ur" id="sb-r"></span></div>
     </div>
@@ -877,7 +877,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <script>
 'use strict';
 /* ── localStorage keys (기존 그대로 유지) ── */
-const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms'};
+const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close'};
 const getSlackProfile=(email)=>{const sp=ld(K.SP,{});return sp[(email||'').toLowerCase()]||null;};
 const getUserEmailByName=(name)=>{if(!name)return null;const users=ld(K.U,[]);const u=users.find(u=>u.name===name);return u?.email||null;};
 const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${p.avatar}" alt="${p.name||name||''}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${p.name||name||email||'—'}`;const initials=(name||email||'?').charAt(0).toUpperCase();return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${name||email||'—'}</span>`;};
@@ -1256,6 +1256,13 @@ function goP(p){
   const[t,s]=PM[p]||[p,''];
   document.getElementById('pg-t').textContent=t;document.getElementById('pg-s').textContent=s;
   document.getElementById('tb-r').innerHTML='';
+  ['fr-b','fr-m','fo-b','fo-m','fi-b','fm-b','fm-m'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    const saved=sessionStorage.getItem('filter_'+id);
+    if(saved&&[...el.options].some(o=>o.value===saved))el.value=saved;
+    el.onchange=()=>sessionStorage.setItem('filter_'+id,el.value);
+  });
   const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,branches:renderBr,users:renderUsers};
   if(fns[p])fns[p]();
   if(['receipt','order','install','monthly'].includes(p)){
@@ -1354,7 +1361,7 @@ function renderR(){
       else act=r.expectedInstallDate?`<span style="color:var(--purple);font-size:12px;display:inline-flex;align-items:center;gap:3px">${CI.calendar} ${r.expectedInstallDate}</span>`:`<span style="color:var(--text3);font-size:12px">설치일정 확인중</span>`;
     } else if(r.status==='결제'){
       if(!r.paymentDone&&isAdm())act=`<button class="btn bg bsm" onclick="confirmPayment('${r.id}')">결제완료 처리</button>`;
-      else if(r.paymentDone)act=`<span style="color:var(--green);font-size:12px">✓ 결제완료</span>`;
+      else if(r.paymentDone)act=`<span style="color:var(--green);font-size:12px">✓ 결제완료</span>${isAdm()?`<button class="btn bo bsm" style="margin-left:4px;color:var(--yellow);border-color:var(--yellow)" onclick="revertPayment('${r.id}')">↩ 설치로</button>`:''}`;
       else act=`<span style="color:#ea580c;font-size:12px">결제 대기중</span>`;
     }
     const mgmt=isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="editR('${r.id}')">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteR('${r.id}')">삭제</button>`:'';
@@ -1470,7 +1477,7 @@ function saveOrder(){
   const br=document.getElementById('m-branch').value,rm=document.getElementById('m-room').value.trim(),od=document.getElementById('m-order-date').value;
   if(!br||!rm||!od){toast('e','입력 오류','지점, 객실번호, 발주일은 필수입니다.');return;}
   const ors=getOr(),eid=document.getElementById('edit-order-id').value;
-  const data={branch:br,room:rm,qty:parseInt(document.getElementById('m-qty').value)||1,type:document.getElementById('m-type').value,price:parseInt(document.getElementById('m-price').value)||0,install:parseInt(document.getElementById('m-install').value)||0,extra:parseInt(document.getElementById('m-extra').value)||0,orderDate:od,openDate:document.getElementById('m-open-date').value,doneDate:document.getElementById('m-done-date').value,note:document.getElementById('m-memo').value};
+  const data={branch:br,room:rm,qty:Math.max(1,parseInt(document.getElementById('m-qty').value)||1),type:document.getElementById('m-type').value,price:parseInt(document.getElementById('m-price').value)||0,install:parseInt(document.getElementById('m-install').value)||0,extra:parseInt(document.getElementById('m-extra').value)||0,orderDate:od,openDate:document.getElementById('m-open-date').value,doneDate:document.getElementById('m-done-date').value,note:document.getElementById('m-memo').value};
   if(eid){
     const idx=ors.findIndex(o=>o.id==eid);
     if(idx>=0)ors[idx]={...ors[idx],...data}; // installed/paid는 기존 값 유지
@@ -1493,9 +1500,10 @@ function saveOrder(){
 function deleteO(id){
   const o=getOr().find(x=>x.id===id);if(!o)return;
   showCfm(CI.trash,'발주 삭제',`${o.branch} ${o.room} 발주를 삭제하시겠습니까?`,()=>{
+    const backup=JSON.parse(JSON.stringify(o));
     sv(K.O,getOr().filter(x=>x.id!==id));
     renderO();
-    toast('s','삭제 완료',`${o.branch} ${o.room} 발주가 삭제되었습니다.`);
+    toastUndo('삭제됨: '+o.branch+' '+o.room,()=>{const ors2=getOr();ors2.push(backup);sv(K.O,ors2);renderO();toast('s','복구 완료','발주가 복구되었습니다.');});
   });
 }
 
@@ -1583,8 +1591,33 @@ function renderM(){
   // 7) 테이블 렌더링
   const tbody=document.getElementById('m-body-all');
   if(tbody)tbody.innerHTML=allRows||emp(9);
+
+  // 8) 마감 버튼 상태 업데이트
+  const closeBtn=document.querySelector('[onclick="doClose()"]');
+  if(closeBtn){
+    const closedList=ld(K.MC,[]);
+    if(mv&&closedList.includes(mv)){
+      closeBtn.disabled=true;closeBtn.textContent='✓ 마감완료';closeBtn.style.opacity='0.6';closeBtn.style.cursor='not-allowed';
+    } else {
+      closeBtn.disabled=false;closeBtn.textContent='월마감 실행';closeBtn.style.opacity='';closeBtn.style.cursor='';
+    }
+  }
 }
-function doClose(){showCfm(CI.calendar,'월마감 실행','현재 데이터로 월마감을 처리합니다.',()=>{document.getElementById('mc-st').textContent='마감 완료';document.getElementById('mc-st').style.color='var(--green)';document.getElementById('mc-ss').textContent=new Date().toLocaleDateString('ko-KR')+' 처리';toast('s','월마감 완료','정산이 확정되었습니다.');});}
+function doClose(){
+  const mv=document.getElementById('fm-m')?.value||'';
+  if(!mv){toast('w','월 미선택','마감할 월을 선택해주세요.');return;}
+  const closed=ld(K.MC,[]);
+  if(closed.includes(mv)){toast('w','이미 마감됨',`${mv}은 이미 마감 처리되었습니다.`);return;}
+  showCfm(CI.calendar,'월마감 실행',`${mv} 데이터로 월마감을 처리합니다.`,()=>{
+    const cl=ld(K.MC,[]);
+    if(!cl.includes(mv)){cl.push(mv);sv(K.MC,cl);}
+    document.getElementById('mc-st').textContent='마감 완료';
+    document.getElementById('mc-st').style.color='var(--green)';
+    document.getElementById('mc-ss').textContent=new Date().toLocaleDateString('ko-KR')+' 처리';
+    toast('s','월마감 완료','정산이 확정되었습니다.');
+    renderM();
+  });
+}
 
 /* ── USER MANAGEMENT (superadmin only) ── */
 const ROLE_LABELS = {superadmin:'최고관리자',admin:'관리자',user:'직원',pending:'대기'};
@@ -2093,9 +2126,31 @@ function editR(id){
   document.getElementById('tgld').style.transform=urgOn?'translateX(18px)':'translateX(0)';
   openMo('mo-r');
 }
+function toastUndo(msg,undoCb){
+  const uid='undo-'+Date.now();
+  const tw=document.querySelector('.tw');
+  const el=document.createElement('div');
+  el.className='toast ti2 show';
+  el.id=uid;
+  el.innerHTML=`<span class="tic">🗑️</span><div style="flex:1"><div class="tt2">${msg}</div><div class="td">실수로 삭제했나요?</div></div><button onclick="doUndo('${uid}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:'PretendardVariable',sans-serif;flex-shrink:0">되돌리기</button>`;
+  tw.appendChild(el);
+  const timer=setTimeout(()=>el.remove(),5000);
+  el._timer=timer;
+  el._undoCb=undoCb;
+}
+function doUndo(uid){
+  const el=document.getElementById(uid);
+  if(!el)return;
+  clearTimeout(el._timer);
+  if(el._undoCb)el._undoCb();
+  el.remove();
+}
 function deleteR(id){
+  const rcs=getRc(),r=rcs.find(x=>x.id===id);if(!r)return;
   showCfm(CI.trash,'접수 삭제','이 접수건을 삭제하시겠습니까?',()=>{
-    sv(K.R,getRc().filter(r=>r.id!==id));renderR();toast('s','삭제 완료','접수가 삭제되었습니다.');
+    const backup=JSON.parse(JSON.stringify(r));
+    sv(K.R,getRc().filter(x=>x.id!==id));renderR();
+    toastUndo('삭제됨: '+r.branch+' '+r.room,()=>{const rcs2=getRc();rcs2.push(backup);sv(K.R,rcs2);renderR();toast('s','복구 완료','접수가 복구되었습니다.');});
   });
 }
 function toggleUrg(){urgOn=!urgOn;document.getElementById('tgl').style.background=urgOn?'var(--red)':'var(--border2)';document.getElementById('tgld').style.transform=urgOn?'translateX(18px)':'translateX(0)';}
@@ -2105,14 +2160,27 @@ function submitR(){
   const eid=document.getElementById('r-edit-id').value;
   if(eid){
     const rcs=getRc(),r=rcs.find(x=>x.id===eid);
-    if(r){r.branch=br;r.room=rm;r.type=document.getElementById('r-type').value;r.qty=parseInt(document.getElementById('r-qty').value)||1;r.openDate=document.getElementById('r-open-date').value||'';r.urgent=urgOn;r.memo=document.getElementById('r-memo').value;}
-    sv(K.R,rcs);closeMo('mo-r');renderR();toast('s','수정 완료',`${br} ${rm} 접수 수정됨`);return;
+    if(r){r.branch=br;r.room=rm;r.type=document.getElementById('r-type').value;r.qty=Math.max(1,parseInt(document.getElementById('r-qty').value)||1);r.openDate=document.getElementById('r-open-date').value||'';r.urgent=urgOn;r.memo=document.getElementById('r-memo').value;}
+    sv(K.R,rcs);
+    // 발주 동기화
+    const tmap={'신규 설치':'신규','교체(노후화)':'교체','교체(고장)':'교체','추가 설치':'추가'};
+    const ors=getOr(),o=ors.find(x=>x.receiptId===eid);
+    if(o){o.branch=br;o.room=rm;o.qty=r.qty;o.type=tmap[r.type]||r.type||'신규';sv(K.O,ors);}
+    closeMo('mo-r');renderR();toast('s','수정 완료',`${br} ${rm} 접수 수정됨`);return;
   }
-  const rcs=getRc(),now=new Date(),ym=now.toISOString().substring(2,4)+now.toISOString().substring(5,7),seq=String(rcs.length+1).padStart(3,'0');
-  const newR={id:`DL-${ym}-${seq}`,branch:br,room:rm,type:document.getElementById('r-type').value,qty:parseInt(document.getElementById('r-qty').value)||1,openDate:document.getElementById('r-open-date').value||'',urgent:urgOn,status:'접수',memo:document.getElementById('r-memo').value,date:now.toISOString().substring(0,10),regBy:S.name||S.id||'unknown',regEmail:S.email||S.id||'',installDate:'',installModel:'',installMemo:''};
-  rcs.push(newR);
-  sv(K.R,rcs);closeMo('mo-r');renderR();renderD();toast('s','접수 완료',`${br} ${rm} (DL-${ym}-${seq})`);
-  sendSlackNoti(newR);
+  function doCreate(){
+    const rcs2=getRc(),now=new Date(),ym=now.toISOString().substring(2,4)+now.toISOString().substring(5,7),seq=String(rcs2.length+1).padStart(3,'0');
+    const newR={id:`DL-${ym}-${seq}`,branch:br,room:rm,type:document.getElementById('r-type').value,qty:Math.max(1,parseInt(document.getElementById('r-qty').value)||1),openDate:document.getElementById('r-open-date').value||'',urgent:urgOn,status:'접수',memo:document.getElementById('r-memo').value,date:now.toISOString().substring(0,10),regBy:S.name||S.id||'unknown',regEmail:S.email||S.id||'',installDate:'',installModel:'',installMemo:''};
+    rcs2.push(newR);
+    sv(K.R,rcs2);closeMo('mo-r');renderR();renderD();toast('s','접수 완료',`${br} ${rm} (DL-${ym}-${seq})`);
+    sendSlackNoti(newR);
+  }
+  const existing=getRc().find(r=>r.branch===br&&r.room===rm&&r.status!=='결제'&&r.status!=='');
+  if(existing){
+    showCfm('⚠️','중복 접수 경고',`${br} ${rm}에 이미 진행 중인 접수(${existing.id})가 있습니다. 그래도 등록하시겠습니까?`,doCreate);
+  } else {
+    doCreate();
+  }
 }
 
 /* ── INSTALL MODAL ── */
@@ -2161,6 +2229,16 @@ function revertToOrder(id){
     if(o){o.installed=false;o.doneDate='';sv(K.O,ors);}
     renderR();renderI();
     toast('s','되돌리기 완료',`${r.branch} ${r.room} → 발주 상태`);
+  });
+}
+function revertPayment(id){
+  const rcs=getRc(),r=rcs.find(x=>x.id===id);if(!r||r.status!=='결제')return;
+  showCfm(CI.box,'설치 상태로 되돌리기',`${r.branch} ${r.room}을 설치 상태로 되돌립니까?`,()=>{
+    r.status='설치';r.paymentDone=false;sv(K.R,rcs);
+    const ors=getOr(),o=ors.find(x=>x.receiptId===id);
+    if(o){o.paid=false;sv(K.O,ors);}
+    renderR();renderI();
+    toast('s','되돌리기 완료',`${r.branch} ${r.room} → 설치 상태`);
   });
 }
 function confirmPayment(id){
@@ -2221,12 +2299,14 @@ async function sendSlackNoti(r){
         {type:'mrkdwn',text:`*접수자*\n${r.regBy||'—'}`},
         {type:'mrkdwn',text:`*접수일*\n${r.date}`}
       ]},
-      {type:'context',elements:[{type:'mrkdwn',text:`Plott 도어락 통합관리 · ${new Date().toLocaleString('ko-KR')}`}]}
+      {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
     ]
   };
   try{
     await fetch(wh,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'payload='+encodeURIComponent(JSON.stringify(payload))});
-  }catch{}
+  }catch(e){
+    console.warn('Slack 알림 전송 실패:', e);
+  }
 }
 
 /* ── EXCEL EXPORT ── */
@@ -2318,6 +2398,8 @@ const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:
 setInterval(async()=>{
   if(!S)return; // 로그인 전엔 동기화 안 함
   await sbSync();
+  const anyModalOpen=document.querySelector('.mo.show');
+  if(anyModalOpen)return;
   const cur=document.querySelector('.page.on')?.id?.replace('page-','');
   if(cur&&PAGE_RENDER[cur])PAGE_RENDER[cur]();
 },30000);
