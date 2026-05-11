@@ -365,6 +365,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 .tt2{font-size:13px;font-weight:600;}
 .td{font-size:11px;color:var(--text3);margin-top:1px;}
 </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -646,6 +647,14 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 
       <!-- 지점 관리 (admin) -->
       <div class="page" id="page-branches">
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt">🔔 Slack 알림 설정</span><span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px">새 접수 등록 시 Slack으로 알림 전송</span></div>
+          <div class="pb" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <input id="slack-wh-inp" class="fi" placeholder="https://hooks.slack.com/services/T.../B.../..." style="flex:1;min-width:280px;font-family:'JetBrains Mono',monospace;font-size:11px">
+            <button class="btn bp bsm" onclick="saveSlackWh()">저장</button>
+            <button class="btn bo bsm" onclick="testSlackNoti()">테스트 발송</button>
+          </div>
+        </div>
         <div class="bgrid" id="bgrid"></div>
       </div>
 
@@ -1249,6 +1258,11 @@ function goP(p){
   document.getElementById('tb-r').innerHTML='';
   const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,branches:renderBr,users:renderUsers};
   if(fns[p])fns[p]();
+  if(['receipt','order','install','monthly'].includes(p)){
+    const tbr=document.getElementById('tb-r');
+    const xlSvg=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>`;
+    tbr.insertAdjacentHTML('beforeend',`<button class="btn bo bsm" onclick="exportToExcel('${p}')" style="display:inline-flex;align-items:center;gap:5px;color:#217346;border-color:#217346">${xlSvg} 엑셀 다운로드</button>`);
+  }
 }
 
 /* ── SELECTS ── */
@@ -1658,6 +1672,8 @@ async function syncDuckRooms(){
   }catch{return false;}
 }
 function renderBr(){
+  // 웹훅 URL 복원
+  const whInp=document.getElementById('slack-wh-inp');if(whInp)whInp.value=getSlackWh();
   // 툴바 버튼
   document.getElementById('tb-r').innerHTML=`<button class="btn" onclick="syncDuckRoomsAndRender()" style="font-size:12px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button>`;
   // Duck 캐시 적용 후 렌더
@@ -2093,8 +2109,10 @@ function submitR(){
     sv(K.R,rcs);closeMo('mo-r');renderR();toast('s','수정 완료',`${br} ${rm} 접수 수정됨`);return;
   }
   const rcs=getRc(),now=new Date(),ym=now.toISOString().substring(2,4)+now.toISOString().substring(5,7),seq=String(rcs.length+1).padStart(3,'0');
-  rcs.push({id:`DL-${ym}-${seq}`,branch:br,room:rm,type:document.getElementById('r-type').value,qty:parseInt(document.getElementById('r-qty').value)||1,openDate:document.getElementById('r-open-date').value||'',urgent:urgOn,status:'접수',memo:document.getElementById('r-memo').value,date:now.toISOString().substring(0,10),regBy:S.name||S.id||'unknown',regEmail:S.email||S.id||'',installDate:'',installModel:'',installMemo:''});
+  const newR={id:`DL-${ym}-${seq}`,branch:br,room:rm,type:document.getElementById('r-type').value,qty:parseInt(document.getElementById('r-qty').value)||1,openDate:document.getElementById('r-open-date').value||'',urgent:urgOn,status:'접수',memo:document.getElementById('r-memo').value,date:now.toISOString().substring(0,10),regBy:S.name||S.id||'unknown',regEmail:S.email||S.id||'',installDate:'',installModel:'',installMemo:''};
+  rcs.push(newR);
   sv(K.R,rcs);closeMo('mo-r');renderR();renderD();toast('s','접수 완료',`${br} ${rm} (DL-${ym}-${seq})`);
+  sendSlackNoti(newR);
 }
 
 /* ── INSTALL MODAL ── */
@@ -2173,6 +2191,127 @@ const _mqty=document.getElementById('m-qty');if(_mqty)_mqty.addEventListener('in
   if(btn){btn.disabled=false;txt.textContent='Plott SSO 로그인';}
   await handleSSOCallback();
 })();
+
+/* ── SLACK NOTIFICATION ── */
+const SLACK_KEY='doorlock_slack_wh';
+const getSlackWh=()=>ld(SLACK_KEY,'');
+function saveSlackWh(){
+  const url=(document.getElementById('slack-wh-inp')?.value||'').trim();
+  sv(SLACK_KEY,url);
+  toast(url?'s':'i','Slack 설정 저장',url?'저장 완료. 테스트 발송으로 확인하세요.':'Slack 알림이 비활성화됩니다.');
+}
+function testSlackNoti(){
+  if(!getSlackWh()){toast('e','웹훅 미설정','먼저 Slack 웹훅 URL을 저장해주세요.');return;}
+  sendSlackNoti({id:'TEST-001',branch:'테스트 지점',room:'101호',type:'신규 설치',qty:1,urgent:false,openDate:'2026-06-01',date:new Date().toISOString().substring(0,10),regBy:S?.name||'관리자'});
+  toast('i','테스트 발송','Slack으로 테스트 메시지를 전송했습니다.');
+}
+async function sendSlackNoti(r){
+  const wh=getSlackWh();if(!wh)return;
+  const payload={
+    text:`🔔 새 도어락 접수 등록${r.urgent?' 🚨 긴급':''}`,
+    blocks:[
+      {type:'header',text:{type:'plain_text',text:`🔔 새 접수 등록${r.urgent?' 🚨 긴급':''}`}},
+      {type:'section',fields:[
+        {type:'mrkdwn',text:`*접수 ID*\n\`${r.id}\``},
+        {type:'mrkdwn',text:`*지점*\n${r.branch}`},
+        {type:'mrkdwn',text:`*객실*\n${r.room}`},
+        {type:'mrkdwn',text:`*유형*\n${r.type}`},
+        {type:'mrkdwn',text:`*수량*\n${r.qty||1}개`},
+        {type:'mrkdwn',text:`*오픈일*\n${r.openDate||'미정'}`},
+        {type:'mrkdwn',text:`*접수자*\n${r.regBy||'—'}`},
+        {type:'mrkdwn',text:`*접수일*\n${r.date}`}
+      ]},
+      {type:'context',elements:[{type:'mrkdwn',text:`Plott 도어락 통합관리 · ${new Date().toLocaleString('ko-KR')}`}]}
+    ]
+  };
+  try{
+    await fetch(wh,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'payload='+encodeURIComponent(JSON.stringify(payload))});
+  }catch{}
+}
+
+/* ── EXCEL EXPORT ── */
+function exportToExcel(type){
+  if(typeof XLSX==='undefined'){toast('e','오류','엑셀 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도하세요.');return;}
+  const today=new Date().toISOString().substring(0,10);
+  let rows=[],fileName='';
+
+  if(type==='receipt'){
+    let all=getRc();
+    if(S.role==='user'&&S.branch&&S.branch!=='본사')all=all.filter(r=>r.branch===S.branch);
+    let list=pipeR==='all'?all:all.filter(r=>r.status===pipeR);
+    const bv=document.getElementById('fr-b')?.value;if(bv)list=list.filter(r=>r.branch===bv);
+    const mv=document.getElementById('fr-m')?.value;if(mv)list=list.filter(r=>(r.createdAt||r.date||'').startsWith(mv));
+    const sv2=document.getElementById('fr-s')?.value.toLowerCase();if(sv2)list=list.filter(r=>(r.id||'').toLowerCase().includes(sv2)||(r.room||'').toLowerCase().includes(sv2));
+    list.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    rows=[['접수ID','지점','객실','유형','수량','오픈일','상태','긴급여부','접수자','접수일','설치예정일','설치완료일']];
+    list.forEach(r=>rows.push([r.id,r.branch,r.room,r.type,r.qty||1,r.openDate||'',r.status,r.urgent?'긴급':'',r.regBy||r.regEmail||'',r.date||'',r.expectedInstallDate||'',r.installDate||'']));
+    fileName=`접수목록_${today}.xlsx`;
+
+  }else if(type==='order'){
+    let ors=getOr();
+    if(S.role==='user'&&S.branch&&S.branch!=='본사')ors=ors.filter(o=>o.branch===S.branch);
+    const bv=document.getElementById('fo-b')?.value;if(bv)ors=ors.filter(o=>o.branch===bv);
+    const mv=document.getElementById('fo-m')?.value;if(mv)ors=ors.filter(o=>(o.orderDate||'').startsWith(mv));
+    const sv2=document.getElementById('fo-s')?.value.toLowerCase();if(sv2)ors=ors.filter(o=>(o.room||'').toLowerCase().includes(sv2));
+    ors.sort((a,b)=>(b.orderDate||'').localeCompare(a.orderDate||''));
+    rows=[['지점','객실','수량','유형','도어락단가','설치비','자재비','합계','발주일','오픈일','설치완료일','설치여부','결제여부','메모']];
+    ors.forEach(o=>{
+      const tot=(o.qty||1)*((o.price||0)+(o.install||0)+(o.extra||0));
+      rows.push([o.branch,o.room,o.qty||1,o.type||'신규',o.price||0,o.install||0,o.extra||0,tot,o.orderDate||'',o.openDate||'',o.doneDate||'',o.installed?'완료':'미완료',o.paid?'결제완료':'미결제',o.note||'']);
+    });
+    fileName=`발주목록_${today}.xlsx`;
+
+  }else if(type==='install'){
+    let list=getRc().filter(r=>['발주','설치','결제'].includes(r.status));
+    if(S.role==='user'&&S.branch&&S.branch!=='본사')list=list.filter(r=>r.branch===S.branch);
+    const bv=document.getElementById('fi-b')?.value;if(bv)list=list.filter(r=>r.branch===bv);
+    list.sort((a,b)=>(b.installDate||b.date||'').localeCompare(a.installDate||a.date||''));
+    rows=[['접수ID','지점','객실','설치완료일','상태','설치예정일']];
+    list.forEach(r=>rows.push([r.id,r.branch,r.room,r.installDate||'',r.status,r.expectedInstallDate||'']));
+    fileName=`설치현황_${today}.xlsx`;
+
+  }else if(type==='monthly'){
+    const doneOrs=getOr().filter(o=>o.installed===true&&o.doneDate&&o.doneDate.length>0);
+    const mv=document.getElementById('fm-m')?.value||'';
+    const bv=document.getElementById('fm-b')?.value||'';
+    let ors=doneOrs;
+    if(mv)ors=ors.filter(o=>o.doneDate.startsWith(mv));
+    if(bv)ors=ors.filter(o=>o.branch===bv);
+    const isNewType=o=>o.type==='신규'||o.type==='추가'||!o.type;
+    rows=[['지점','구분','건수','도어락','설치비','자재비','공급가액','부가세','합계','계정과목']];
+    const bNames=[...new Set(ors.map(o=>o.branch).filter(Boolean))].sort();
+    bNames.forEach(bn=>{
+      const doRow=(bo,label,acct)=>{
+        if(!bo||!bo.length)return;
+        const p=bo.reduce((s,o)=>s+(Number(o.price)||0)*(Number(o.qty)||1),0);
+        const i=bo.reduce((s,o)=>s+(Number(o.install)||0)*(Number(o.qty)||1),0);
+        const e=bo.reduce((s,o)=>s+(Number(o.extra)||0)*(Number(o.qty)||1),0);
+        const t=p+i+e,tEx=Math.round(t*10/11),tTax=t-tEx;
+        rows.push([bn,label,bo.length,p,i,e,tEx,tTax,t,acct]);
+      };
+      doRow(ors.filter(o=>o.branch===bn&&isNewType(o)),'신규','선급금/집기출금 · 6200');
+      doRow(ors.filter(o=>o.branch===bn&&!isNewType(o)),'교체','수선비/지점출금 · 6055');
+    });
+    // 합계 행
+    if(rows.length>1){
+      const p=ors.reduce((s,o)=>s+(Number(o.price)||0)*(Number(o.qty)||1),0);
+      const i=ors.reduce((s,o)=>s+(Number(o.install)||0)*(Number(o.qty)||1),0);
+      const e=ors.reduce((s,o)=>s+(Number(o.extra)||0)*(Number(o.qty)||1),0);
+      const t=p+i+e,tEx=Math.round(t*10/11),tTax=t-tEx;
+      rows.push(['합계','',ors.length,p,i,e,tEx,tTax,t,'']);
+    }
+    fileName=`월마감정산_${mv||'전체'}_${today}.xlsx`;
+  }
+
+  if(rows.length<=1){toast('w','데이터 없음','내보낼 데이터가 없습니다.');return;}
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  // 숫자 열 너비 자동 설정
+  ws['!cols']=rows[0].map((_,i)=>({wch:Math.max(...rows.map(r=>(String(r[i]||'')).length),10)+2}));
+  XLSX.utils.book_append_sheet(wb,ws,'데이터');
+  XLSX.writeFile(wb,fileName);
+  toast('s','다운로드 완료',`${fileName} 저장되었습니다.`);
+}
 
 // 자동 동기화: 30초마다 Supabase에서 최신 데이터 로드 후 현재 페이지 갱신
 const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:()=>typeof renderR==='function'&&renderR(),order:()=>typeof renderO==='function'&&renderO(),install:()=>typeof renderI==='function'&&renderI(),monthly:()=>typeof renderM==='function'&&renderM()};
