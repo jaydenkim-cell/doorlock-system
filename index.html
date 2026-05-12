@@ -2328,27 +2328,60 @@ async function slackMentionByEmail(email,fallbackName){
   return`*${fallbackName||email}*`;
 }
 async function sendInstallDateDM(r,date){
-  const wh=getSlackWh();if(!wh)return;
-  const mention=await slackMentionByEmail(r.regEmail,r.regBy);
-  const payload={
-    text:`🔧 ${mention} ${r.branch} ${r.room} 설치 예정일 확정: ${date}`,
-    blocks:[
-      {type:'header',text:{type:'plain_text',text:'🔧 설치 일정이 확정되었습니다'}},
-      {type:'section',text:{type:'mrkdwn',text:`${mention}님이 접수하신 건의 설치 일정이 확정되었습니다.`}},
-      {type:'section',fields:[
-        {type:'mrkdwn',text:`*접수 ID*\n\`${r.id}\``},
-        {type:'mrkdwn',text:`*지점*\n${r.branch}`},
-        {type:'mrkdwn',text:`*객실*\n${r.room}`},
-        {type:'mrkdwn',text:`*설치 예정일*\n📅 ${date}`}
-      ]},
-      ...(r.expectedInstallMemo?[{type:'section',text:{type:'mrkdwn',text:`*메모*\n${r.expectedInstallMemo}`}}]:[]),
-      {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
-    ]
-  };
-  try{
-    await fetch(wh,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'payload='+encodeURIComponent(JSON.stringify(payload))});
-  }catch(e){
-    console.warn('설치 일정 알림 전송 실패:',e);
+  const blocks=[
+    {type:'header',text:{type:'plain_text',text:'🔧 설치 일정이 확정되었습니다'}},
+    {type:'section',text:{type:'mrkdwn',text:`안녕하세요 *${r.regBy||r.regEmail}*님!\n접수하신 건의 설치 일정이 확정되었습니다.`}},
+    {type:'section',fields:[
+      {type:'mrkdwn',text:`*접수 ID*\n\`${r.id}\``},
+      {type:'mrkdwn',text:`*지점*\n${r.branch}`},
+      {type:'mrkdwn',text:`*객실*\n${r.room}`},
+      {type:'mrkdwn',text:`*설치 예정일*\n📅 ${date}`}
+    ]},
+    ...(r.expectedInstallMemo?[{type:'section',text:{type:'mrkdwn',text:`*메모*\n${r.expectedInstallMemo}`}}]:[]),
+    {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
+  ];
+  // 접수자한테 직접 DM (앱 섹션으로 전달)
+  if(r.regEmail){
+    const token=getSlackBot();
+    if(token){
+      try{
+        const lu=await(await fetch('https://slack.com/api/users.lookupByEmail',{
+          method:'POST',body:new URLSearchParams({token,email:r.regEmail})
+        })).json();
+        if(lu.ok&&lu.user?.id){
+          const conv=await(await fetch('https://slack.com/api/conversations.open',{
+            method:'POST',body:new URLSearchParams({token,users:lu.user.id})
+          })).json();
+          if(conv.ok&&conv.channel?.id){
+            await fetch('https://slack.com/api/chat.postMessage',{
+              method:'POST',body:new URLSearchParams({token,channel:conv.channel.id,text:`🔧 ${r.branch} ${r.room} 설치 예정일: ${date}`,blocks:JSON.stringify(blocks)})
+            });
+          }
+        }
+      }catch(e){console.warn('접수자 DM 전송 실패:',e);}
+    }
+  }
+  // 웹훅 채널에도 알림 (Jayden 확인용)
+  const wh=getSlackWh();
+  if(wh){
+    const mention=await slackMentionByEmail(r.regEmail,r.regBy);
+    const payload={
+      text:`🔧 설치 예정일 확정 — ${r.branch} ${r.room} (접수자: ${mention})`,
+      blocks:[
+        {type:'header',text:{type:'plain_text',text:'🔧 설치 일정 확정 알림 발송'}},
+        {type:'section',fields:[
+          {type:'mrkdwn',text:`*접수 ID*\n\`${r.id}\``},
+          {type:'mrkdwn',text:`*지점*\n${r.branch}`},
+          {type:'mrkdwn',text:`*객실*\n${r.room}`},
+          {type:'mrkdwn',text:`*설치 예정일*\n📅 ${date}`},
+          {type:'mrkdwn',text:`*접수자*\n${mention}`}
+        ]},
+        {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
+      ]
+    };
+    try{
+      await fetch(wh,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'payload='+encodeURIComponent(JSON.stringify(payload))});
+    }catch(e){console.warn('웹훅 알림 전송 실패:',e);}
   }
 }
 function saveSlackWh(){
