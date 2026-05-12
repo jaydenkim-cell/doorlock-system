@@ -2341,22 +2341,31 @@ async function sendInstallDateDM(r,date){
     {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
   ];
   // 접수자한테 직접 DM
-  if(r.regEmail){
+  if(!r.regEmail){toast('w','접수자 이메일 없음','이 접수 건에 이메일 정보가 없어 DM을 보낼 수 없습니다.');}
+  else{
     const token=getSlackBot();
-    if(token){
+    if(!token){toast('w','Token 미설정','지점관리 > Slack 설정에서 User Token을 저장해주세요.');}
+    else{
       try{
         const lu=await(await fetch('https://slack.com/api/users.lookupByEmail',{
           method:'POST',body:new URLSearchParams({token,email:r.regEmail})
         })).json();
-        if(lu.ok&&lu.user?.id){
-          const dmText=`🔧 설치 일정 확정 알림\n\n안녕하세요 *${r.regBy||r.regEmail}*님!\n*${r.branch} ${r.room}* 접수 건의 설치 예정일이 *${date}*으로 확정되었습니다.${r.expectedInstallMemo?`\n\n메모: ${r.expectedInstallMemo}`:''}`;
-          const md=await(await fetch('https://slack.com/api/chat.postMessage',{
-            method:'POST',body:new URLSearchParams({token,channel:lu.user.id,text:dmText})
-          })).json();
-          if(md.ok){toast('s','접수자 알림 발송','Slack DM 전송 완료');}
-          else{toast('w','접수자 알림 실패',md.error||'DM 전송 오류');}
+        if(!lu.ok||!lu.user?.id){
+          toast('w','접수자 조회 실패',`${lu.error||'알 수 없는 오류'} (${r.regEmail})`);
         }else{
-          toast('w','접수자 조회 실패',lu.error||'이메일로 Slack 사용자를 찾을 수 없습니다');
+          const conv=await(await fetch('https://slack.com/api/conversations.open',{
+            method:'POST',body:new URLSearchParams({token,users:lu.user.id})
+          })).json();
+          if(!conv.ok||!conv.channel?.id){
+            toast('w','DM 채널 오픈 실패',conv.error||'알 수 없는 오류');
+          }else{
+            const dmText=`🔧 설치 일정 확정 알림\n\n안녕하세요 ${r.regBy||r.regEmail}님!\n${r.branch} ${r.room} 접수 건의 설치 예정일이 ${date}으로 확정되었습니다.${r.expectedInstallMemo?`\n\n메모: ${r.expectedInstallMemo}`:''}`;
+            const md=await(await fetch('https://slack.com/api/chat.postMessage',{
+              method:'POST',body:new URLSearchParams({token,channel:conv.channel.id,text:dmText})
+            })).json();
+            if(md.ok){toast('s','접수자 알림 발송',`${r.regBy||r.regEmail}님 Slack에 알림을 전송했습니다.`);}
+            else{toast('w','메시지 전송 실패',md.error||'알 수 없는 오류');}
+          }
         }
       }catch(e){console.warn('접수자 DM 전송 실패:',e);toast('w','접수자 알림 오류',e.message);}
     }
