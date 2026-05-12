@@ -2320,7 +2320,7 @@ async function sendSlackDMToEmail(email,text,blocks){
     if(!conv.ok||!conv.channel?.id){console.warn('Slack DM 채널 오픈 실패:',conv.error);return false;}
     // 3. 메시지 전송
     const md=await(await fetch('https://slack.com/api/chat.postMessage',{
-      method:'POST',body:new URLSearchParams({token,channel:conv.channel.id,text,blocks:JSON.stringify(blocks)})
+      method:'POST',body:new URLSearchParams({token,channel:conv.channel.id,text,blocks:JSON.stringify(blocks),as_user:'true'})
     })).json();
     if(!md.ok){console.warn('Slack DM 전송 실패:',md.error);return false;}
     return true;
