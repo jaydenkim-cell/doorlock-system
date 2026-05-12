@@ -2340,7 +2340,7 @@ async function sendInstallDateDM(r,date){
     ...(r.expectedInstallMemo?[{type:'section',text:{type:'mrkdwn',text:`*메모*\n${r.expectedInstallMemo}`}}]:[]),
     {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
   ];
-  // 접수자한테 직접 DM (앱 섹션으로 전달)
+  // 접수자한테 직접 DM
   if(r.regEmail){
     const token=getSlackBot();
     if(token){
@@ -2349,16 +2349,16 @@ async function sendInstallDateDM(r,date){
           method:'POST',body:new URLSearchParams({token,email:r.regEmail})
         })).json();
         if(lu.ok&&lu.user?.id){
-          const conv=await(await fetch('https://slack.com/api/conversations.open',{
-            method:'POST',body:new URLSearchParams({token,users:lu.user.id})
+          const dmText=`🔧 설치 일정 확정 알림\n\n안녕하세요 *${r.regBy||r.regEmail}*님!\n*${r.branch} ${r.room}* 접수 건의 설치 예정일이 *${date}*으로 확정되었습니다.${r.expectedInstallMemo?`\n\n메모: ${r.expectedInstallMemo}`:''}`;
+          const md=await(await fetch('https://slack.com/api/chat.postMessage',{
+            method:'POST',body:new URLSearchParams({token,channel:lu.user.id,text:dmText})
           })).json();
-          if(conv.ok&&conv.channel?.id){
-            await fetch('https://slack.com/api/chat.postMessage',{
-              method:'POST',body:new URLSearchParams({token,channel:conv.channel.id,text:`🔧 ${r.branch} ${r.room} 설치 예정일: ${date}`,blocks:JSON.stringify(blocks)})
-            });
-          }
+          if(md.ok){toast('s','접수자 알림 발송','Slack DM 전송 완료');}
+          else{toast('w','접수자 알림 실패',md.error||'DM 전송 오류');}
+        }else{
+          toast('w','접수자 조회 실패',lu.error||'이메일로 Slack 사용자를 찾을 수 없습니다');
         }
-      }catch(e){console.warn('접수자 DM 전송 실패:',e);}
+      }catch(e){console.warn('접수자 DM 전송 실패:',e);toast('w','접수자 알림 오류',e.message);}
     }
   }
   // 웹훅 채널에도 알림 (Jayden 확인용)
