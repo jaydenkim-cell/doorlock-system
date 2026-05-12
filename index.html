@@ -2312,20 +2312,17 @@ async function sendSlackDMToEmail(email,text,blocks){
     const lu=await(await fetch('https://slack.com/api/users.lookupByEmail',{
       method:'POST',body:new URLSearchParams({token,email})
     })).json();
-    toast(lu.ok?'i':'e','[1] 사용자 조회',lu.ok?`ID: ${lu.user?.id}`:`실패: ${lu.error}`);
-    if(!lu.ok||!lu.user?.id)return false;
+    if(!lu.ok||!lu.user?.id){console.warn('Slack 사용자 조회 실패:',lu.error);return false;}
     // 2. DM 채널 열기
     const conv=await(await fetch('https://slack.com/api/conversations.open',{
       method:'POST',body:new URLSearchParams({token,users:lu.user.id})
     })).json();
-    toast(conv.ok?'i':'e','[2] DM 채널',conv.ok?`CH: ${conv.channel?.id}`:`실패: ${conv.error}`);
-    if(!conv.ok||!conv.channel?.id)return false;
+    if(!conv.ok||!conv.channel?.id){console.warn('Slack DM 채널 오픈 실패:',conv.error);return false;}
     // 3. 메시지 전송
     const md=await(await fetch('https://slack.com/api/chat.postMessage',{
       method:'POST',body:new URLSearchParams({token,channel:conv.channel.id,text,blocks:JSON.stringify(blocks)})
     })).json();
-    toast(md.ok?'i':'e','[3] 메시지 전송',md.ok?`ts: ${md.ts}`:`실패: ${md.error}`);
-    if(!md.ok)return false;
+    if(!md.ok){console.warn('Slack DM 전송 실패:',md.error);return false;}
     return true;
   }catch(e){console.warn('Slack DM 오류:',e);return false;}
 }
