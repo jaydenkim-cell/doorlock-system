@@ -659,11 +659,11 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
               </div>
             </div>
             <div style="border-top:1px solid var(--border);padding-top:12px">
-              <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">Bot Token <span style="font-weight:400;color:var(--text3)">— 설치예정일 입력 시 접수자에게 DM 전송</span></div>
+              <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">User Token <span style="font-weight:400;color:var(--text3)">— 설치예정일 입력 시 채널에 접수자 멘션 알림 전송 (선택)</span></div>
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                <input id="slack-bot-inp" class="fi" placeholder="xoxb-..." style="flex:1;min-width:280px;font-family:'JetBrains Mono',monospace;font-size:11px">
+                <input id="slack-bot-inp" class="fi" placeholder="xoxp-..." style="flex:1;min-width:280px;font-family:'JetBrains Mono',monospace;font-size:11px">
                 <button class="btn bp bsm" onclick="saveSlackBot()">저장</button>
-                <button class="btn bo bsm" onclick="testSlackDM()">DM 테스트</button>
+                <button class="btn bo bsm" onclick="testSlackDM()">알림 테스트</button>
               </div>
             </div>
           </div>
@@ -2296,49 +2296,60 @@ function saveSlackBot(){
   toast(token?'s':'i','Bot Token 저장',token?'저장 완료. DM 테스트로 확인하세요.':'DM 알림이 비활성화됩니다.');
 }
 async function testSlackDM(){
-  if(!getSlackBot()){toast('e','Bot Token 미설정','먼저 Bot Token을 저장해주세요.');return;}
+  if(!getSlackWh()){toast('e','웹훅 미설정','먼저 Slack 웹훅 URL을 저장해주세요.');return;}
   if(!S?.email){toast('e','오류','로그인 이메일 정보가 없습니다.');return;}
-  const ok=await sendSlackDMToEmail(S.email,
-    '🔧 DM 테스트',
-    [{type:'header',text:{type:'plain_text',text:'🔧 설치 일정 알림 테스트'}},{type:'section',text:{type:'mrkdwn',text:`안녕하세요 *${S.name||S.email}*님!\n도어락발주시스템 DM 알림이 정상적으로 연결되었습니다. ✅`}},{type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}]
-  );
-  if(ok)toast('s','DM 발송 완료','본인 Slack으로 테스트 메시지를 전송했습니다.');
-  else toast('e','DM 발송 실패','이메일로 Slack 사용자를 찾지 못했습니다. 이메일 주소를 확인하세요.');
-}
-async function sendSlackDMToEmail(email,text,blocks){
-  const token=getSlackBot();if(!token||!email)return false;
+  const mention=await slackMentionByEmail(S.email,S.name||S.email);
+  const wh=getSlackWh();
+  const payload={
+    text:`🔧 ${mention} 설치 일정 알림 테스트`,
+    blocks:[
+      {type:'header',text:{type:'plain_text',text:'🔧 설치 일정 알림 테스트'}},
+      {type:'section',text:{type:'mrkdwn',text:`${mention}님, 도어락발주시스템 알림이 정상적으로 연결되었습니다. ✅`}},
+      {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
+    ]
+  };
   try{
-    // 1. 이메일 → 사용자 ID
-    const lu=await(await fetch('https://slack.com/api/users.lookupByEmail',{
-      method:'POST',body:new URLSearchParams({token,email})
-    })).json();
-    if(!lu.ok||!lu.user?.id){console.warn('Slack 사용자 조회 실패:',lu.error);return false;}
-    // 2. DM 채널 열기
-    const conv=await(await fetch('https://slack.com/api/conversations.open',{
-      method:'POST',body:new URLSearchParams({token,users:lu.user.id})
-    })).json();
-    if(!conv.ok||!conv.channel?.id){console.warn('Slack DM 채널 오픈 실패:',conv.error);return false;}
-    // 3. 메시지 전송
-    const md=await(await fetch('https://slack.com/api/chat.postMessage',{
-      method:'POST',body:new URLSearchParams({token,channel:conv.channel.id,text,blocks:JSON.stringify(blocks),as_user:'true'})
-    })).json();
-    if(!md.ok){console.warn('Slack DM 전송 실패:',md.error);return false;}
-    return true;
-  }catch(e){console.warn('Slack DM 오류:',e);return false;}
+    await fetch(wh,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'payload='+encodeURIComponent(JSON.stringify(payload))});
+    toast('s','테스트 발송 완료','Slack 채널로 테스트 메시지를 전송했습니다.');
+  }catch(e){
+    toast('e','발송 실패','Slack 웹훅 전송에 실패했습니다.');
+  }
+}
+async function slackMentionByEmail(email,fallbackName){
+  const token=getSlackBot();
+  if(token&&email){
+    try{
+      const lu=await(await fetch('https://slack.com/api/users.lookupByEmail',{
+        method:'POST',body:new URLSearchParams({token,email})
+      })).json();
+      if(lu.ok&&lu.user?.id)return`<@${lu.user.id}>`;
+    }catch(e){}
+  }
+  return`*${fallbackName||email}*`;
 }
 async function sendInstallDateDM(r,date){
-  const blocks=[
-    {type:'header',text:{type:'plain_text',text:'🔧 설치 일정이 확정되었습니다'}},
-    {type:'section',fields:[
-      {type:'mrkdwn',text:`*접수 ID*\n\`${r.id}\``},
-      {type:'mrkdwn',text:`*지점*\n${r.branch}`},
-      {type:'mrkdwn',text:`*객실*\n${r.room}`},
-      {type:'mrkdwn',text:`*설치 예정일*\n📅 ${date}`}
-    ]},
-    ...(r.expectedInstallMemo?[{type:'section',text:{type:'mrkdwn',text:`*메모*\n${r.expectedInstallMemo}`}}]:[]),
-    {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
-  ];
-  await sendSlackDMToEmail(r.regEmail,`🔧 ${r.branch} ${r.room} 설치 예정일: ${date}`,blocks);
+  const wh=getSlackWh();if(!wh)return;
+  const mention=await slackMentionByEmail(r.regEmail,r.regBy);
+  const payload={
+    text:`🔧 ${mention} ${r.branch} ${r.room} 설치 예정일 확정: ${date}`,
+    blocks:[
+      {type:'header',text:{type:'plain_text',text:'🔧 설치 일정이 확정되었습니다'}},
+      {type:'section',text:{type:'mrkdwn',text:`${mention}님이 접수하신 건의 설치 일정이 확정되었습니다.`}},
+      {type:'section',fields:[
+        {type:'mrkdwn',text:`*접수 ID*\n\`${r.id}\``},
+        {type:'mrkdwn',text:`*지점*\n${r.branch}`},
+        {type:'mrkdwn',text:`*객실*\n${r.room}`},
+        {type:'mrkdwn',text:`*설치 예정일*\n📅 ${date}`}
+      ]},
+      ...(r.expectedInstallMemo?[{type:'section',text:{type:'mrkdwn',text:`*메모*\n${r.expectedInstallMemo}`}}]:[]),
+      {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
+    ]
+  };
+  try{
+    await fetch(wh,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'payload='+encodeURIComponent(JSON.stringify(payload))});
+  }catch(e){
+    console.warn('설치 일정 알림 전송 실패:',e);
+  }
 }
 function saveSlackWh(){
   const url=(document.getElementById('slack-wh-inp')?.value||'').trim();
