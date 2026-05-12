@@ -2308,15 +2308,14 @@ async function testSlackDM(){
 async function sendSlackDMToEmail(email,text,blocks){
   const token=getSlackBot();if(!token||!email)return false;
   try{
-    const lookup=await fetch('https://slack.com/api/users.lookupByEmail',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/x-www-form-urlencoded'},body:'email='+encodeURIComponent(email)});
-    const lu=await lookup.json();
+    // token을 body에 포함 → Authorization 헤더 불필요 → CORS preflight 없음
+    const lu=await(await fetch('https://slack.com/api/users.lookupByEmail',{
+      method:'POST',body:new URLSearchParams({token,email})
+    })).json();
     if(!lu.ok||!lu.user?.id){console.warn('Slack 사용자 조회 실패:',lu.error);return false;}
-    const msg=await fetch('https://slack.com/api/chat.postMessage',{
-      method:'POST',
-      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
-      body:JSON.stringify({channel:lu.user.id,text,blocks})
-    });
-    const md=await msg.json();
+    const md=await(await fetch('https://slack.com/api/chat.postMessage',{
+      method:'POST',body:new URLSearchParams({token,channel:lu.user.id,text,blocks:JSON.stringify(blocks)})
+    })).json();
     if(!md.ok){console.warn('Slack DM 전송 실패:',md.error);return false;}
     return true;
   }catch(e){console.warn('Slack DM 오류:',e);return false;}
