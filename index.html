@@ -648,11 +648,24 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
       <!-- 지점 관리 (admin) -->
       <div class="page" id="page-branches">
         <div class="panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt">🔔 Slack 알림 설정</span><span style="font-size:11px;color:var(--text3);font-weight:400;margin-left:8px">새 접수 등록 시 Slack으로 알림 전송</span></div>
-          <div class="pb" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-            <input id="slack-wh-inp" class="fi" placeholder="https://hooks.slack.com/services/T.../B.../..." style="flex:1;min-width:280px;font-family:'JetBrains Mono',monospace;font-size:11px">
-            <button class="btn bp bsm" onclick="saveSlackWh()">저장</button>
-            <button class="btn bo bsm" onclick="testSlackNoti()">테스트 발송</button>
+          <div class="ph"><span class="pt">🔔 Slack 알림 설정</span></div>
+          <div class="pb" style="display:flex;flex-direction:column;gap:12px">
+            <div>
+              <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">웹훅 URL <span style="font-weight:400;color:var(--text3)">— 새 접수 등록 시 채널 알림</span></div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <input id="slack-wh-inp" class="fi" placeholder="https://hooks.slack.com/services/T.../B.../..." style="flex:1;min-width:280px;font-family:'JetBrains Mono',monospace;font-size:11px">
+                <button class="btn bp bsm" onclick="saveSlackWh()">저장</button>
+                <button class="btn bo bsm" onclick="testSlackNoti()">테스트 발송</button>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--border);padding-top:12px">
+              <div style="font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px">Bot Token <span style="font-weight:400;color:var(--text3)">— 설치예정일 입력 시 접수자에게 DM 전송</span></div>
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                <input id="slack-bot-inp" class="fi" placeholder="xoxb-..." style="flex:1;min-width:280px;font-family:'JetBrains Mono',monospace;font-size:11px">
+                <button class="btn bp bsm" onclick="saveSlackBot()">저장</button>
+                <button class="btn bo bsm" onclick="testSlackDM()">DM 테스트</button>
+              </div>
+            </div>
           </div>
         </div>
         <div class="bgrid" id="bgrid"></div>
@@ -1707,6 +1720,7 @@ async function syncDuckRooms(){
 function renderBr(){
   // 웹훅 URL 복원
   const whInp=document.getElementById('slack-wh-inp');if(whInp)whInp.value=getSlackWh();
+  const botInp=document.getElementById('slack-bot-inp');if(botInp)botInp.value=getSlackBot();
   // 툴바 버튼
   document.getElementById('tb-r').innerHTML=`<button class="btn" onclick="syncDuckRoomsAndRender()" style="font-size:12px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button>`;
   // Duck 캐시 적용 후 렌더
@@ -2219,6 +2233,7 @@ function submitExpDate(){
   sv(K.R,rcs);
   closeMo('mo-exp');renderR();renderI();
   toast('s','일정 저장',`${r.branch} ${r.room} 예상 설치일: ${d}`);
+  if(r.regEmail)sendInstallDateDM(r,d);
 }
 // 결제완료 처리
 function revertToOrder(id){
@@ -2272,7 +2287,54 @@ const _mqty=document.getElementById('m-qty');if(_mqty)_mqty.addEventListener('in
 
 /* ── SLACK NOTIFICATION ── */
 const SLACK_KEY='doorlock_slack_wh';
+const SLACK_BOT_KEY='doorlock_slack_bot';
 const getSlackWh=()=>ld(SLACK_KEY,'');
+const getSlackBot=()=>ld(SLACK_BOT_KEY,'');
+function saveSlackBot(){
+  const token=(document.getElementById('slack-bot-inp')?.value||'').trim();
+  sv(SLACK_BOT_KEY,token);
+  toast(token?'s':'i','Bot Token 저장',token?'저장 완료. DM 테스트로 확인하세요.':'DM 알림이 비활성화됩니다.');
+}
+async function testSlackDM(){
+  if(!getSlackBot()){toast('e','Bot Token 미설정','먼저 Bot Token을 저장해주세요.');return;}
+  if(!S?.email){toast('e','오류','로그인 이메일 정보가 없습니다.');return;}
+  const ok=await sendSlackDMToEmail(S.email,
+    '🔧 DM 테스트',
+    [{type:'header',text:{type:'plain_text',text:'🔧 설치 일정 알림 테스트'}},{type:'section',text:{type:'mrkdwn',text:`안녕하세요 *${S.name||S.email}*님!\n도어락발주시스템 DM 알림이 정상적으로 연결되었습니다. ✅`}},{type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}]
+  );
+  if(ok)toast('s','DM 발송 완료','본인 Slack으로 테스트 메시지를 전송했습니다.');
+  else toast('e','DM 발송 실패','이메일로 Slack 사용자를 찾지 못했습니다. 이메일 주소를 확인하세요.');
+}
+async function sendSlackDMToEmail(email,text,blocks){
+  const token=getSlackBot();if(!token||!email)return false;
+  try{
+    const lookup=await fetch(`https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`,{headers:{'Authorization':'Bearer '+token}});
+    const lu=await lookup.json();
+    if(!lu.ok||!lu.user?.id){console.warn('Slack 사용자 조회 실패:',lu.error);return false;}
+    const msg=await fetch('https://slack.com/api/chat.postMessage',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/json'},
+      body:JSON.stringify({channel:lu.user.id,text,blocks})
+    });
+    const md=await msg.json();
+    if(!md.ok){console.warn('Slack DM 전송 실패:',md.error);return false;}
+    return true;
+  }catch(e){console.warn('Slack DM 오류:',e);return false;}
+}
+async function sendInstallDateDM(r,date){
+  const blocks=[
+    {type:'header',text:{type:'plain_text',text:'🔧 설치 일정이 확정되었습니다'}},
+    {type:'section',fields:[
+      {type:'mrkdwn',text:`*접수 ID*\n\`${r.id}\``},
+      {type:'mrkdwn',text:`*지점*\n${r.branch}`},
+      {type:'mrkdwn',text:`*객실*\n${r.room}`},
+      {type:'mrkdwn',text:`*설치 예정일*\n📅 ${date}`}
+    ]},
+    ...(r.expectedInstallMemo?[{type:'section',text:{type:'mrkdwn',text:`*메모*\n${r.expectedInstallMemo}`}}]:[]),
+    {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
+  ];
+  await sendSlackDMToEmail(r.regEmail,`🔧 ${r.branch} ${r.room} 설치 예정일: ${date}`,blocks);
+}
 function saveSlackWh(){
   const url=(document.getElementById('slack-wh-inp')?.value||'').trim();
   sv(SLACK_KEY,url);
