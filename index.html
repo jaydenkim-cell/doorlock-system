@@ -2233,7 +2233,7 @@ function submitExpDate(){
   sv(K.R,rcs);
   closeMo('mo-exp');renderR();renderI();
   toast('s','일정 저장',`${r.branch} ${r.room} 예상 설치일: ${d}`);
-  if(r.regEmail)sendInstallDateDM(r,d);
+  sendInstallDateDM(r,d);
 }
 // 결제완료 처리
 function revertToOrder(id){
