@@ -2308,7 +2308,7 @@ async function testSlackDM(){
 async function sendSlackDMToEmail(email,text,blocks){
   const token=getSlackBot();if(!token||!email)return false;
   try{
-    const lookup=await fetch(`https://slack.com/api/users.lookupByEmail?email=${encodeURIComponent(email)}`,{headers:{'Authorization':'Bearer '+token}});
+    const lookup=await fetch('https://slack.com/api/users.lookupByEmail',{method:'POST',headers:{'Authorization':'Bearer '+token,'Content-Type':'application/x-www-form-urlencoded'},body:'email='+encodeURIComponent(email)});
     const lu=await lookup.json();
     if(!lu.ok||!lu.user?.id){console.warn('Slack 사용자 조회 실패:',lu.error);return false;}
     const msg=await fetch('https://slack.com/api/chat.postMessage',{
