@@ -2308,13 +2308,19 @@ async function testSlackDM(){
 async function sendSlackDMToEmail(email,text,blocks){
   const token=getSlackBot();if(!token||!email)return false;
   try{
-    // token을 body에 포함 → Authorization 헤더 불필요 → CORS preflight 없음
+    // 1. 이메일 → 사용자 ID
     const lu=await(await fetch('https://slack.com/api/users.lookupByEmail',{
       method:'POST',body:new URLSearchParams({token,email})
     })).json();
     if(!lu.ok||!lu.user?.id){console.warn('Slack 사용자 조회 실패:',lu.error);return false;}
+    // 2. DM 채널 열기 (im:write 스코프 필요)
+    const conv=await(await fetch('https://slack.com/api/conversations.open',{
+      method:'POST',body:new URLSearchParams({token,users:lu.user.id})
+    })).json();
+    if(!conv.ok||!conv.channel?.id){console.warn('Slack DM 채널 오픈 실패:',conv.error);return false;}
+    // 3. 메시지 전송
     const md=await(await fetch('https://slack.com/api/chat.postMessage',{
-      method:'POST',body:new URLSearchParams({token,channel:lu.user.id,text,blocks:JSON.stringify(blocks)})
+      method:'POST',body:new URLSearchParams({token,channel:conv.channel.id,text,blocks:JSON.stringify(blocks)})
     })).json();
     if(!md.ok){console.warn('Slack DM 전송 실패:',md.error);return false;}
     return true;
