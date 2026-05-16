@@ -896,45 +896,43 @@ const getUserEmailByName=(name)=>{if(!name)return null;const users=ld(K.U,[]);co
 const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${p.avatar}" alt="${p.name||name||''}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${p.name||name||email||'—'}`;const initials=(name||email||'?').charAt(0).toUpperCase();return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${name||email||'—'}</span>`;};
 const DATA_VERSION='v4';
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}};
-const sv=(k,v)=>{const ts=new Date().toISOString();localStorage.setItem(k,JSON.stringify(v));localStorage.setItem('__ts_'+k,ts);sbSet(k,v,ts);};
+const sv=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));localStorage.removeItem('__init__'+k);sbSet(k,v);};
 
 /* ── SUPABASE SYNC ── */
 const SB_URL='https://vsklmsiuxntcsiowrwsl.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZza2xtc2l1eG50Y3Npb3dyd3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODg0NDEsImV4cCI6MjA5MTM2NDQ0MX0.ZqCKdT1kxilUpag6D-9Ka1zVOOBDm34ddxXEQQZpMTw';
 const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
-async function sbSet(k,v,ts){try{await fetch(SB_URL+'/rest/v1/kv_store',{method:'POST',headers:{...SB_H,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key:k,value:v,updated_at:ts||new Date().toISOString()})});}catch{}}
+async function sbSet(k,v){try{await fetch(SB_URL+'/rest/v1/kv_store',{method:'POST',headers:{...SB_H,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key:k,value:v,updated_at:new Date().toISOString()})});}catch{}}
 async function sbSync(){
   try{
-    const r=await fetch(SB_URL+'/rest/v1/kv_store?select=key,value,updated_at',{headers:SB_H});
+    const r=await fetch(SB_URL+'/rest/v1/kv_store?select=key,value',{headers:SB_H});
     if(!r.ok)return;
     const rows=await r.json();
     const sbKeys=new Set(rows.map(r=>r.key));
-    // Supabase ↔ localStorage: 타임스탬프 기반 최신 데이터 우선
+    // 로컬 우선: 실제 사용자 데이터는 로컬이 항상 정답
+    // 초기 데이터(__init__ 플래그)만 Supabase로 덮어씀
     rows.forEach(row=>{
       const local=localStorage.getItem(row.key);
       const sbVal=row.value;
-      const localTs=localStorage.getItem('__ts_'+row.key)||'';
-      const sbTs=row.updated_at||'';
-      if(Array.isArray(sbVal)&&local){
+      const isInit=!!localStorage.getItem('__init__'+row.key);
+      if(!local||isInit){
+        // 로컬 없거나 초기 데이터 → Supabase 우선 (새 기기/브라우저 첫 접속)
+        if(sbVal!==undefined&&sbVal!==null){
+          localStorage.setItem(row.key,JSON.stringify(sbVal));
+          localStorage.removeItem('__init__'+row.key);
+        }
+      } else {
+        // 실제 사용자 데이터 → 로컬 유지, Supabase에 동기화
         try{
-          const localArr=JSON.parse(local);
-          if(Array.isArray(localArr)&&localTs&&localTs>=sbTs){
-            // 로컬이 최신(타임스탬프 기준) → Supabase 업로드, 로컬 유지
-            if(JSON.stringify(localArr)!==JSON.stringify(sbVal))sbSet(row.key,localArr,localTs);
-            return;
-          }
+          const localVal=JSON.parse(local);
+          if(JSON.stringify(localVal)!==JSON.stringify(sbVal))sbSet(row.key,localVal);
         }catch{}
-      }
-      // Supabase가 최신이거나 로컬에 타임스탬프 없음(초기 데이터) → Supabase로 덮어씀
-      if(sbVal!==undefined&&sbVal!==null){
-        localStorage.setItem(row.key,JSON.stringify(sbVal));
-        if(sbTs)localStorage.setItem('__ts_'+row.key,sbTs);
       }
     });
     // localStorage → Supabase (최초 마이그레이션)
     const migrKeys=[K.B,K.O,K.R,K.U,K.A,K.SA,K.SP];
     for(const k of migrKeys){
-      if(!sbKeys.has(k)){const v=localStorage.getItem(k);if(v){const ts=new Date().toISOString();localStorage.setItem('__ts_'+k,ts);await sbSet(k,JSON.parse(v),ts);}}
+      if(!sbKeys.has(k)){const v=localStorage.getItem(k);if(v)await sbSet(k,JSON.parse(v));}
     }
   }catch{}
 }
@@ -994,11 +992,35 @@ const INIT_ORDERS=[
 function initData(){
   const cv=localStorage.getItem('doorlock_data_version');
   if(cv!==DATA_VERSION){
-    // 기존 데이터가 없으면 로컬에만 초기 데이터 세팅 (Supabase 업로드 안 함 — sbSync가 Supabase 최신 데이터로 덮어씀)
-    if(!localStorage.getItem(K.B)||ld(K.B,[]).length===0) localStorage.setItem(K.B,JSON.stringify(INIT_BRANCHES));
-    if(!localStorage.getItem(K.O)||ld(K.O,[]).length===0) localStorage.setItem(K.O,JSON.stringify(INIT_ORDERS));
+    // 로컬에 없으면 초기 데이터 세팅 + __init__ 플래그 → sbSync가 Supabase 데이터로 교체
+    if(!localStorage.getItem(K.B)||ld(K.B,[]).length===0){localStorage.setItem(K.B,JSON.stringify(INIT_BRANCHES));localStorage.setItem('__init__'+K.B,'1');}
+    if(!localStorage.getItem(K.O)||ld(K.O,[]).length===0){localStorage.setItem(K.O,JSON.stringify(INIT_ORDERS));localStorage.setItem('__init__'+K.O,'1');}
     localStorage.setItem('doorlock_data_version',DATA_VERSION);
   }
+}
+
+/* ── 발주 누락 자동 복구: 발주/설치/결제 상태인데 발주 레코드 없는 접수 → 자동 생성 ── */
+function repairOrders(){
+  const rcs=getRc();
+  const ors=getOr();
+  const tmap={'신규 설치':'신규','교체(노후화)':'교체','교체(고장)':'교체','추가 설치':'추가'};
+  let changed=false;
+  rcs.filter(r=>['발주','설치','결제'].includes(r.status)).forEach(r=>{
+    if(!ors.find(o=>o.receiptId===r.id)){
+      const b=getBr().find(x=>x.name===r.branch);
+      const rQty=r.qty||1;
+      const nid=ors.length>0?Math.max(...ors.map(o=>typeof o.id==='number'?o.id:0))+1:1;
+      ors.push({id:nid,receiptId:r.id,branch:r.branch,room:r.room,qty:rQty,
+        type:tmap[r.type]||r.type||'신규',price:b?.lockPrice||132000,
+        install:rQty>=10?22000:(b?.instCost||55000),extra:b?.extraCost||0,
+        orderDate:r.date||new Date().toISOString().substring(0,10),
+        openDate:r.openDate||'',doneDate:r.installDate||'',
+        installed:r.status==='결제',paid:r.paymentDone||false,
+        note:'누락 자동복구 ('+r.id+')'});
+      changed=true;
+    }
+  });
+  if(changed)sv(K.O,ors);
 }
 initData();
 
@@ -1455,6 +1477,7 @@ function advR(id,ns){
 
 /* ── ORDERS ── */
 function renderO(){
+  repairOrders();
   let ors=getOr();if(S.role==='user'&&S.branch&&S.branch!=='본사')ors=ors.filter(o=>o.branch===S.branch);
   const bv=document.getElementById('fo-b')?.value;const mv=document.getElementById('fo-m')?.value;const sv2=document.getElementById('fo-s')?.value.toLowerCase();
   if(bv)ors=ors.filter(o=>o.branch===bv);if(mv)ors=ors.filter(o=>(o.orderDate||'').startsWith(mv));if(sv2)ors=ors.filter(o=>(o.room||'').toLowerCase().includes(sv2));
