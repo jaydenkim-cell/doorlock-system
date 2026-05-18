@@ -2029,10 +2029,13 @@ function sendDraftMail(){
   const signerName=ordMgr.replace(/\s*(대표|팀장|매니저|담당)\s*$/,'').trim()||'김강현';
   let gt=0;
   const lines=rows.map((r,i)=>{
+    const b=getBr().find(x=>x.name===r.branch);
     const isHotel=r.extra>0;
     const roomLabel=isHotel?'호텔객실 / 호텔도어락':'생숙객실 / 일반도어락';
     const sub=(r.price+r.install+(isHotel?r.extra:0))*r.qty;gt+=sub;
     let line=`${i+1}. ${r.branch} ${r.qty}객실 (${roomLabel})\n`;
+    if(b?.addr)line+=`   - 배송지: ${b.addr}\n`;
+    if(b?.recipient||b?.phone)line+=`   - 수신자: ${[b?.recipient,b?.phone].filter(Boolean).join(' / ')}\n`;
     if(r.openDate)line+=`   - 오픈예정일: ${r.openDate}\n`;
     line+=`   - 도어락 단가: ${r.price.toLocaleString()}원\n`;
     line+=`   - 설치비: ${r.install.toLocaleString()}원\n`;
