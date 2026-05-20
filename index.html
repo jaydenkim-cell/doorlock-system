@@ -1840,7 +1840,7 @@ function renderBr(){
   const whInp=document.getElementById('slack-wh-inp');if(whInp)whInp.value=getSlackWh();
   const botInp=document.getElementById('slack-bot-inp');if(botInp)botInp.value=getSlackBot();
   // 툴바 버튼
-  document.getElementById('tb-r').innerHTML=`<button class="btn" onclick="syncDuckRoomsAndRender()" style="font-size:12px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button>`;
+  document.getElementById('tb-r').innerHTML=`<button class="btn" onclick="syncDuckRoomsAndRender()" style="font-size:12px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button><button class="btn bo" onclick="repairBranchNames()" style="font-size:12px;margin-left:6px">지점명 복구</button>`;
   // Duck 캐시 적용 후 렌더
   syncDuckRooms().then(duck=>{
     const brs=getBr();
@@ -1866,6 +1866,7 @@ function openBrMo(id){
 function saveBr(){
   const nm=document.getElementById('br-name').value.trim();if(!nm){toast('e','입력 오류','지점명은 필수입니다.');return;}
   const brs=getBr(),eid=document.getElementById('br-edit-id').value,acct=document.getElementById('br-account').value.trim(),npw=document.getElementById('br-pw-new').value;
+  if(brs.some(b=>b.name===nm&&String(b.id)!==String(eid))){toast('e','입력 오류','동일한 지점명이 이미 있습니다.');return;}
   const data={name:nm,short:document.getElementById('br-short').value,addr:document.getElementById('br-addr').value,loc:document.getElementById('br-loc').value,rooms:parseInt(document.getElementById('br-rooms').value)||0,manager:document.getElementById('br-manager').value,recipient:document.getElementById('br-recipient').value,phone:document.getElementById('br-phone').value,email:document.getElementById('br-email').value,lockOld:document.getElementById('br-lockOld').value,lockNew:document.getElementById('br-lockNew').value,lockPrice:parseInt(document.getElementById('br-lockPrice').value)||0,instCost:parseInt(document.getElementById('br-instCost').value)||0,extraCost:parseInt(document.getElementById('br-extraCost').value)||0,cDone:document.getElementById('br-cDone').value==='true',note:document.getElementById('br-note').value,account:acct};
   if(eid){const idx=brs.findIndex(b=>b.id==eid);if(idx>=0)brs[idx]={...brs[idx],...data};}else{const nid=brs.length>0?Math.max(...brs.map(b=>b.id))+1:1;brs.push({id:nid,...data});}
   sv(K.B,brs);
@@ -1873,6 +1874,20 @@ function saveBr(){
   closeMo('br-modal');populateSels();renderBr();toast('s','저장 완료','지점 정보가 저장되었습니다.');
 }
 function cfmDelBr(){showCfm(CI.trash,'지점 삭제','삭제하시겠습니까? 발주 데이터는 유지됩니다.',()=>{sv(K.B,getBr().filter(b=>b.id!=brDelId));closeMo('br-modal');renderBr();toast('s','삭제 완료','지점이 삭제되었습니다.');});}
+function repairBranchNames(){
+  const brs=getBr();
+  const initMap={};INIT_BRANCHES.forEach(b=>{initMap[b.id]={name:b.name,short:b.short};});
+  const nameCounts={};brs.forEach(b=>{nameCounts[b.name]=(nameCounts[b.name]||0)+1;});
+  let fixed=0,changes=[];
+  brs.forEach(b=>{
+    if(nameCounts[b.name]>1&&initMap[b.id]&&initMap[b.id].name!==b.name){
+      changes.push(`ID ${b.id}: "${b.name}" → "${initMap[b.id].name}"`);
+      b.name=initMap[b.id].name;b.short=initMap[b.id].short;fixed++;
+    }
+  });
+  if(fixed>0){sv(K.B,brs);toast('s','복구 완료',`${fixed}개 지점 복구됨: ${changes.join(' / ')}`);renderBr();}
+  else toast('i','이상 없음','중복된 지점명이 없습니다.');
+}
 
 /* ── DRAFT ── */
 let draftRowIdx=0;
@@ -2681,7 +2696,7 @@ function renderSvc(){
   if(fm)recs=recs.filter(r=>r.month===fm);
   if(fb)recs=recs.filter(r=>r.branch===fb);
   if(fbrand)recs=recs.filter(r=>r.brand===fbrand);
-  recs.sort((a,b)=>b.month.localeCompare(a.month)||a.branch.localeCompare(b.branch,'ko')||a.brand.localeCompare(b.brand));
+  recs.sort((a,b)=>a.brand.localeCompare(b.brand)||b.month.localeCompare(a.month)||a.branch.localeCompare(b.branch,'ko'));
   const fmt=n=>n.toLocaleString()+'원';
   const brandBadge=br=>`<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${br==='직방'?'#e8f4fd':br==='H2O'?'#e8fdf0':'#fdf4e8'};color:${br==='직방'?'#1a6fa8':br==='H2O'?'#1a7a3f':'#a85d1a'}">${br}</span>`;
   document.getElementById('svc-body').innerHTML=recs.length===0
@@ -2690,16 +2705,18 @@ function renderSvc(){
       const up=r.unitPrice||SVC_DEF_PRICES[r.brand]||0;
       const ex=r.rooms*up;const vat=svcVat(ex);
       if(svcEditId===r.id){
+        const brOpts=brs.map(b=>`<option value="${b.name}"${b.name===r.branch?' selected':''}>${b.name}</option>`).join('');
+        const brndOpts=SVC_BRANDS.map(br=>`<option value="${br}"${br===r.brand?' selected':''}>${br}</option>`).join('');
         return`<tr style="background:var(--accent-l)">
           <td>${r.month}</td>
-          <td>${r.branch}</td>
-          <td>${brandBadge(r.brand)}</td>
+          <td><select id="se-branch-${r.id}" style="padding:3px 4px;border:1px solid var(--border);border-radius:4px;font-size:12px;max-width:140px">${brOpts}</select></td>
+          <td><select id="se-brand-${r.id}" style="padding:3px 4px;border:1px solid var(--border);border-radius:4px;font-size:12px">${brndOpts}</select></td>
           <td><input id="se-rooms-${r.id}" type="number" min="1" value="${r.rooms}" style="width:70px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"></td>
           <td><input id="se-price-${r.id}" type="number" value="${up}" style="width:80px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"></td>
           <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
           <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
           <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
-          <td><input id="se-note-${r.id}" type="text" value="${r.note||''}" style="width:160px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" placeholder="비고"></td>
+          <td><input id="se-note-${r.id}" type="text" value="${r.note||''}" style="width:140px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" placeholder="비고"></td>
           <td style="white-space:nowrap"><button class="btn bp bsm" onclick="saveEditSvc(${r.id})" style="padding:2px 8px;font-size:11px;margin-right:4px">저장</button><button class="btn bo bsm" onclick="cancelSvcEdit()" style="padding:2px 8px;font-size:11px">취소</button></td>
         </tr>`;
       }
@@ -2764,13 +2781,16 @@ function addSvcEntry(){
 function editSvcEntry(id){svcEditId=id;renderSvc();const el=document.getElementById('se-rooms-'+id);if(el)el.focus();}
 function cancelSvcEdit(){svcEditId=null;renderSvc();}
 function saveEditSvc(id){
+  const branch=document.getElementById(`se-branch-${id}`).value;
+  const brand=document.getElementById(`se-brand-${id}`).value;
   const rooms=parseInt(document.getElementById(`se-rooms-${id}`).value)||0;
   const unitPrice=parseInt(document.getElementById(`se-price-${id}`).value)||0;
   const note=document.getElementById(`se-note-${id}`).value.trim();
+  if(!branch){toast('e','오류','지점을 선택하세요.');return;}
   if(rooms<=0){toast('e','오류','운영실수를 입력하세요.');return;}
   const d=getSvc();
   const rec=d.records.find(r=>r.id===id);
-  if(rec){rec.rooms=rooms;rec.unitPrice=unitPrice;rec.note=note;}
+  if(rec){rec.branch=branch;rec.brand=brand;rec.rooms=rooms;rec.unitPrice=unitPrice;rec.note=note;}
   saveSvc(d);svcEditId=null;
   toast('s','수정 완료','항목이 수정되었습니다.');
   renderSvc();
