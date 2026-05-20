@@ -670,7 +670,8 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
         </div>
         <!-- 항목 입력 -->
         <div class="panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt">➕ 청구 항목 추가</span></div>
+          <div class="ph"><span class="pt">➕ 청구 항목 입력</span></div>
+          <!-- 신규 추가 -->
           <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
             <div style="display:flex;flex-direction:column;gap:4px">
               <label style="font-size:11px;font-weight:600;color:var(--text2)">청구월</label>
@@ -696,7 +697,21 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
               <label style="font-size:11px;font-weight:600;color:var(--text2)">비고</label>
               <input class="fi" id="svc-inp-note" type="text" style="width:200px" placeholder="직방 30실, 솔리티 20실">
             </div>
-            <button class="btn bp bsm" onclick="addSvcEntry()" style="margin-bottom:2px">추가</button>
+            <button class="btn bp bsm" onclick="addSvcEntry()" style="margin-bottom:2px">신규 추가</button>
+          </div>
+          <!-- 이전 월 불러오기 -->
+          <div class="pb" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">원본 월 선택</label>
+              <select class="fsel" id="svc-copy-src" style="width:150px"><option value="">월 선택...</option></select>
+            </div>
+            <span style="font-size:16px;color:var(--text3);margin-bottom:6px">→</span>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">복사할 대상 월</label>
+              <input class="fi" id="svc-copy-tgt" type="month" style="width:140px">
+            </div>
+            <button class="btn bo bsm" onclick="copySvcMonth()" style="margin-bottom:2px">불러오기</button>
+            <span style="font-size:11px;color:var(--text3);align-self:center">이전 월 데이터를 복사 후 수정해서 등록하세요</span>
           </div>
         </div>
         <!-- 필터 + 청구 내역 -->
@@ -2625,22 +2640,32 @@ const SVC_DEF_PRICES={'직방':2000,'H2O':3000,'더엠알':3000};
 function getSvc(){return ld(K.SV,{brandPrices:{...SVC_DEF_PRICES},records:[]});}
 function saveSvc(d){sv(K.SV,d);}
 function svcVat(amt){return Math.round(amt*0.1);}
+let svcEditId=null;
 
 function renderSvc(){
   const d=getSvc();
-  // 단가 입력값 채우기
   document.getElementById('svc-p-zbang').value=d.brandPrices['직방']||SVC_DEF_PRICES['직방'];
   document.getElementById('svc-p-h2o').value=d.brandPrices['H2O']||SVC_DEF_PRICES['H2O'];
   document.getElementById('svc-p-mr').value=d.brandPrices['더엠알']||SVC_DEF_PRICES['더엠알'];
-  // 기본 청구월 (오늘 기준 이번 달)
   const mInp=document.getElementById('svc-inp-month');
   if(!mInp.value){const t=new Date();mInp.value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}`;}
-  // 지점 select 채우기
   const bSel=document.getElementById('svc-inp-branch');
   const brs=getBr().sort((a,b)=>a.name.localeCompare(b.name,'ko'));
   bSel.innerHTML=brs.map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
-  // 필터 select 채우기
   const months=[...new Set(d.records.map(r=>r.month))].sort().reverse();
+  // 불러오기 원본 월 드롭다운
+  const copySrc=document.getElementById('svc-copy-src');
+  const curCopySrc=copySrc.value;
+  copySrc.innerHTML='<option value="">월 선택...</option>'+months.map(m=>`<option value="${m}">${m}</option>`).join('');
+  if(curCopySrc)copySrc.value=curCopySrc;
+  // 불러오기 대상 월 기본값 (다음 달)
+  const copyTgt=document.getElementById('svc-copy-tgt');
+  if(!copyTgt.value&&months.length>0){
+    const latest=months[0];const[y,m]=latest.split('-').map(Number);
+    const nm=m===12?`${y+1}-01`:`${y}-${String(m+1).padStart(2,'0')}`;
+    copyTgt.value=nm;
+  }
+  // 필터 select
   const fMon=document.getElementById('svc-f-month');
   const curFMon=fMon.value;
   fMon.innerHTML='<option value="">전체 월</option>'+months.map(m=>`<option value="${m}">${m}</option>`).join('');
@@ -2651,45 +2676,60 @@ function renderSvc(){
   fBr.innerHTML='<option value="">전체 지점</option>'+brNames.map(n=>`<option value="${n}">${n}</option>`).join('');
   if(curFBr)fBr.value=curFBr;
   // 필터 적용
-  const fm=fMon.value, fb=fBr.value, fbrand=document.getElementById('svc-f-brand').value;
+  const fm=fMon.value,fb=fBr.value,fbrand=document.getElementById('svc-f-brand').value;
   let recs=[...d.records];
   if(fm)recs=recs.filter(r=>r.month===fm);
   if(fb)recs=recs.filter(r=>r.branch===fb);
   if(fbrand)recs=recs.filter(r=>r.brand===fbrand);
   recs.sort((a,b)=>b.month.localeCompare(a.month)||a.branch.localeCompare(b.branch,'ko')||a.brand.localeCompare(b.brand));
-  // 테이블
   const fmt=n=>n.toLocaleString()+'원';
-  document.getElementById('svc-body').innerHTML=recs.length===0?`<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">청구 내역이 없습니다.</td></tr>`:recs.map(r=>{
-    const ex=r.rooms*(r.unitPrice||SVC_DEF_PRICES[r.brand]||0);
-    const vat=svcVat(ex);
-    return`<tr>
-      <td>${r.month}</td>
-      <td>${r.branch}</td>
-      <td><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${r.brand==='직방'?'#e8f4fd':r.brand==='H2O'?'#e8fdf0':'#fdf4e8'};color:${r.brand==='직방'?'#1a6fa8':r.brand==='H2O'?'#1a7a3f':'#a85d1a'}">${r.brand}</span></td>
-      <td style="text-align:right">${r.rooms.toLocaleString()}실</td>
-      <td style="text-align:right">${fmt(r.unitPrice||SVC_DEF_PRICES[r.brand]||0)}</td>
-      <td style="text-align:right">${fmt(ex)}</td>
-      <td style="text-align:right">${fmt(vat)}</td>
-      <td style="text-align:right;font-weight:600">${fmt(ex+vat)}</td>
-      <td style="font-size:11px;color:var(--text3)">${r.note||''}</td>
-      <td><button class="btn bo bsm" onclick="deleteSvcEntry(${r.id})" style="padding:2px 8px;font-size:11px">삭제</button></td>
-    </tr>`;
-  }).join('');
-  // tfoot 합계
+  const brandBadge=br=>`<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${br==='직방'?'#e8f4fd':br==='H2O'?'#e8fdf0':'#fdf4e8'};color:${br==='직방'?'#1a6fa8':br==='H2O'?'#1a7a3f':'#a85d1a'}">${br}</span>`;
+  document.getElementById('svc-body').innerHTML=recs.length===0
+    ?`<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">청구 내역이 없습니다.</td></tr>`
+    :recs.map(r=>{
+      const up=r.unitPrice||SVC_DEF_PRICES[r.brand]||0;
+      const ex=r.rooms*up;const vat=svcVat(ex);
+      if(svcEditId===r.id){
+        return`<tr style="background:var(--accent-l)">
+          <td>${r.month}</td>
+          <td>${r.branch}</td>
+          <td>${brandBadge(r.brand)}</td>
+          <td><input id="se-rooms-${r.id}" type="number" min="1" value="${r.rooms}" style="width:70px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"></td>
+          <td><input id="se-price-${r.id}" type="number" value="${up}" style="width:80px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"></td>
+          <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
+          <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
+          <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
+          <td><input id="se-note-${r.id}" type="text" value="${r.note||''}" style="width:160px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" placeholder="비고"></td>
+          <td style="white-space:nowrap"><button class="btn bp bsm" onclick="saveEditSvc(${r.id})" style="padding:2px 8px;font-size:11px;margin-right:4px">저장</button><button class="btn bo bsm" onclick="cancelSvcEdit()" style="padding:2px 8px;font-size:11px">취소</button></td>
+        </tr>`;
+      }
+      return`<tr>
+        <td>${r.month}</td>
+        <td>${r.branch}</td>
+        <td>${brandBadge(r.brand)}</td>
+        <td style="text-align:right">${r.rooms.toLocaleString()}실</td>
+        <td style="text-align:right">${fmt(up)}</td>
+        <td style="text-align:right">${fmt(ex)}</td>
+        <td style="text-align:right">${fmt(vat)}</td>
+        <td style="text-align:right;font-weight:600">${fmt(ex+vat)}</td>
+        <td style="font-size:11px;color:var(--text3)">${r.note||''}</td>
+        <td style="white-space:nowrap"><button class="btn bo bsm" onclick="editSvcEntry(${r.id})" style="padding:2px 8px;font-size:11px;margin-right:4px">수정</button><button class="btn bo bsm" onclick="deleteSvcEntry(${r.id})" style="padding:2px 8px;font-size:11px">삭제</button></td>
+      </tr>`;
+    }).join('');
   const totEx=recs.reduce((s,r)=>s+r.rooms*(r.unitPrice||SVC_DEF_PRICES[r.brand]||0),0);
   const totVat=svcVat(totEx);
   document.getElementById('svc-tfoot').innerHTML=recs.length>0?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="5" style="text-align:right">합계</td><td style="text-align:right">${fmt(totEx)}</td><td style="text-align:right">${fmt(totVat)}</td><td style="text-align:right">${fmt(totEx+totVat)}</td><td colspan="2"></td></tr>`:'';
-  // 요약 카드 (전체 또는 필터된 데이터의 브랜드별 합계)
-  const summaryRecs=d.records.filter(r=>(!fm||r.month===fm)&&(!fb||r.branch===fb));
-  const brandSummary=SVC_BRANDS.map(br=>{
-    const bRecs=summaryRecs.filter(r=>r.brand===br);
+  // 요약 카드
+  const sumRecs=d.records.filter(r=>(!fm||r.month===fm)&&(!fb||r.branch===fb));
+  const brandSum=SVC_BRANDS.map(br=>{
+    const bRecs=sumRecs.filter(r=>r.brand===br);
     const rooms=bRecs.reduce((s,r)=>s+r.rooms,0);
     const ex=bRecs.reduce((s,r)=>s+r.rooms*(r.unitPrice||SVC_DEF_PRICES[br]||0),0);
     const vat=svcVat(ex);
     return{br,rooms,ex,vat,cnt:bRecs.length};
   });
   const colors={'직방':'var(--accent)','H2O':'#22c55e','더엠알':'#f59e0b'};
-  document.getElementById('svc-summary').innerHTML=brandSummary.filter(s=>s.cnt>0||true).map(s=>`<div class="mcc" style="border-left:3px solid ${colors[s.br]}"><div class="ml">${s.br} ${fm?fm:''}</div><div class="mv" style="color:${colors[s.br]}">${(s.ex+s.vat).toLocaleString()}원</div><div class="ms">${s.rooms}실 · 공급가 ${s.ex.toLocaleString()}원 · 부가세 ${s.vat.toLocaleString()}원</div></div>`).join('');
+  document.getElementById('svc-summary').innerHTML=brandSum.map(s=>`<div class="mcc" style="border-left:3px solid ${colors[s.br]}"><div class="ml">${s.br}${fm?' '+fm:''}</div><div class="mv" style="color:${colors[s.br]}">${(s.ex+s.vat).toLocaleString()}원</div><div class="ms">${s.rooms}실 · 공급가 ${s.ex.toLocaleString()}원 · 부가세 ${s.vat.toLocaleString()}원</div></div>`).join('');
 }
 
 function saveSvcPrices(){
@@ -2697,9 +2737,7 @@ function saveSvcPrices(){
   d.brandPrices['직방']=parseInt(document.getElementById('svc-p-zbang').value)||SVC_DEF_PRICES['직방'];
   d.brandPrices['H2O']=parseInt(document.getElementById('svc-p-h2o').value)||SVC_DEF_PRICES['H2O'];
   d.brandPrices['더엠알']=parseInt(document.getElementById('svc-p-mr').value)||SVC_DEF_PRICES['더엠알'];
-  saveSvc(d);
-  toast('s','저장 완료','브랜드 단가가 저장되었습니다.');
-  renderSvc();
+  saveSvc(d);toast('s','저장 완료','브랜드 단가가 저장되었습니다.');renderSvc();
 }
 
 function addSvcEntry(){
@@ -2718,9 +2756,23 @@ function addSvcEntry(){
   saveSvc(d);
   document.getElementById('svc-inp-rooms').value='';
   document.getElementById('svc-inp-note').value='';
-  // 필터를 해당 월로 설정
   document.getElementById('svc-f-month').value=month;
   toast('s','추가 완료',`${branch} ${brand} ${rooms}실 추가되었습니다.`);
+  renderSvc();
+}
+
+function editSvcEntry(id){svcEditId=id;renderSvc();const el=document.getElementById('se-rooms-'+id);if(el)el.focus();}
+function cancelSvcEdit(){svcEditId=null;renderSvc();}
+function saveEditSvc(id){
+  const rooms=parseInt(document.getElementById(`se-rooms-${id}`).value)||0;
+  const unitPrice=parseInt(document.getElementById(`se-price-${id}`).value)||0;
+  const note=document.getElementById(`se-note-${id}`).value.trim();
+  if(rooms<=0){toast('e','오류','운영실수를 입력하세요.');return;}
+  const d=getSvc();
+  const rec=d.records.find(r=>r.id===id);
+  if(rec){rec.rooms=rooms;rec.unitPrice=unitPrice;rec.note=note;}
+  saveSvc(d);svcEditId=null;
+  toast('s','수정 완료','항목이 수정되었습니다.');
   renderSvc();
 }
 
@@ -2728,7 +2780,28 @@ function deleteSvcEntry(id){
   if(!confirm('이 항목을 삭제하시겠습니까?'))return;
   const d=getSvc();
   d.records=d.records.filter(r=>r.id!==id);
+  if(svcEditId===id)svcEditId=null;
+  saveSvc(d);renderSvc();
+}
+
+function copySvcMonth(){
+  const src=document.getElementById('svc-copy-src').value;
+  const tgt=document.getElementById('svc-copy-tgt').value;
+  if(!src){toast('e','오류','원본 월을 선택하세요.');return;}
+  if(!tgt){toast('e','오류','대상 월을 입력하세요.');return;}
+  if(src===tgt){toast('e','오류','원본과 대상 월이 같습니다.');return;}
+  const d=getSvc();
+  const srcRecs=d.records.filter(r=>r.month===src);
+  if(srcRecs.length===0){toast('e','오류',`${src}에 등록된 항목이 없습니다.`);return;}
+  const tgtExists=d.records.filter(r=>r.month===tgt);
+  if(tgtExists.length>0&&!confirm(`${tgt}에 이미 ${tgtExists.length}개 항목이 있습니다. 추가로 복사하시겠습니까?`))return;
+  let nid=d.records.length>0?Math.max(...d.records.map(r=>r.id))+1:1;
+  srcRecs.forEach(r=>{
+    d.records.push({...r,id:nid++,month:tgt,createdAt:new Date().toISOString()});
+  });
   saveSvc(d);
+  document.getElementById('svc-f-month').value=tgt;
+  toast('s','불러오기 완료',`${src} → ${tgt}: ${srcRecs.length}개 항목이 복사되었습니다. 수정 후 확인하세요.`);
   renderSvc();
 }
 
