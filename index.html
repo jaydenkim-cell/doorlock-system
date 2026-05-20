@@ -645,6 +645,79 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
         </div>
       </div>
 
+      <!-- 서비스요금 (admin) -->
+      <div class="page" id="page-svc">
+        <!-- 요약 카드 -->
+        <div class="mcg" id="svc-summary"></div>
+        <!-- 단가 설정 -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt">💲 브랜드 단가 설정</span><button class="btn bp bsm" onclick="saveSvcPrices()">저장</button></div>
+          <div class="pb" style="display:flex;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">직방 (실당/월, 부가세별도)</label>
+              <input class="fi" id="svc-p-zbang" type="number" style="width:120px" placeholder="2000">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">H2O (실당/월, 부가세별도)</label>
+              <input class="fi" id="svc-p-h2o" type="number" style="width:120px" placeholder="3000">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">더엠알 (실당/월, 부가세별도)</label>
+              <input class="fi" id="svc-p-mr" type="number" style="width:120px" placeholder="3000">
+            </div>
+          </div>
+          <div class="pb" style="padding-top:4px;font-size:11px;color:var(--text3)">※ 직방·H2O: 운영실수 기준 / 더엠알: 건물 전체 객실 기준 / 부가세 10% 자동 계산</div>
+        </div>
+        <!-- 항목 입력 -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt">➕ 청구 항목 추가</span></div>
+          <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">청구월</label>
+              <input class="fi" id="svc-inp-month" type="month" style="width:140px">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">지점</label>
+              <select class="fsel" id="svc-inp-branch" style="width:160px"></select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">브랜드</label>
+              <select class="fsel" id="svc-inp-brand" style="width:110px">
+                <option value="직방">직방</option>
+                <option value="H2O">H2O</option>
+                <option value="더엠알">더엠알</option>
+              </select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">운영실수</label>
+              <input class="fi" id="svc-inp-rooms" type="number" min="1" style="width:90px" placeholder="0">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">비고</label>
+              <input class="fi" id="svc-inp-note" type="text" style="width:200px" placeholder="직방 30실, 솔리티 20실">
+            </div>
+            <button class="btn bp bsm" onclick="addSvcEntry()" style="margin-bottom:2px">추가</button>
+          </div>
+        </div>
+        <!-- 필터 + 청구 내역 -->
+        <div class="panel">
+          <div class="ph">
+            <span class="pt">📋 청구 내역</span>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <select class="fsel bsm" id="svc-f-month" onchange="renderSvc()"><option value="">전체 월</option></select>
+              <select class="fsel bsm" id="svc-f-branch" onchange="renderSvc()"><option value="">전체 지점</option></select>
+              <select class="fsel bsm" id="svc-f-brand" onchange="renderSvc()">
+                <option value="">전체 브랜드</option>
+                <option value="직방">직방</option>
+                <option value="H2O">H2O</option>
+                <option value="더엠알">더엠알</option>
+              </select>
+            </div>
+          </div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>청구월</th><th>지점</th><th>브랜드</th><th>운영실수</th><th>단가(별도)</th><th>공급가액</th><th>부가세(10%)</th><th>합계(포함)</th><th>비고</th><th></th></tr></thead><tbody id="svc-body"></tbody><tfoot id="svc-tfoot"></tfoot></table></div>
+        </div>
+      </div>
+
       <!-- 지점 관리 (admin) -->
       <div class="page" id="page-branches">
         <div class="panel" style="margin-bottom:16px">
@@ -890,7 +963,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <script>
 'use strict';
 /* ── localStorage keys (기존 그대로 유지) ── */
-const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close'};
+const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close',SV:'doorlock_svc'};
 const getSlackProfile=(email)=>{const sp=ld(K.SP,{});return sp[(email||'').toLowerCase()]||null;};
 const getUserEmailByName=(name)=>{if(!name)return null;const users=ld(K.U,[]);const u=users.find(u=>u.name===name);return u?.email||null;};
 const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${p.avatar}" alt="${p.name||name||''}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${p.name||name||email||'—'}`;const initials=(name||email||'?').charAt(0).toUpperCase();return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${name||email||'—'}</span>`;};
@@ -930,7 +1003,7 @@ async function sbSync(){
       }
     });
     // localStorage → Supabase (최초 마이그레이션)
-    const migrKeys=[K.B,K.O,K.R,K.U,K.A,K.SA,K.SP];
+    const migrKeys=[K.B,K.O,K.R,K.U,K.A,K.SA,K.SP,K.SV];
     for(const k of migrKeys){
       if(!sbKeys.has(k)){const v=localStorage.getItem(k);if(v)await sbSet(k,JSON.parse(v));}
     }
@@ -1251,6 +1324,7 @@ const NI={
   monthly:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>`,
   branches:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
   users:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  svc:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
 };
 // 콘텐츠 영역 아이콘 (15px, currentColor)
 const _s='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
@@ -1281,14 +1355,14 @@ function buildNav(){
   itms.push({sep:'운영'},{p:'receipt',ic:NI.receipt,l:'접수 관리'});
   if(a){itms.push({p:'order',ic:NI.order,l:'발주 관리'});itms.push({p:'draft',ic:NI.draft,l:'발주서 작성'});}
   itms.push({p:'install',ic:NI.install,l:'설치 현황'});
-  if(a){itms.push({sep:'정산'},{p:'monthly',ic:NI.monthly,l:'월마감 정산'},{sep:'설정'},{p:'branches',ic:NI.branches,l:'지점 관리'});}
+  if(a){itms.push({sep:'정산'},{p:'monthly',ic:NI.monthly,l:'월마감 정산'},{p:'svc',ic:NI.svc,l:'서비스요금'},{sep:'설정'},{p:'branches',ic:NI.branches,l:'지점 관리'});}
   if(sa)itms.push({p:'users',ic:NI.users,l:'사용자 관리'});
   document.getElementById('sb-nav').innerHTML=itms.map(i=>i.sep?`<div class="sg">${i.sep}</div>`:`<div class="ni" data-p="${i.p}" onclick="goP('${i.p}')"><span class="ic">${i.ic}</span>${i.l}</div>`).join('');
 }
 
-const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],branches:['지점 관리','지점 정보 및 계정'],users:['사용자 관리','접속 권한 부여 및 역할 설정']};
+const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],svc:['서비스요금','직방·H2O·더엠알 월 서비스요금 관리'],branches:['지점 관리','지점 정보 및 계정'],users:['사용자 관리','접속 권한 부여 및 역할 설정']};
 function goP(p){
-  if((p==='order'||p==='draft'||p==='monthly'||p==='branches')&&!isAdm()){toast('e','권한 없음','관리자만 접근할 수 있습니다.');return;}
+  if((p==='order'||p==='draft'||p==='monthly'||p==='branches'||p==='svc')&&!isAdm()){toast('e','권한 없음','관리자만 접근할 수 있습니다.');return;}
   if(p==='users'&&!isSA()){toast('e','권한 없음','최고관리자만 접근할 수 있습니다.');return;}
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(e=>e.classList.remove('on'));
@@ -2545,8 +2619,121 @@ function exportToExcel(type){
   toast('s','다운로드 완료',`${fileName} 저장되었습니다.`);
 }
 
+/* ── 서비스요금 ── */
+const SVC_BRANDS=['직방','H2O','더엠알'];
+const SVC_DEF_PRICES={'직방':2000,'H2O':3000,'더엠알':3000};
+function getSvc(){return ld(K.SV,{brandPrices:{...SVC_DEF_PRICES},records:[]});}
+function saveSvc(d){sv(K.SV,d);}
+function svcVat(amt){return Math.round(amt*0.1);}
+
+function renderSvc(){
+  const d=getSvc();
+  // 단가 입력값 채우기
+  document.getElementById('svc-p-zbang').value=d.brandPrices['직방']||SVC_DEF_PRICES['직방'];
+  document.getElementById('svc-p-h2o').value=d.brandPrices['H2O']||SVC_DEF_PRICES['H2O'];
+  document.getElementById('svc-p-mr').value=d.brandPrices['더엠알']||SVC_DEF_PRICES['더엠알'];
+  // 기본 청구월 (오늘 기준 이번 달)
+  const mInp=document.getElementById('svc-inp-month');
+  if(!mInp.value){const t=new Date();mInp.value=`${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}`;}
+  // 지점 select 채우기
+  const bSel=document.getElementById('svc-inp-branch');
+  const brs=getBr().sort((a,b)=>a.name.localeCompare(b.name,'ko'));
+  bSel.innerHTML=brs.map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
+  // 필터 select 채우기
+  const months=[...new Set(d.records.map(r=>r.month))].sort().reverse();
+  const fMon=document.getElementById('svc-f-month');
+  const curFMon=fMon.value;
+  fMon.innerHTML='<option value="">전체 월</option>'+months.map(m=>`<option value="${m}">${m}</option>`).join('');
+  if(curFMon)fMon.value=curFMon;
+  const fBr=document.getElementById('svc-f-branch');
+  const curFBr=fBr.value;
+  const brNames=[...new Set(d.records.map(r=>r.branch))].sort((a,b)=>a.localeCompare(b,'ko'));
+  fBr.innerHTML='<option value="">전체 지점</option>'+brNames.map(n=>`<option value="${n}">${n}</option>`).join('');
+  if(curFBr)fBr.value=curFBr;
+  // 필터 적용
+  const fm=fMon.value, fb=fBr.value, fbrand=document.getElementById('svc-f-brand').value;
+  let recs=[...d.records];
+  if(fm)recs=recs.filter(r=>r.month===fm);
+  if(fb)recs=recs.filter(r=>r.branch===fb);
+  if(fbrand)recs=recs.filter(r=>r.brand===fbrand);
+  recs.sort((a,b)=>b.month.localeCompare(a.month)||a.branch.localeCompare(b.branch,'ko')||a.brand.localeCompare(b.brand));
+  // 테이블
+  const fmt=n=>n.toLocaleString()+'원';
+  document.getElementById('svc-body').innerHTML=recs.length===0?`<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">청구 내역이 없습니다.</td></tr>`:recs.map(r=>{
+    const ex=r.rooms*(r.unitPrice||SVC_DEF_PRICES[r.brand]||0);
+    const vat=svcVat(ex);
+    return`<tr>
+      <td>${r.month}</td>
+      <td>${r.branch}</td>
+      <td><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${r.brand==='직방'?'#e8f4fd':r.brand==='H2O'?'#e8fdf0':'#fdf4e8'};color:${r.brand==='직방'?'#1a6fa8':r.brand==='H2O'?'#1a7a3f':'#a85d1a'}">${r.brand}</span></td>
+      <td style="text-align:right">${r.rooms.toLocaleString()}실</td>
+      <td style="text-align:right">${fmt(r.unitPrice||SVC_DEF_PRICES[r.brand]||0)}</td>
+      <td style="text-align:right">${fmt(ex)}</td>
+      <td style="text-align:right">${fmt(vat)}</td>
+      <td style="text-align:right;font-weight:600">${fmt(ex+vat)}</td>
+      <td style="font-size:11px;color:var(--text3)">${r.note||''}</td>
+      <td><button class="btn bo bsm" onclick="deleteSvcEntry(${r.id})" style="padding:2px 8px;font-size:11px">삭제</button></td>
+    </tr>`;
+  }).join('');
+  // tfoot 합계
+  const totEx=recs.reduce((s,r)=>s+r.rooms*(r.unitPrice||SVC_DEF_PRICES[r.brand]||0),0);
+  const totVat=svcVat(totEx);
+  document.getElementById('svc-tfoot').innerHTML=recs.length>0?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="5" style="text-align:right">합계</td><td style="text-align:right">${fmt(totEx)}</td><td style="text-align:right">${fmt(totVat)}</td><td style="text-align:right">${fmt(totEx+totVat)}</td><td colspan="2"></td></tr>`:'';
+  // 요약 카드 (전체 또는 필터된 데이터의 브랜드별 합계)
+  const summaryRecs=d.records.filter(r=>(!fm||r.month===fm)&&(!fb||r.branch===fb));
+  const brandSummary=SVC_BRANDS.map(br=>{
+    const bRecs=summaryRecs.filter(r=>r.brand===br);
+    const rooms=bRecs.reduce((s,r)=>s+r.rooms,0);
+    const ex=bRecs.reduce((s,r)=>s+r.rooms*(r.unitPrice||SVC_DEF_PRICES[br]||0),0);
+    const vat=svcVat(ex);
+    return{br,rooms,ex,vat,cnt:bRecs.length};
+  });
+  const colors={'직방':'var(--accent)','H2O':'#22c55e','더엠알':'#f59e0b'};
+  document.getElementById('svc-summary').innerHTML=brandSummary.filter(s=>s.cnt>0||true).map(s=>`<div class="mcc" style="border-left:3px solid ${colors[s.br]}"><div class="ml">${s.br} ${fm?fm:''}</div><div class="mv" style="color:${colors[s.br]}">${(s.ex+s.vat).toLocaleString()}원</div><div class="ms">${s.rooms}실 · 공급가 ${s.ex.toLocaleString()}원 · 부가세 ${s.vat.toLocaleString()}원</div></div>`).join('');
+}
+
+function saveSvcPrices(){
+  const d=getSvc();
+  d.brandPrices['직방']=parseInt(document.getElementById('svc-p-zbang').value)||SVC_DEF_PRICES['직방'];
+  d.brandPrices['H2O']=parseInt(document.getElementById('svc-p-h2o').value)||SVC_DEF_PRICES['H2O'];
+  d.brandPrices['더엠알']=parseInt(document.getElementById('svc-p-mr').value)||SVC_DEF_PRICES['더엠알'];
+  saveSvc(d);
+  toast('s','저장 완료','브랜드 단가가 저장되었습니다.');
+  renderSvc();
+}
+
+function addSvcEntry(){
+  const month=document.getElementById('svc-inp-month').value;
+  const branch=document.getElementById('svc-inp-branch').value;
+  const brand=document.getElementById('svc-inp-brand').value;
+  const rooms=parseInt(document.getElementById('svc-inp-rooms').value)||0;
+  const note=document.getElementById('svc-inp-note').value.trim();
+  if(!month){toast('e','입력 오류','청구월을 선택하세요.');return;}
+  if(!branch){toast('e','입력 오류','지점을 선택하세요.');return;}
+  if(rooms<=0){toast('e','입력 오류','운영실수를 입력하세요.');return;}
+  const d=getSvc();
+  const unitPrice=d.brandPrices[brand]||SVC_DEF_PRICES[brand]||0;
+  const nid=d.records.length>0?Math.max(...d.records.map(r=>r.id))+1:1;
+  d.records.push({id:nid,month,branch,brand,rooms,unitPrice,note,createdAt:new Date().toISOString()});
+  saveSvc(d);
+  document.getElementById('svc-inp-rooms').value='';
+  document.getElementById('svc-inp-note').value='';
+  // 필터를 해당 월로 설정
+  document.getElementById('svc-f-month').value=month;
+  toast('s','추가 완료',`${branch} ${brand} ${rooms}실 추가되었습니다.`);
+  renderSvc();
+}
+
+function deleteSvcEntry(id){
+  if(!confirm('이 항목을 삭제하시겠습니까?'))return;
+  const d=getSvc();
+  d.records=d.records.filter(r=>r.id!==id);
+  saveSvc(d);
+  renderSvc();
+}
+
 // 자동 동기화: 30초마다 Supabase에서 최신 데이터 로드 후 현재 페이지 갱신
-const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:()=>typeof renderR==='function'&&renderR(),order:()=>typeof renderO==='function'&&renderO(),install:()=>typeof renderI==='function'&&renderI(),monthly:()=>typeof renderM==='function'&&renderM()};
+const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:()=>typeof renderR==='function'&&renderR(),order:()=>typeof renderO==='function'&&renderO(),install:()=>typeof renderI==='function'&&renderI(),monthly:()=>typeof renderM==='function'&&renderM(),svc:()=>typeof renderSvc==='function'&&renderSvc()};
 setInterval(async()=>{
   if(!S)return; // 로그인 전엔 동기화 안 함
   await sbSync();
