@@ -48,25 +48,8 @@ Supabase 설정 없이도 바로 동작합니다(이때는 **이 기기에만 �
 ## 가족과 실시간 공유하기 (Supabase)
 
 1. <https://supabase.com> 에서 무료 프로젝트 생성.
-2. SQL Editor에서 아래 테이블을 만듭니다(단일 JSON 문서 방식):
-
-   ```sql
-   create table if not exists trip_state (
-     id text primary key,
-     data jsonb not null default '{}',
-     updated_at timestamptz not null default now()
-   );
-
-   alter table trip_state enable row level security;
-
-   -- 가족 공용 화면(민감정보 저장 금지). 익명 키로 읽기/쓰기 허용.
-   create policy "family read"  on trip_state for select using (true);
-   create policy "family write" on trip_state for insert with check (true);
-   create policy "family update" on trip_state for update using (true) with check (true);
-
-   -- 실시간 반영을 위해 publication에 추가
-   alter publication supabase_realtime add table trip_state;
-   ```
+2. 대시보드 **SQL Editor**에 [`supabase/schema.sql`](supabase/schema.sql) 내용을 통째로
+   붙여넣고 **Run** 한 번 실행 (테이블 + 보안정책 + 실시간 설정이 한 번에 됩니다).
 
 3. `.env.example`을 `.env`로 복사하고 값을 채웁니다:
 
