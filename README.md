@@ -1,0 +1,107 @@
+# 🌴 최정숙 할머니의 칠순여행
+
+가족 8명의 오키나와 2박 3일 여행을 **한 화면에서 함께** 보고, 예약처로 바로 이동하고,
+예약·준비물 체크와 메모를 **실시간으로 공유**하는 모바일 웹앱.
+
+> 기존 단일 HTML 아티팩트의 한계(기기 간 실시간 공유 불가, 게시 링크가 옛 버전 고정,
+> 모바일에서 JS 미실행)를 **정식 호스팅 + 실시간 백엔드(Supabase)**로 해결합니다.
+
+---
+
+## 화면 구성 (5개 탭)
+
+| 탭 | 내용 |
+|---|---|
+| 🗓️ 일정 | Day별 타임라인 · **출발시간 자동 일정** · **일정 직접 수정** · 정보 카드 |
+| ✅ 예약 | 항목별 추천 사이트 바로가기 + 예상가 + 「예약 완료」 체크(누가·언제) |
+| 💰 경비 | 총액 · 1인당 · 항목별 막대그래프 · 여행 방식 비교 |
+| 🎒 준비물 | 그룹별 체크리스트(완료자 표시) |
+| 💬 가족메모 | 의견 게시판(작성자·시간) |
+
+상단에 **D-day 카운터 · 예약 진행률 링 · 호칭 설정 · 동기화 상태**가 항상 표시됩니다.
+
+### ✨ 추가 기능 (이번 요청)
+
+1. **출발시간 → 자동 일정**
+   일정 탭에서 인천 출발 시간을 정하면, `도착 = 출발 + 2:30`을 계산해
+   **도착 시각부터 첫날 일정이 자동으로 배치**됩니다. 둘째·셋째 날은 체크아웃 시각 기준.
+2. **일정 직접 수정(제약 포함)**
+   각 일정을 **±30분 단위로 미루거나 다음날/전날로** 옮길 수 있습니다.
+   단 **"비슷한 시간대"로만** 가능 — 원래 시각과 **±3시간(`TOLERANCE_MIN`)**을 넘거나
+   **±1일을 넘는** 이동은 막고 안내합니다. (예: 17시 공연 → 19시·다음날 17시는 OK,
+   다음날 9시는 갭이 커서 불가) 비행·출국 같은 고정 일정은 이동 불가.
+   조정 폭은 `src/lib/schedule.ts`의 `TOLERANCE_MIN`에서 바꿀 수 있습니다.
+
+---
+
+## 빠르게 실행
+
+```bash
+npm install
+npm run dev      # http://localhost:7777
+```
+
+Supabase 설정 없이도 바로 동작합니다(이때는 **이 기기에만 저장**되는 localStorage 모드).
+
+---
+
+## 가족과 실시간 공유하기 (Supabase)
+
+1. <https://supabase.com> 에서 무료 프로젝트 생성.
+2. SQL Editor에서 아래 테이블을 만듭니다(단일 JSON 문서 방식):
+
+   ```sql
+   create table if not exists trip_state (
+     id text primary key,
+     data jsonb not null default '{}',
+     updated_at timestamptz not null default now()
+   );
+
+   alter table trip_state enable row level security;
+
+   -- 가족 공용 화면(민감정보 저장 금지). 익명 키로 읽기/쓰기 허용.
+   create policy "family read"  on trip_state for select using (true);
+   create policy "family write" on trip_state for insert with check (true);
+   create policy "family update" on trip_state for update using (true) with check (true);
+
+   -- 실시간 반영을 위해 publication에 추가
+   alter publication supabase_realtime add table trip_state;
+   ```
+
+3. `.env.example`을 `.env`로 복사하고 값을 채웁니다:
+
+   ```bash
+   cp .env.example .env
+   ```
+   - `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` : Project Settings → API
+   - `VITE_TRIP_ID` : 가족이 공유할 방 코드(기본 `choi70`)
+
+4. `npm run dev`로 확인 → 상단 배지가 **"실시간 공유 중"**으로 바뀌면 성공.
+   한 사람이 체크/메모하면 다른 가족 화면에 즉시 반영됩니다.
+
+> RLS 정책은 "링크를 아는 가족만" 수준의 공용 화면 기준입니다. 민감정보는 저장하지 마세요.
+
+---
+
+## 배포 (고정 URL → 카톡 공유)
+
+**Vercel** 또는 **Netlify**에 이 저장소를 연결하면 자동 빌드됩니다.
+
+- Build command: `npm run build`
+- Output dir: `dist`
+- 환경변수에 위 `VITE_*` 값을 등록.
+
+배포 후 나오는 **고정 URL**을 카톡에 공유하면, 다운로드 없이 폰 브라우저에서 바로 앱처럼
+사용할 수 있습니다(PWA: "홈 화면에 추가" 지원). 코드를 고쳐 다시 배포해도 같은 URL이
+항상 최신 버전을 보여줍니다.
+
+---
+
+## 콘텐츠 수정 위치
+
+- 일정·장소·예약 링크·경비·준비물 등 **확정 콘텐츠** → `src/data/trip.ts`
+- 자동 일정/이동 제약 **로직** → `src/lib/schedule.ts`
+- 동기화(클라우드/로컬) → `src/lib/store.ts`
+- 디자인 토큰(색·폰트) → `src/styles.css`
+
+예약을 진행하며 실제 확정값(항공 시각, 숙소명 등)으로 `trip.ts`를 업데이트하세요.
