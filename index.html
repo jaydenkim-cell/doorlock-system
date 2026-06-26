@@ -997,8 +997,9 @@ async function sbSync(){
     if(!r.ok)return;
     const rows=await r.json();
     const sbKeys=new Set(rows.map(r=>r.key));
-    // 로컬 우선: 실제 사용자 데이터는 로컬이 항상 정답
-    // 초기 데이터(__init__ 플래그)만 Supabase로 덮어씀
+    // 다중 사용자 공유 배열 키: ID 기준 병합 (Supabase 기반 + 로컬 전용 항목 추가)
+    // 설정 키: 로컬 우선 (어드민만 수정)
+    const MERGE_KEYS=new Set([K.R,K.O]);
     rows.forEach(row=>{
       const local=localStorage.getItem(row.key);
       const sbVal=row.value;
@@ -1009,8 +1010,20 @@ async function sbSync(){
           localStorage.setItem(row.key,JSON.stringify(sbVal));
           localStorage.removeItem('__init__'+row.key);
         }
+      } else if(MERGE_KEYS.has(row.key)){
+        // 접수/발주: ID 기준 병합 — Supabase를 기본으로 하고 로컬 전용 항목 추가
+        // (다른 브라우저에서 접수한 데이터를 덮어쓰지 않음)
+        try{
+          const localArr=JSON.parse(local);
+          const sbArr=Array.isArray(sbVal)?sbVal:[];
+          const sbIds=new Set(sbArr.map(x=>x.id));
+          const localOnly=localArr.filter(x=>!sbIds.has(x.id));
+          const merged=[...sbArr,...localOnly];
+          localStorage.setItem(row.key,JSON.stringify(merged));
+          if(localOnly.length>0)sbSet(row.key,merged);
+        }catch{}
       } else {
-        // 실제 사용자 데이터 → 로컬 유지, Supabase에 동기화
+        // 설정 데이터 → 로컬 유지, Supabase에 동기화
         try{
           const localVal=JSON.parse(local);
           if(JSON.stringify(localVal)!==JSON.stringify(sbVal))sbSet(row.key,localVal);
