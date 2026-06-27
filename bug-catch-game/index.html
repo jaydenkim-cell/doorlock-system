@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦟 끈끈이 버그 잡기!</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --primary:#FF6B35;--primary-dark:#E55A24;
+  --secondary:#F7C59F;
+  --bg:#1a0a05;
+  --ceiling:#D4B896;--ceiling-stripe:#C8AB82;
+  --text:#FFF8F0;
+  --ok:#4CAF50;--bad:#F44336;--gold:#FFD700;
+  --c0:#FF6B6B;--c1:#4ECDC4;--c2:#FFE66D;--c3:#A8E6CF;
+}
+body{
+  background:var(--bg);
+  min-height:100vh;width:100%;
+  font-family:'Apple SD Gothic Neo','맑은 고딕','Malgun Gothic','Segoe UI',sans-serif;
+  color:var(--text);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow:hidden;position:relative;
+}
+
+/* ── background crawling bugs ── */
+.bg-bug{
+  position:fixed;font-size:2em;opacity:.04;pointer-events:none;
+  animation:bg-crawl linear infinite;
+}
+@keyframes bg-crawl{
+  from{transform:translateY(110vh) rotate(0deg)}
+  to{transform:translateY(-15vh) rotate(360deg)}
+}
+
+/* ── screens ── */
+.screen{display:none;width:100%;max-width:540px;padding:18px;flex-direction:column;align-items:center}
+.screen.active{display:flex}
+
+/* ─────────── SETUP ─────────── */
+.title{
+  font-size:clamp(2em,8vw,2.8em);font-weight:900;text-align:center;
+  line-height:1.15;margin-bottom:6px;
+  text-shadow:0 4px 12px rgba(0,0,0,.5);
+  animation:float 3s ease-in-out infinite;
+}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.subtitle{font-size:.9em;color:var(--secondary);text-align:center;margin-bottom:28px}
+
+.count-row{display:flex;gap:10px;margin-bottom:22px}
+.count-btn{
+  width:58px;height:58px;border:3px solid rgba(255,255,255,.3);
+  background:transparent;color:rgba(255,255,255,.7);
+  font-size:1.3em;font-weight:700;border-radius:14px;cursor:pointer;transition:.2s;
+}
+.count-btn.on{background:var(--primary);border-color:var(--primary);color:#fff;transform:scale(1.08)}
+
+.name-list{display:flex;flex-direction:column;gap:9px;width:100%;margin-bottom:22px}
+.name-row{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 16px;background:rgba(255,255,255,.08);border-radius:12px;
+}
+.dot{width:28px;height:28px;border-radius:50%;flex-shrink:0}
+.name-input{
+  flex:1;background:transparent;border:none;border-bottom:2px solid rgba(255,255,255,.25);
+  color:#fff;font-size:1em;padding:4px 2px;outline:none;
+}
+.name-input:focus{border-bottom-color:var(--primary)}
+
+.btn{
+  padding:14px 38px;background:var(--primary);color:#fff;border:none;
+  border-radius:15px;font-size:1.15em;font-weight:700;cursor:pointer;
+  transition:.2s;box-shadow:0 4px 18px rgba(255,107,53,.4);
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 7px 22px rgba(255,107,53,.5)}
+.btn:active{transform:translateY(0)}
+.btn.sm{padding:10px 22px;font-size:.9em}
+
+/* ─────────── GAME ─────────── */
+.game-hdr{width:100%;display:flex;justify-content:space-between;margin-bottom:12px;font-size:.85em;color:var(--secondary)}
+.score-bar{display:flex;gap:7px;flex-wrap:wrap;justify-content:center;margin-bottom:12px}
+.score-chip{
+  padding:6px 14px;border-radius:20px;font-size:.8em;font-weight:700;
+  border:2px solid transparent;transition:.3s;
+}
+.score-chip.me{border-color:#fff;transform:scale(1.06)}
+
+.turn-box{text-align:center;margin-bottom:10px}
+.turn-name{font-size:1.15em;font-weight:700}
+.turn-hint{font-size:.78em;color:var(--secondary);margin-top:2px}
+
+/* ceiling grid */
+.ceiling-wrap{
+  width:100%;
+  background:repeating-linear-gradient(90deg,var(--ceiling) 0,var(--ceiling) 80px,var(--ceiling-stripe) 80px,var(--ceiling-stripe) 160px);
+  border-radius:16px;padding:14px;
+  box-shadow:inset 0 -12px 28px rgba(0,0,0,.35),0 6px 22px rgba(0,0,0,.5);
+  margin-bottom:12px;position:relative;
+}
+.ceiling-lbl{text-align:center;color:rgba(0,0,0,.38);font-size:.72em;margin-bottom:8px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:7px}
+.cell{
+  aspect-ratio:1;background:rgba(0,0,0,.06);
+  border:2px dashed rgba(0,0,0,.12);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:clamp(1.4em,5vw,2em);cursor:pointer;transition:.18s;
+  position:relative;overflow:visible;user-select:none;
+}
+.cell:hover{background:rgba(255,255,255,.22);transform:scale(1.06)}
+.cell.has-bug:hover{background:rgba(255,220,80,.25)}
+.cell.sel{
+  border:3px solid var(--primary);background:rgba(255,107,53,.18);
+  animation:pulse .9s ease-in-out infinite;
+}
+.cell.done{background:rgba(76,175,80,.15);border-color:rgba(76,175,80,.4);cursor:default}
+.cell.done:hover{transform:none}
+@keyframes pulse{0%,100%{box-shadow:0 0 4px rgba(255,107,53,.4)}50%{box-shadow:0 0 14px rgba(255,107,53,.7)}}
+
+.bug{animation:wiggle 2.2s ease-in-out infinite;display:inline-block}
+@keyframes wiggle{0%,100%{transform:rotate(-6deg)}50%{transform:rotate(6deg)}}
+.bug.hid{filter:blur(4px);opacity:.55;font-size:.78em}
+
+.tip{
+  position:absolute;bottom:110%;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.88);color:#fff;padding:3px 7px;border-radius:6px;
+  font-size:.58em;white-space:nowrap;pointer-events:none;opacity:0;transition:.2s;z-index:5;
+}
+.cell:hover .tip{opacity:1}
+
+/* cards */
+.cards-lbl{font-size:.78em;color:var(--secondary);margin-bottom:7px;text-align:left;width:100%}
+.cards-row{display:flex;gap:7px;width:100%}
+.card{
+  flex:1;padding:9px 5px;background:rgba(255,255,255,.09);
+  border:2px solid rgba(255,255,255,.18);border-radius:10px;
+  text-align:center;cursor:pointer;transition:.2s;
+}
+.card:hover:not(.off){background:rgba(255,255,255,.18);border-color:var(--primary);transform:translateY(-3px)}
+.card.off{opacity:.35;cursor:default}
+.card .ce{font-size:1.5em;display:block;margin-bottom:2px}
+.card .cn{font-size:.65em;font-weight:700;line-height:1.2}
+
+.action-row{display:flex;gap:8px;margin-top:13px;width:100%}
+
+/* ─────────── THROW OVERLAY ─────────── */
+.overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.88);z-index:100;
+  flex-direction:column;align-items:center;justify-content:center;gap:16px;
+}
+.overlay.on{display:flex}
+
+.throw-title{font-size:1.4em;font-weight:900}
+.bug-big{font-size:4.5em;animation:bbb .45s ease-in-out infinite alternate}
+@keyframes bbb{from{transform:scale(1)}to{transform:scale(1.18)}}
+.bug-info{font-size:.9em;color:var(--secondary)}
+
+/* power meter */
+.meter-wrap{width:300px}
+.meter-track{
+  height:32px;background:rgba(255,255,255,.1);border-radius:16px;
+  position:relative;overflow:hidden;
+}
+.zone-ok{
+  position:absolute;inset:0;left:25%;width:50%;
+  background:rgba(255,193,7,.28);
+}
+.zone-perfect{
+  position:absolute;inset:0;left:37.5%;width:25%;
+  background:rgba(76,175,80,.45);
+}
+.meter-bar{
+  position:absolute;top:3px;width:6px;height:26px;
+  background:#fff;border-radius:3px;
+  box-shadow:0 0 10px #fff,0 0 4px #fff;
+  will-change:left;
+}
+.meter-labels{
+  display:flex;justify-content:space-between;
+  font-size:.65em;color:rgba(255,255,255,.45);margin-top:4px;
+}
+
+.throw-btn{
+  padding:15px 52px;background:var(--primary);color:#fff;border:none;
+  border-radius:16px;font-size:1.25em;font-weight:900;cursor:pointer;
+  transition:.1s;box-shadow:0 4px 18px rgba(255,107,53,.45);
+  animation:throw-pulse .6s ease-in-out infinite alternate;
+}
+@keyframes throw-pulse{from{transform:scale(1)}to{transform:scale(1.04)}}
+.throw-btn:active{transform:scale(.94)!important}
+.throw-tip{font-size:.75em;color:rgba(255,255,255,.5)}
+
+/* ─────────── RESULT OVERLAY ─────────── */
+.result-ov{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.75);z-index:101;
+  flex-direction:column;align-items:center;justify-content:center;gap:12px;
+}
+.result-ov.on{display:flex}
+.r-icon{font-size:5.5em;animation:pop .3s cubic-bezier(.175,.885,.32,1.275)}
+@keyframes pop{from{transform:scale(0) rotate(-20deg)}to{transform:scale(1) rotate(0)}}
+.r-title{font-size:2em;font-weight:900}
+.r-sub{font-size:.95em;color:var(--secondary)}
+.r-pts{font-size:1.6em;font-weight:900;color:var(--gold)}
+
+/* ─────────── GAME OVER ─────────── */
+.go-title{font-size:2.4em;font-weight:900;text-align:center;margin-bottom:22px}
+.rank-list{width:100%;max-width:380px;display:flex;flex-direction:column;gap:9px;margin-bottom:24px}
+.rank-row{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 18px;background:rgba(255,255,255,.1);border-radius:13px;
+  border:2px solid transparent;
+}
+.rank-place{font-size:1.5em;font-weight:900;width:38px}
+.rank-name{flex:1;font-size:1em;font-weight:700}
+.rank-score{font-size:1.2em;font-weight:900;color:var(--gold)}
+
+/* particles */
+.pt{
+  position:fixed;pointer-events:none;z-index:200;font-size:1.4em;
+  animation:pt-fly ease-out forwards;
+}
+@keyframes pt-fly{
+  from{transform:translate(-50%,-50%) scale(1);opacity:1}
+  to{transform:translate(-50%,-250%) scale(.4);opacity:0}
+}
+/* quick toast */
+.toast{
+  position:fixed;top:18%;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.88);color:#fff;
+  padding:10px 22px;border-radius:20px;
+  font-size:.95em;z-index:210;animation:pop .3s ease-out;
+}
+</style>
+</head>
+<body>
+
+<!-- background bugs -->
+<div class="bg-bug" style="left:8%;animation-duration:16s;animation-delay:-2s">🦟</div>
+<div class="bg-bug" style="left:25%;animation-duration:21s;animation-delay:-8s">🪰</div>
+<div class="bg-bug" style="left:48%;animation-duration:13s;animation-delay:-1s">🪳</div>
+<div class="bg-bug" style="left:68%;animation-duration:19s;animation-delay:-10s">🕷️</div>
+<div class="bg-bug" style="left:86%;animation-duration:14s;animation-delay:-5s">🐜</div>
+<div class="bg-bug" style="left:38%;animation-duration:17s;animation-delay:-14s">🪲</div>
+
+<!-- ══ SETUP ══ -->
+<div id="s-setup" class="screen active">
+  <div class="title">🪰 끈끈이<br>버그 잡기! 🦟</div>
+  <div class="subtitle">가평 펜션 천장의 벌레를 끈끈이로 잡아라!</div>
+
+  <div style="font-size:.88em;color:var(--secondary);margin-bottom:9px">몇 명이서 할까요?</div>
+  <div class="count-row">
+    <button class="count-btn" onclick="setCount(2)">2명</button>
+    <button class="count-btn" onclick="setCount(3)">3명</button>
+    <button class="count-btn" onclick="setCount(4)">4명</button>
+  </div>
+  <div class="name-list" id="name-list"></div>
+  <button class="btn" onclick="startGame()">🎯 게임 시작!</button>
+</div>
+
+<!-- ══ GAME ══ -->
+<div id="s-game" class="screen">
+  <div class="game-hdr">
+    <span id="hdr-round">라운드 1/8</span>
+    <span id="hdr-bugs">🐛 0마리 남음</span>
+  </div>
+  <div class="score-bar" id="score-bar"></div>
+
+  <div class="turn-box">
+    <div class="turn-name" id="turn-name"></div>
+    <div class="turn-hint" id="turn-hint">잡을 벌레 칸을 선택하세요!</div>
+  </div>
+
+  <div class="ceiling-wrap">
+    <div class="ceiling-lbl">🏠 펜션 천장 — 벌레를 골라 눌러요!</div>
+    <div class="grid" id="g-grid"></div>
+  </div>
+
+  <div style="width:100%">
+    <div class="cards-lbl">🃏 특수 카드 (한 번씩만 사용 가능)</div>
+    <div class="cards-row" id="cards-row"></div>
+  </div>
+
+  <div class="action-row">
+    <button class="btn" id="throw-btn" onclick="openThrow()" style="flex:1;display:none">
+      🎯 끈끈이 던지기!
+    </button>
+    <button class="btn sm" onclick="skipTurn()" style="background:rgba(255,255,255,.12);box-shadow:none;color:var(--secondary)">
+      넘기기
+    </button>
+  </div>
+</div>
+
+<!-- ══ THROW OVERLAY ══ -->
+<div class="overlay" id="ov-throw">
+  <div class="throw-title">🕹️ 끈끈이를 던져라!</div>
+  <div class="bug-big" id="ov-bug-emoji">🦟</div>
+  <div class="bug-info" id="ov-bug-info">모기 — 1점</div>
+
+  <div class="meter-wrap">
+    <div class="meter-track">
+      <div class="zone-ok"></div>
+      <div class="zone-perfect"></div>
+      <div class="meter-bar" id="meter-bar"></div>
+    </div>
+    <div class="meter-labels">
+      <span>빗나감</span><span>좋아요</span><span style="color:#4CAF50;font-weight:700">완벽!</span><span>좋아요</span><span>빗나감</span>
+    </div>
+  </div>
+
+  <button class="throw-btn" id="do-throw-btn" onclick="doThrow()">📌 지금 던져!</button>
+  <div class="throw-tip">초록 구간일 때 누르면 잡기 쉬워요!</div>
+</div>
+
+<!-- ══ RESULT OVERLAY ══ -->
+<div class="result-ov" id="ov-result">
+  <div class="r-icon" id="r-icon">✅</div>
+  <div class="r-title" id="r-title">잡았다!</div>
+  <div class="r-sub" id="r-sub"></div>
+  <div class="r-pts" id="r-pts"></div>
+</div>
+
+<!-- ══ GAME OVER ══ -->
+<div id="s-gameover" class="screen">
+  <div class="go-title">🏆 게임 종료!</div>
+  <div class="rank-list" id="rank-list"></div>
+  <button class="btn" onclick="location.reload()">다시 하기! 🎮</button>
+</div>
+
+<script>
+// ════════════════════════════════
+//  DATA
+// ════════════════════════════════
+const BUGS = [
+  {id:'mosquito', e:'🦟', n:'모기',      pts:1, dodge:.10, spd:1.4},
+  {id:'fly',      e:'🪰', n:'파리',      pts:2, dodge:.25, spd:2.0},
+  {id:'ant',      e:'🐜', n:'개미',      pts:2, dodge:.15, spd:1.6},
+  {id:'cockroach',e:'🪳', n:'바퀴벌레', pts:3, dodge:.35, spd:2.6},
+  {id:'beetle',   e:'🪲', n:'풍뎅이',   pts:4, dodge:.20, spd:1.8},
+  {id:'spider',   e:'🕷️', n:'거미',     pts:5, dodge:.30, spd:3.0},
+];
+const BUG_W = [34,26,16,13,7,4];
+
+const CARDS = [
+  {id:'super',  e:'⭐', n:'슈퍼 끈끈이',  d:'무조건 잡기!',        fx:'guaranteed'},
+  {id:'bomb',   e:'💥', n:'끈끈이 폭탄',  d:'주변 3×3 동시 공격', fx:'area'},
+  {id:'scan',   e:'🔍', n:'버그 탐지기',  d:'숨은 벌레 전부 공개', fx:'reveal'},
+  {id:'combo',  e:'⚡', n:'연속 공격',    d:'이번 턴 2번 던지기', fx:'combo'},
+  {id:'lure',   e:'🍬', n:'먹이 유인',    d:'벌레 한 마리 이동',  fx:'move'},
+  {id:'fake',   e:'🎭', n:'훼이크!',      d:'상대 닷지 +30%',     fx:'fake'},
+];
+
+const COLORS = [
+  {hex:'#FF6B6B',dot:'background:#FF6B6B',chip:'background:rgba(255,107,107,.22);border-color:#FF6B6B',lbl:'빨강'},
+  {hex:'#4ECDC4',dot:'background:#4ECDC4',chip:'background:rgba(78,205,196,.22);border-color:#4ECDC4',lbl:'청록'},
+  {hex:'#FFE66D',dot:'background:#FFE66D',chip:'background:rgba(255,230,109,.22);border-color:#FFE66D',lbl:'노랑'},
+  {hex:'#A8E6CF',dot:'background:#A8E6CF',chip:'background:rgba(168,230,207,.22);border-color:#A8E6CF',lbl:'초록'},
+];
+
+const COLS = 5, ROWS = 5, CELLS = COLS*ROWS;
+const MAX_ROUNDS = 8;
+
+// ════════════════════════════════
+//  AUDIO (Web Audio API, no files)
+// ════════════════════════════════
+let _ac = null;
+function ac(){return _ac || (_ac = new (window.AudioContext||window.webkitAudioContext)())}
+function tone(freq,dur,type='sine',vol=.28){
+  try{
+    const o=ac().createOscillator(),g=ac().createGain();
+    o.connect(g);g.connect(ac().destination);
+    o.frequency.value=freq;o.type=type;
+    g.gain.setValueAtTime(vol,ac().currentTime);
+    g.gain.exponentialRampToValueAtTime(.001,ac().currentTime+dur);
+    o.start();o.stop(ac().currentTime+dur);
+  }catch(e){}
+}
+const sfx={
+  click:()=>tone(800,.06,'square',.08),
+  catch:()=>{tone(523,.08);setTimeout(()=>tone(659,.08),90);setTimeout(()=>tone(784,.1),180);setTimeout(()=>tone(1047,.25),270)},
+  miss: ()=>{tone(350,.1);setTimeout(()=>tone(260,.15),110)},
+  card: ()=>{tone(880,.08,'triangle');setTimeout(()=>tone(1108,.12,'triangle'),80)},
+  tick: ()=>tone(600,.04,'square',.06),
+};
+
+// ════════════════════════════════
+//  STATE
+// ════════════════════════════════
+let G = {};
+
+function initState(playerCount){
+  G = {
+    players:[], playerCount,
+    bugs: new Array(CELLS).fill(null),
+    cur:0, round:1,
+    phase:'select',          // select | throw | result
+    selCell:-1,
+    meterVal:0, meterDir:1, meterRaf:null,
+    cardFx:null,
+    comboLeft:0,
+    fakePenalty:0,           // applied to next throw dodge bonus
+  };
+}
+
+// ════════════════════════════════
+//  SETUP SCREEN
+// ════════════════════════════════
+let _pCount = 2;
+
+function setCount(n){
+  _pCount = n;
+  document.querySelectorAll('.count-btn').forEach((b,i)=>b.classList.toggle('on',i===n-2));
+  renderNameInputs(n);
+}
+
+function renderNameInputs(n){
+  const defNames=['플레이어1','플레이어2','플레이어3','플레이어4'];
+  document.getElementById('name-list').innerHTML = Array.from({length:n},(_,i)=>`
+    <div class="name-row">
+      <div class="dot" style="${COLORS[i].dot};width:26px;height:26px;border-radius:50%"></div>
+      <input class="name-input" id="pn${i}" placeholder="${defNames[i]}" maxlength="8">
+    </div>`).join('');
+}
+
+function startGame(){
+  sfx.click();
+  initState(_pCount);
+  for(let i=0;i<_pCount;i++){
+    const name=(document.getElementById(`pn${i}`)?.value.trim()) || `플레이어${i+1}`;
+    const pool=[...CARDS].sort(()=>Math.random()-.5);
+    G.players.push({name,score:0,color:COLORS[i],cards:pool.slice(0,3).map(c=>({...c,used:false}))});
+  }
+  placeBugs(12);
+  showScreen('game');
+  renderGame();
+}
+
+// ════════════════════════════════
+//  BUG PLACEMENT
+// ════════════════════════════════
+function weightedRandom(items,weights){
+  let r=Math.random()*weights.reduce((a,b)=>a+b,0);
+  for(let i=0;i<items.length;i++){r-=weights[i];if(r<=0)return items[i];}
+  return items[0];
+}
+function placeBugs(count){
+  const slots=[...Array(CELLS).keys()].sort(()=>Math.random()-.5);
+  for(let i=0;i<Math.min(count,CELLS);i++){
+    const bt=weightedRandom(BUGS,BUG_W);
+    G.bugs[slots[i]]={...bt, caught:false, hidden:Math.random()<.18};
+  }
+}
+function addBug(){
+  const empties=G.bugs.map((b,i)=>!b?i:-1).filter(i=>i>=0);
+  if(!empties.length)return;
+  const idx=empties[Math.floor(Math.random()*empties.length)];
+  G.bugs[idx]={...weightedRandom(BUGS,BUG_W),caught:false,hidden:false};
+}
+
+// ════════════════════════════════
+//  RENDER
+// ════════════════════════════════
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(`s-${name}`).classList.add('active');
+}
+function renderGame(){
+  renderHdr();renderScoreBar();renderGrid();renderCards();renderTurnInfo();
+}
+function renderHdr(){
+  const alive=G.bugs.filter(b=>b&&!b.caught).length;
+  document.getElementById('hdr-round').textContent=`라운드 ${G.round}/${MAX_ROUNDS}`;
+  document.getElementById('hdr-bugs').textContent=`🐛 ${alive}마리 남음`;
+}
+function renderScoreBar(){
+  document.getElementById('score-bar').innerHTML=G.players.map((p,i)=>`
+    <div class="score-chip ${i===G.cur?'me':''}" style="${p.color.chip}">
+      ${p.name}: ${p.score}점
+    </div>`).join('');
+}
+function renderGrid(){
+  document.getElementById('g-grid').innerHTML=G.bugs.map((b,i)=>{
+    if(!b)return`<div class="cell" onclick="selCell(${i})"></div>`;
+    if(b.caught)return`<div class="cell done">✅</div>`;
+    const sel=G.selCell===i;
+    return`<div class="cell has-bug${sel?' sel':''}" onclick="selCell(${i})">
+      <span class="bug${b.hidden?' hid':''}">${b.hidden?'❓':b.e}</span>
+      ${!b.hidden?`<div class="tip">${b.n} (${b.pts}점) 닷지:${Math.round(b.dodge*100)}%</div>`:''}
+    </div>`;
+  }).join('');
+}
+function renderCards(){
+  const p=G.players[G.cur];
+  document.getElementById('cards-row').innerHTML=p.cards.map((c,i)=>`
+    <div class="card${c.used?' off':''}" onclick="${c.used?'':'useCard('+i+')'}">
+      <span class="ce">${c.e}</span>
+      <span class="cn">${c.n}</span>
+    </div>`).join('');
+}
+function renderTurnInfo(){
+  const p=G.players[G.cur];
+  const tn=document.getElementById('turn-name');
+  tn.textContent=`${p.color.lbl} · ${p.name}의 차례`;
+  tn.style.color=p.color.hex;
+  const hasSel=G.selCell>=0 && G.bugs[G.selCell] && !G.bugs[G.selCell].caught;
+  document.getElementById('throw-btn').style.display=hasSel?'block':'none';
+  document.getElementById('turn-hint').textContent=
+    hasSel?`${G.bugs[G.selCell].n} 조준 중! 던지기 버튼을 눌러요!`:'잡을 벌레 칸을 선택하세요!';
+}
+
+// ════════════════════════════════
+//  PLAYER ACTIONS
+// ════════════════════════════════
+function selCell(i){
+  if(G.phase!=='select')return;
+  const b=G.bugs[i];
+  if(!b||b.caught)return;
+  sfx.tick();
+  G.selCell=i;
+  renderGrid();renderTurnInfo();
+}
+
+function useCard(ci){
+  if(G.phase!=='select')return;
+  sfx.card();
+  const p=G.players[G.cur];
+  const c=p.cards[ci];
+  if(c.used)return;
+  c.used=true;
+
+  if(c.fx==='reveal'){
+    G.bugs.forEach(b=>{if(b)b.hidden=false;});
+    toast('🔍 모든 숨은 벌레가 드러났습니다!');
+    renderGrid();
+  } else if(c.fx==='combo'){
+    G.comboLeft=2;
+    toast('⚡ 이번 턴 2번 던질 수 있어요!');
+  } else if(c.fx==='move'){
+    const bugCells=G.bugs.map((b,i)=>b&&!b.caught?i:-1).filter(x=>x>=0);
+    const empties=G.bugs.map((b,i)=>!b?i:-1).filter(x=>x>=0);
+    if(bugCells.length&&empties.length){
+      const from=bugCells[Math.floor(Math.random()*bugCells.length)];
+      const to=empties[Math.floor(Math.random()*empties.length)];
+      G.bugs[to]=G.bugs[from];G.bugs[from]=null;
+      if(G.selCell===from)G.selCell=-1;
+      renderGrid();toast('🍬 벌레가 이동했어요!');
+    }
+  } else if(c.fx==='fake'){
+    // fake targets next opponent's throw (simplify: store as global penalty ignored by self)
+    toast('🎭 훼이크 준비 완료! (다음 상대 공격에 적용)');
+    G.fakePenalty=0.3;
+  } else {
+    // guaranteed / area — set flag, applied during throw
+    G.cardFx=c.fx;
+    toast(c.fx==='guaranteed'?'⭐ 이번 던지기는 무조건 성공!':'💥 폭탄 던지기 준비!');
+  }
+  renderCards();
+}
+
+function skipTurn(){
+  sfx.click();
+  G.selCell=-1;
+  advanceTurn();
+}
+
+// ════════════════════════════════
+//  THROW MECHANIC
+// ════════════════════════════════
+function openThrow(){
+  if(G.selCell<0)return;
+  const b=G.bugs[G.selCell];
+  if(!b||b.caught)return;
+  sfx.click();
+  G.phase='throw';
+
+  document.getElementById('ov-bug-emoji').textContent=b.e;
+  document.getElementById('ov-bug-info').textContent=`${b.n} — ${b.pts}점  (닷지 ${Math.round(b.dodge*100)}%)`;
+
+  document.getElementById('ov-throw').classList.add('on');
+
+  G.meterVal=0;G.meterDir=1;
+  const speed=0.75+(b.dodge*2.2);  // harder bugs = faster meter
+  function animate(){
+    G.meterVal+=G.meterDir*speed;
+    if(G.meterVal>=100){G.meterVal=100;G.meterDir=-1;}
+    if(G.meterVal<=0){G.meterVal=0;G.meterDir=1;}
+    document.getElementById('meter-bar').style.left=`calc(${G.meterVal}% - 3px)`;
+    G.meterRaf=requestAnimationFrame(animate);
+  }
+  animate();
+}
+
+function doThrow(){
+  if(G.phase!=='throw')return;
+  cancelAnimationFrame(G.meterRaf);
+  document.getElementById('ov-throw').classList.remove('on');
+
+  const m=G.meterVal;
+  const b=G.bugs[G.selCell];
+
+  // accuracy based on meter position (center=50 is perfect)
+  const dist=Math.abs(m-50);
+  const acc=dist<=12.5?1.0:dist<=25?0.72:dist<=37.5?0.32:0.08;
+
+  if(G.cardFx==='area'){
+    G.cardFx=null;
+    handleArea(G.selCell);
+    return;
+  }
+
+  let caught;
+  if(G.cardFx==='guaranteed'){
+    G.cardFx=null;caught=true;
+  } else {
+    const eff_dodge=Math.min(.95, b.dodge+(G.fakePenalty||0));
+    G.fakePenalty=0;
+    caught=Math.random()<(acc*(1-eff_dodge));
+  }
+
+  G.bugs[G.selCell].caught=caught;
+  if(caught){
+    G.players[G.cur].score+=b.pts;
+    sfx.catch();showResult(true,b);
+  } else {
+    sfx.miss();
+    // bug may scurry away
+    if(Math.random()<.55) bugScurry(G.selCell);
+    showResult(false,b);
+  }
+}
+
+function handleArea(center){
+  const row=Math.floor(center/COLS), col=center%COLS;
+  let pts=0,count=0;
+  for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+    const r=row+dr,c=col+dc;
+    if(r<0||r>=ROWS||c<0||c>=COLS)continue;
+    const ci=r*COLS+c;
+    const b=G.bugs[ci];
+    if(b&&!b.caught&&Math.random()>.28){b.caught=true;pts+=b.pts;count++;}
+  }
+  G.players[G.cur].score+=pts;
+  sfx.catch();
+  showResultArea(count,pts);
+}
+
+function bugScurry(from){
+  const empties=G.bugs.map((b,i)=>!b?i:-1).filter(i=>i>=0);
+  if(!empties.length)return;
+  const to=empties[Math.floor(Math.random()*empties.length)];
+  G.bugs[to]=G.bugs[from];G.bugs[from]=null;
+  G.selCell=-1;
+}
+
+// ════════════════════════════════
+//  RESULT
+// ════════════════════════════════
+function showResult(caught,b){
+  G.phase='result';
+  const ov=document.getElementById('ov-result');
+  ov.classList.add('on');
+  if(caught){
+    set('r-icon',b.e);set('r-title','잡았다! 🎉');
+    document.getElementById('r-title').style.color='#4CAF50';
+    set('r-sub',`${b.n} 포획 성공!`);set('r-pts',`+${b.pts}점`);
+    particles(['🎉','⭐','✨',b.e],12);
+  } else {
+    set('r-icon','😱');set('r-title','아쉽! 빗나감!');
+    document.getElementById('r-title').style.color='#F44336';
+    set('r-sub',`${b.n}이(가) 도망쳤어요!`);set('r-pts','');
+    particles(['😅','💨','🌀'],5);
+  }
+  setTimeout(hideResult,1900);
+}
+function showResultArea(count,pts){
+  G.phase='result';
+  const ov=document.getElementById('ov-result');ov.classList.add('on');
+  set('r-icon','💥');set('r-title',count>0?`${count}마리 포획!`:'아무것도 못 잡았어요 😅');
+  document.getElementById('r-title').style.color=count>0?'#4CAF50':'#F44336';
+  set('r-sub','끈끈이 폭탄!');set('r-pts',count>0?`+${pts}점`:'');
+  if(count>0)particles(['💥','🎉','⭐'],14);
+  setTimeout(hideResult,1900);
+}
+function hideResult(){
+  document.getElementById('ov-result').classList.remove('on');
+  G.phase='select';G.selCell=-1;
+
+  // combo
+  if(G.comboLeft>0){
+    G.comboLeft--;
+    if(G.comboLeft>0){toast('⚡ 한 번 더!');renderGame();return;}
+  }
+  advanceTurn();
+}
+
+// ════════════════════════════════
+//  TURN MANAGEMENT
+// ════════════════════════════════
+function advanceTurn(){
+  G.cur=(G.cur+1)%G.playerCount;
+  if(G.cur===0){
+    G.round++;
+    if(G.round>MAX_ROUNDS){endGame();return;}
+    // occasionally spawn a new bug
+    if(Math.random()<.4)addBug();
+  }
+  // if all bugs caught, add a new wave
+  if(G.bugs.filter(b=>b&&!b.caught).length===0){
+    placeBugs(7+Math.floor(Math.random()*4));
+    toast('🐛 새 벌레들이 나타났어요!');
+  }
+  renderGame();
+}
+
+function endGame(){
+  showScreen('gameover');
+  const sorted=[...G.players].sort((a,b)=>b.score-a.score);
+  const medals=['🥇','🥈','🥉','4위'];
+  document.getElementById('rank-list').innerHTML=sorted.map((p,i)=>`
+    <div class="rank-row" style="border-color:${p.color.hex}">
+      <span class="rank-place">${medals[i]}</span>
+      <span class="rank-name">${p.name}</span>
+      <span class="rank-score">${p.score}점</span>
+    </div>`).join('');
+}
+
+// ════════════════════════════════
+//  UTILITIES
+// ════════════════════════════════
+function set(id,t){document.getElementById(id).textContent=t}
+function particles(emojis,n){
+  const cx=innerWidth/2,cy=innerHeight/2;
+  for(let i=0;i<n;i++){
+    const el=document.createElement('div');el.className='pt';
+    el.textContent=emojis[Math.floor(Math.random()*emojis.length)];
+    el.style.left=(cx+(Math.random()-.5)*220)+'px';
+    el.style.top=(cy+(Math.random()-.5)*200)+'px';
+    el.style.animationDuration=(.7+Math.random()*.5)+'s';
+    el.style.animationDelay=(Math.random()*.25)+'s';
+    document.body.appendChild(el);
+    setTimeout(()=>el.remove(),1300);
+  }
+}
+function toast(msg){
+  const el=document.createElement('div');el.className='toast';el.textContent=msg;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1700);
+}
+
+// ── init setup screen ──
+setCount(2);
+document.querySelectorAll('.count-btn')[0].classList.add('on');
+</script>
+</body>
+</html>
