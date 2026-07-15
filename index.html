@@ -611,6 +611,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
               <button class="btn bp" onclick="genDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 미리보기 생성</button>
               <button class="btn bo" onclick="sendDraftMail()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg> 이메일 발송</button>
               <button class="btn bo" onclick="printDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/></svg> 인쇄</button>
+              <button class="btn bo" onclick="openAmaranthModal('draft')" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
             </div>
           </div>
         </div>
@@ -718,7 +719,8 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
         <div class="panel">
           <div class="ph">
             <span class="pt">📋 청구 내역</span>
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button class="btn bo bsm" onclick="openAmaranthModal('svc')" style="display:flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
               <select class="fsel bsm" id="svc-f-month" onchange="renderSvc()"><option value="">전체 월</option></select>
               <select class="fsel bsm" id="svc-f-branch" onchange="renderSvc()"><option value="">전체 지점</option></select>
               <select class="fsel bsm" id="svc-f-brand" onchange="renderSvc()">
@@ -999,7 +1001,7 @@ async function sbSync(){
     const sbKeys=new Set(rows.map(r=>r.key));
     // 다중 사용자 공유 배열 키: ID 기준 병합 (Supabase 기반 + 로컬 전용 항목 추가)
     // 설정 키: 로컬 우선 (어드민만 수정)
-    const MERGE_KEYS=new Set([K.R,K.O]);
+    const MERGE_KEYS=new Set([K.R,K.O,K.U]);
     rows.forEach(row=>{
       const local=localStorage.getItem(row.key);
       const sbVal=row.value;
@@ -2838,6 +2840,171 @@ function copySvcMonth(){
   renderSvc();
 }
 
+// ── 아마란스 품의서 원클릭 복사 ──
+function _ae(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+const _AOC=`onchange="for(var i=0;i<this.options.length;i++){this.options[i].removeAttribute('selected');}this.options[this.selectedIndex].setAttribute('selected','selected');"`;
+function _aso(opts,sel,key,st){return`<select data-key="${key}" ${_AOC} style="${st}">${opts.map(o=>`<option${o===sel?' selected="selected"':''}>${_ae(o)}</option>`).join('')}</select>`;}
+const _CT_OPTS=['하자(업체수리)','하자(부품구매)','임대료','관리비 및 수광비','통신비','세탁비','청소비','구매비(집기류)','구매비(소모품류)','구매비(린넨류)','구매비(사무용품)','구매비(종량제봉투)','구매비(기타)','운배송비','기타'];
+const _AC_OPTS=['HQ_운영계좌','BQ_운영계좌','BQ_편의점계좌(출금)','BQ_장기/기타 계좌','집기계좌'];
+const _AT1=['견적서','거래명세서','세금계산서','집행처 통장 사본','집행처 사업자등록증','기타'];
+const _AT2=['고지서','연간계약서','임대차계약서','집행처 통장 사본','집행처 사업자등록증','기타'];
+
+function buildPurchaseOrderHtml(d){
+  const e=_ae,aso=_aso;
+  const ta=typeof d.totalAmt==='number'?d.totalAmt:parseInt(String(d.totalAmt||'').replace(/[^0-9]/g,''))||0;
+  const sup=Math.round(ta/1.1),vat=ta-sup;
+  const fmt=n=>Math.round(n).toLocaleString();
+  const SS='padding:10px 12px;border:1px solid #888;width:100%;max-width:720px;min-width:320px;height:40px;line-height:40px;box-sizing:border-box;background:#fff !important;color:#000 !important;-webkit-text-fill-color:#000 !important;appearance:auto;-webkit-appearance:menulist;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  const SS2='padding:8px 12px;font-size:12px;min-width:120px;width:120px;height:36px;line-height:36px;box-sizing:border-box;border:1px solid #888;background:#fff !important;color:#000 !important;-webkit-text-fill-color:#000 !important;appearance:auto;-webkit-appearance:menulist;display:inline-block;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  const SA='padding:10px 12px;flex:1;min-width:220px;border:1px solid #888;height:40px;line-height:40px;box-sizing:border-box;background:#fff !important;color:#000 !important;-webkit-text-fill-color:#000 !important;appearance:auto;-webkit-appearance:menulist;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  return `<div style="font-family:'Noto Sans KR','맑은 고딕', Arial, sans-serif;font-size:13px;line-height:1.45%;"><input type="hidden" data-key="totalAmt" value="${ta}">
+<div style="font-size:15px;font-weight:700;margin:0 0 12px 0;"><p style="font-family:'Noto Sans KR','맑은 고딕',Arial,sans-serif;font-size:11pt;color:#000;margin:0;line-height:1.2;"><span style="font-size:13pt;">발주(소모품/집기/린넨 등) 지출품의</span></p></div>
+<table style="width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid #bbb;overflow-wrap:break-word;word-break:normal;"><colgroup><col style="width:222px;"/><col style="width:564px;"/></colgroup><tbody>
+<tr style="height:83px;"><th style="width:205.5px;background:#f2f2f2;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">비용의 명칭</p></th><td style="padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="costName" type="text" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #ddd;" value="${e(d.costName||'')}"/></p><div style="margin-top:4px;font-size:11px;color:#777;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#777;margin:0;line-height:1.2;">※ 언제, 어느 지점, 어떤 성격의 발주 비용인지 한 줄로 정리해 주세요.</p></div></td></tr>
+<tr style="height:70px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">비용의 종류</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">${aso(_CT_OPTS,d.costType||'구매비(집기류)','costType',SS)}</p></td></tr>
+<tr style="height:185px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">비용(VAT포함)</p></th><td style="border-top:1px solid #bbb;padding:8px;">
+<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><span style="font-size:12px;color:#000;">과세/면세</span>${aso(['과세','면세'],d.taxType||'과세','taxType',SS2)}<span style="font-size:11px;color:#777;">(면세일 경우 부가세액 0 입력)</span></p></div>
+<div style="margin-bottom:8px;font-size:11px;color:#666;background:#fafafa;padding:6px 8px;border-radius:4px;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#666;margin:0;line-height:1.2;">· 발주 비용은 <b>견적서 또는 세금계산서 기준 총액(VAT포함)</b>으로 입력해 주세요.</p><p style="font-family:'맑은 고딕';font-size:8pt;color:#666;margin:0;line-height:1.2;">· <b>① 공급가액 + ② 부가세액 + ③ 절사액 = ④ 합계금액(VAT포함)</b>이 되도록 입력하면 됩니다.</p><p style="font-family:'맑은 고딕';font-size:8pt;color:#666;margin:0;line-height:1.2;">· 절사액은 정산/절사 발생 시 ±로 입력해 주세요.</p></div>
+<table style="border-collapse:collapse;border-spacing:0;font-family:'맑은 고딕', monospace;font-size:11pt;margin-top:4px;"><tbody>
+<tr style="height:23px;"><td style="font-weight:700;text-align:center;border:1px solid #000;background:rgb(222,235,247);width:90px;"><p style="margin:0;line-height:1.2;font-family:'맑은 고딕';font-size:11pt;color:#000;">① 공급가액</p></td><td style="border:1px solid #000;border-left:none;width:180px;" dze_format_separator=","><p style="margin:0;line-height:1.2;text-align:right;font-family:'맑은 고딕';font-size:11pt;color:#000;">${fmt(sup)}</p></td></tr>
+<tr style="height:23px;"><td style="font-weight:700;text-align:center;border:1px solid #000;background:rgb(222,235,247);border-top:none;width:90px;"><p style="margin:0;line-height:1.2;font-family:'맑은 고딕';font-size:11pt;color:#000;">② 부가세액</p></td><td style="border:1px solid #000;border-left:none;border-top:none;width:180px;" dze_format_separator=","><p style="margin:0;line-height:1.2;text-align:right;font-family:'맑은 고딕';font-size:11pt;color:#000;">${fmt(vat)}</p></td></tr>
+<tr style="height:23px;"><td style="font-weight:700;text-align:center;border:1px solid #000;background:rgb(222,235,247);border-top:none;width:90px;"><p style="margin:0;line-height:1.2;font-family:'맑은 고딕';font-size:11pt;color:#000;">③ 절사액</p></td><td style="border:1px solid #000;border-left:none;border-top:none;width:180px;" dze_format_separator=","><p style="margin:0;line-height:1.2;text-align:right;font-family:'맑은 고딕';font-size:11pt;color:#000;"><br/></p></td></tr>
+<tr style="height:23px;"><td style="font-weight:700;text-align:center;border:1px solid #000;background:rgb(222,235,247);border-top:none;width:90px;"><p style="margin:0;line-height:1.2;font-family:'맑은 고딕';font-size:11pt;color:#000;">④ 합계금액</p></td><td style="border:1px solid #000;border-left:none;border-top:none;width:180px;" dze_format_separator="," data-dze-formula="=SUM(B1:B3)" title="=SUM(B1:B3)"><p style="margin:0;line-height:1.2;text-align:right;font-family:'맑은 고딕';font-size:11pt;color:#000;">${fmt(ta)}</p></td></tr>
+</tbody></table>
+<div style="margin-top:6px;font-size:11px;color:#777;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#777;margin:0;line-height:1.2;">※ 총 ${fmt(ta)}원(VAT포함) = ④ 합계금액 기준입니다.</p></div>
+</td></tr>
+<tr style="height:54px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">집행 요청일</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="execDate" type="date" style="padding:8px;border:1px solid #ddd;" value="${e(d.execDate||'')}"/><span style="color:#666;margin-left:8px;font-size:12px;">YYYY-MM-DD</span></p></td></tr>
+<tr style="height:70px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">집행처 (사명)</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="vendor" type="text" style="width:100%;padding:8px;border:1px solid #ddd;" value="${e(d.vendor||'')}"/></p><div style="margin-top:4px;font-size:11px;color:#777;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#777;margin:0;line-height:1.2;">※ 견적서/세금계산서 상의 공식 사명을 입력해 주세요.</p></div></td></tr>
+<tr style="height:104px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">출금계좌</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">${aso(_AC_OPTS,d.account||'집기계좌','account',SS)}</p><div style="margin-top:4px;font-size:11px;color:#777;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#777;margin:0;line-height:1.2;">※ 소모품/집기/린넨 성격에 맞는 출금 계좌를 선택해 주세요.</p></div></td></tr>
+<tr style="height:178px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">수량 및 단위·단가</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><textarea data-key="itemDetail" rows="4" style="width:100%;padding:8px;border:1px solid #ddd;resize:vertical;">${e(d.itemDetail||'')}</textarea></p><div style="margin-top:4px;font-size:11px;color:#777;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#777;margin:0;line-height:1.2;">※ 주요 품목 위주로 요약 입력해 주시고, 전체 상세 내역은 첨부파일로 제출해 주세요.</p></div></td></tr>
+<tr style="height:148px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">구매 사유</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><textarea data-key="purchaseReason" rows="3" style="width:100%;padding:8px;border:1px solid #ddd;resize:vertical;">${e(d.purchaseReason||'')}</textarea></p></td></tr>
+<tr style="height:157px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">첨부파일 요약</p></th><td style="border-top:1px solid #bbb;padding:8px;"><div style="display:flex;gap:8px;flex-wrap:wrap;"><p style="font-family:'맑은 고딕';font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">${aso(_AT1,d.attach1||'집행처 사업자등록증','attach1',SA)}${aso(_AT1,d.attach2||'집행처 통장 사본','attach2',SA)}${aso(_AT1,d.attach3||'기타','attach3',SA)}</p></div><div style="margin-top:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="attachOther" type="text" style="width:100%;padding:8px;border:1px solid #ddd;" placeholder="기타 선택 시 내용 입력" value="${e(d.attachOther||'')}"/></p></div></td></tr>
+<tr style="height:124px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">기안자 의견 요약</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><textarea data-key="draftNote" rows="3" style="width:100%;padding:8px;border:1px solid #ddd;resize:vertical;">${e(d.draftNote||'')}</textarea></p></td></tr>
+<tr style="height:54px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">참고링크</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="refLink" type="text" style="width:100%;padding:8px;border:1px solid #ddd;" placeholder="관련 슬랙 스레드 / 아지트 링크 등" value="${e(d.refLink||'')}"/></p></td></tr>
+</tbody></table></div>`;
+}
+
+function buildServiceFeeHtml(d){
+  const e=_ae,aso=_aso;
+  const ta=typeof d.totalAmt==='number'?d.totalAmt:parseInt(String(d.totalAmt||'').replace(/[^0-9]/g,''))||0;
+  const sup=Math.round(ta/1.1),vat=ta-sup;
+  const fmt=n=>Math.round(n).toLocaleString();
+  const SS='padding:10px 12px;border:1px solid #888;width:100%;max-width:720px;min-width:320px;height:40px;line-height:40px;box-sizing:border-box;background:#fff !important;color:#000 !important;-webkit-text-fill-color:#000 !important;appearance:auto;-webkit-appearance:menulist;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  const SS2='padding:8px 12px;font-size:12px;min-width:120px;width:120px;height:36px;line-height:36px;box-sizing:border-box;border:1px solid #888;background:#fff !important;color:#000 !important;-webkit-text-fill-color:#000 !important;appearance:auto;-webkit-appearance:menulist;display:inline-block;vertical-align:middle;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  const SA='padding:10px 12px;flex:1;min-width:220px;border:1px solid #888;height:40px;line-height:40px;box-sizing:border-box;background:#fff !important;color:#000 !important;-webkit-text-fill-color:#000 !important;appearance:auto;-webkit-appearance:menulist;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+  return `<div style="font-family:'Noto Sans KR','맑은 고딕', Arial, sans-serif;font-size:13px;line-height:1.45%;"><input type="hidden" data-key="totalAmt" value="${ta}">
+<div style="font-size:15px;font-weight:700;margin:0 0 12px 0;"><p style="font-family:'Noto Sans KR','맑은 고딕',Arial,sans-serif;font-size:11pt;color:#000;margin:0;line-height:1.2;"><span style="font-size:13pt;">운영비(임대료/관리비/통신비/수도광열/세탁/청소비 등) 지출품의서</span></p></div>
+<table style="width:100%;border-collapse:collapse;table-layout:fixed;border:1px solid #bbb;overflow-wrap:break-word;word-break:normal;"><colgroup><col style="width:222px;"/><col style="width:564px;"/></colgroup><tbody>
+<tr style="height:83px;"><th style="width:205.5px;background:#f2f2f2;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">비용의 명칭</p></th><td style="padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="costName" type="text" style="width:100%;padding:8px;box-sizing:border-box;border:1px solid #ddd;" value="${e(d.costName||'')}"/></p><div style="margin-top:4px;font-size:11px;color:#777;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#777;margin:0;line-height:1.2;">※ 언제, 어느 지점, 어떤 종류의 운영비인지 한 줄로 정리해 주세요.</p></div></td></tr>
+<tr style="height:70px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">비용의 종류</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">${aso(_CT_OPTS,d.costType||'기타','costType',SS)}</p></td></tr>
+<tr style="height:165px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">비용(VAT포함)</p></th><td style="border-top:1px solid #bbb;padding:8px;">
+<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;"><span style="font-size:12px;color:#000;">과세/면세</span>${aso(['과세','면세'],d.taxType||'과세','taxType',SS2)}<span style="font-size:11px;color:#777;">(면세일 경우 부가세액 0 입력)</span></p></div>
+<div style="margin-bottom:8px;font-size:11px;color:#666;background:#fafafa;padding:6px 8px;border-radius:4px;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#666;margin:0;line-height:1.2;">· 운영비는 <b>세금계산서 또는 고지서 기준 총액(VAT포함)</b>으로 입력해 주세요.</p><p style="font-family:'맑은 고딕';font-size:8pt;color:#666;margin:0;line-height:1.2;">· <b>① 공급가액 + ② 부가세액 + ③ 절사액 = ④ 합계금액(VAT포함)</b>이 되도록 입력하면 됩니다.</p><p style="font-family:'맑은 고딕';font-size:8pt;color:#666;margin:0;line-height:1.2;">· 절사액은 정산/절사 발생 시 ±로 입력해 주세요.</p></div>
+<table style="border-collapse:collapse;border-spacing:0px;font-family:'맑은 고딕', monospace;font-size:11pt;margin-top:4px;width:277px;table-layout:fixed;overflow-wrap:break-word;word-break:normal;"><colgroup><col style="width:93px;"/><col style="width:183px;"/></colgroup><tbody>
+<tr style="height:23px;"><td style="font-weight:700;text-align:center;border:1px solid rgb(0,0,0);background:rgb(222,235,247);width:92px;height:22px;"><p style="margin:0;line-height:1.2;font-family:'맑은 고딕';font-size:11pt;color:#000;">① 공급가액</p></td><td style="border-top:1px solid rgb(0,0,0);border-right:1px solid rgb(0,0,0);border-bottom:1px solid rgb(0,0,0);border-image:initial;border-left:none;width:182px;height:22px;" dze_format_separator=","><p style="margin:0;line-height:1.2;text-align:right;font-family:'맑은 고딕';font-size:11pt;color:#000;">${fmt(sup)}</p></td></tr>
+<tr style="height:23px;"><td style="font-weight:700;text-align:center;border-right:1px solid rgb(0,0,0);border-bottom:1px solid rgb(0,0,0);border-left:1px solid rgb(0,0,0);border-image:initial;background:rgb(222,235,247);border-top:none;width:92px;height:22px;"><p style="margin:0;line-height:1.2;font-family:'맑은 고딕';font-size:11pt;color:#000;">② 부가세액</p></td><td style="border-right:1px solid rgb(0,0,0);border-bottom:1px solid rgb(0,0,0);border-image:initial;border-left:none;border-top:none;width:182px;height:22px;" dze_format_separator=","><p style="margin:0;line-height:1.2;text-align:right;font-family:'맑은 고딕';font-size:11pt;color:#000;">${fmt(vat)}</p></td></tr>
+<tr style="height:23px;"><td style="font-weight:700;text-align:center;border-right:1px solid rgb(0,0,0);border-bottom:1px solid rgb(0,0,0);border-left:1px solid rgb(0,0,0);border-image:initial;background:rgb(222,235,247);border-top:none;width:92px;height:22px;"><p style="margin:0;line-height:1.2;font-family:'맑은 고딕';font-size:11pt;color:#000;">③ 절사액</p></td><td style="border-right:1px solid rgb(0,0,0);border-bottom:1px solid rgb(0,0,0);border-image:initial;border-left:none;border-top:none;width:182px;height:22px;" dze_format_separator=","><p style="margin:0;line-height:1.2;text-align:right;font-family:'맑은 고딕';font-size:11pt;color:#000;"><br/></p></td></tr>
+<tr style="height:23px;"><td style="font-weight:700;text-align:center;border-right:1px solid rgb(0,0,0);border-bottom:1px solid rgb(0,0,0);border-left:1px solid rgb(0,0,0);border-image:initial;background:rgb(222,235,247);border-top:none;width:92px;height:22px;"><p style="margin:0;line-height:1.2;font-family:'맑은 고딕';font-size:11pt;color:#000;">④ 합계금액</p></td><td style="border-right:1px solid rgb(0,0,0);border-bottom:1px solid rgb(0,0,0);border-image:initial;border-left:none;border-top:none;width:182px;height:22px;" dze_format_separator="," data-dze-formula="=SUM(B1:B3)" title="=SUM(B1:B3)"><p style="margin:0;line-height:1.2;text-align:right;font-family:'맑은 고딕';font-size:11pt;color:#000;">${fmt(ta)}</p></td></tr>
+</tbody></table>
+<div style="margin-top:6px;font-size:11px;color:#777;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#777;margin:0;line-height:1.2;">※ 총 ${fmt(ta)}원(VAT포함) = ④ 합계금액 기준입니다.</p></div>
+</td></tr>
+<tr style="height:54px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">집행 요청일</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="execDate" type="date" style="padding:8px;border:1px solid #ddd;" value="${e(d.execDate||'')}"/><span style="color:#666;margin-left:8px;font-size:12px;">YYYY-MM-DD</span></p></td></tr>
+<tr style="height:70px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">집행처 (사명)</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="vendor" type="text" style="width:100%;padding:8px;border:1px solid #ddd;" value="${e(d.vendor||'')}"/></p><div style="margin-top:4px;font-size:11px;color:#777;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#777;margin:0;line-height:1.2;">※ 고지서 또는 계약서 상의 공식 사명을 입력해 주세요.</p></div></td></tr>
+<tr style="height:100px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">출금계좌</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">${aso(_AC_OPTS,d.account||'BQ_운영계좌','account',SS)}</p><div style="margin-top:4px;font-size:11px;color:#777;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#777;margin:0;line-height:1.2;">※ 실제 출금 예정인 회사 계좌를 선택해 주세요.</p></div></td></tr>
+<tr style="height:142px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">산출 기준 상세</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><textarea data-key="calcDetail" rows="3" style="width:100%;padding:8px;border:1px solid #ddd;resize:vertical;">${e(d.calcDetail||'')}</textarea></p><div style="margin-top:4px;font-size:11px;color:#777;"><p style="font-family:'맑은 고딕';font-size:8pt;color:#777;margin:0;line-height:1.2;">※ 단가 × 수량 = 합계 형식으로, 비용 산출 근거를 구체적으로 적어 주세요.</p></div></td></tr>
+<tr style="height:126px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">특이사항</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><textarea data-key="specialNote" rows="3" style="width:100%;padding:8px;border:1px solid #ddd;resize:vertical;">${e(d.specialNote||'')}</textarea></p></td></tr>
+<tr style="height:154px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">첨부파일 요약</p></th><td style="border-top:1px solid #bbb;padding:8px;"><div style="display:flex;gap:8px;flex-wrap:wrap;"><p style="font-family:'맑은 고딕';font-size:11pt;color:rgb(0,0,0);margin-top:0px;margin-bottom:0px;line-height:1.2;">${aso(_AT2,d.attach1||'집행처 사업자등록증','attach1',SA)}${aso(_AT2,d.attach2||'집행처 통장 사본','attach2',SA)}${aso(_AT2,d.attach3||'연간계약서','attach3',SA)}${aso(_AT2,d.attach4||'고지서','attach4',SA)}</p></div><div style="margin-top:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="attachOther" type="text" style="width:100%;padding:8px;border:1px solid #ddd;" placeholder="기타 선택 시 내용 입력" value="${e(d.attachOther||'')}"/></p></div></td></tr>
+<tr style="height:119px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">기안자 의견 요약</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><textarea data-key="draftNote" rows="3" style="width:100%;padding:8px;border:1px solid #ddd;resize:vertical;">${e(d.draftNote||'')}</textarea></p></td></tr>
+<tr style="height:54px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">참고링크</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="refLink" type="text" style="width:100%;padding:8px;border:1px solid #ddd;" placeholder="관련 슬랙 스레드 / 아지트 링크 등" value="${e(d.refLink||'')}"/></p></td></tr>
+</tbody></table></div>`;
+}
+
+function buildDraftAmaData(){
+  const rows=getDraftRows();
+  if(!rows.length){toast('e','오류','발주 행을 먼저 추가해주세요.');return null;}
+  const dt=document.getElementById('draft-date').value||new Date().toISOString().substring(0,10);
+  const tp=document.getElementById('draft-type').value||'신규';
+  const total=rows.reduce((s,r)=>s+(r.price+r.install+r.extra)*r.qty,0);
+  const branches=[...new Set(rows.map(r=>r.branch))];
+  const[y,m]=dt.split('-').map(Number);
+  const nm=m===12?`${y+1}-01-10`:`${y}-${String(m+1).padStart(2,'0')}-10`;
+  const ym=dt.substring(2,7).replace('-','.');
+  const costName=`${branches.join(',')} ${ym}_솔리티 도어락구매_집기계좌`;
+  const brLines=branches.map(b=>{
+    const br=rows.filter(r=>r.branch===b);
+    const bTot=br.reduce((s,r)=>s+(r.price+r.install+r.extra)*r.qty,0);
+    const bQty=br.reduce((s,r)=>s+r.qty,0);
+    return`${b}\n   수량 : ${bQty}실\n   합계 : ${bTot.toLocaleString()}원 (VAT포함)`;
+  });
+  const r0=rows[0];
+  const priceInfo=r0?`도어락 ${r0.price.toLocaleString()}원, 설치비 ${r0.install.toLocaleString()}원${r0.extra?`, 자재비 ${r0.extra.toLocaleString()}원`:''}` :'';
+  const itemDetail=brLines.join('\n\n')+(priceInfo?`\n\n\n산출내역 : ${priceInfo}`:'');
+  const ym2=dt.substring(0,7).replace('-','년 ')+'월';
+  return{costName,costType:'구매비(집기류)',taxType:'과세',totalAmt:total,execDate:nm,vendor:'(주)솔리티',account:'집기계좌',itemDetail,purchaseReason:`${tp} 도어락 설치`,attach1:'집행처 사업자등록증',attach2:'집행처 통장 사본',attach3:'기타',attachOther:'발주서',draftNote:`${branches.join(',')} ${ym2} 솔리티 도어락 구매비용 상신의 건입니다.`,refLink:''};
+}
+
+function buildSvcAmaData(){
+  const d=getSvc();
+  const fm=document.getElementById('svc-f-month').value;
+  const fb=document.getElementById('svc-f-branch').value;
+  const fbrand=document.getElementById('svc-f-brand').value;
+  let recs=[...d.records];
+  if(fm)recs=recs.filter(r=>r.month===fm);
+  if(fb)recs=recs.filter(r=>r.branch===fb);
+  if(fbrand)recs=recs.filter(r=>r.brand===fbrand);
+  if(!recs.length){toast('e','오류','청구 내역이 없습니다. 필터를 확인해주세요.');return null;}
+  const totEx=recs.reduce((s,r)=>s+r.rooms*(r.unitPrice||SVC_DEF_PRICES[r.brand]||0),0);
+  const total=totEx+svcVat(totEx);
+  const tgt=fm||`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const[y,mo]=tgt.split('-').map(Number);
+  const lastDay=new Date(y,mo,0).getDate();
+  const execDate=`${y}-${String(mo).padStart(2,'0')}-${lastDay}`;
+  const branches=[...new Set(recs.map(r=>r.branch))];
+  const brands=[...new Set(recs.map(r=>r.brand))];
+  const ym=tgt.substring(2).replace('-','.');
+  const brandStr=brands.join('/');
+  const vendorMap={'직방':'직방(주)','H2O':'에이치투오코리아','더엠알':'더엠알'};
+  const vendor=brands.map(b=>vendorMap[b]||b).join('/');
+  const calcLines=recs.map((r,i)=>{
+    const up=r.unitPrice||SVC_DEF_PRICES[r.brand]||0;
+    const ex=r.rooms*up;
+    return`${i+1}. ${r.branch}\n- 객실 수 : ${r.rooms}실\n- 금액 : ${(ex+svcVat(ex)).toLocaleString()}원 (VAT 포함)`;
+  });
+  const upRef=recs[0]?(recs[0].unitPrice||SVC_DEF_PRICES[recs[0].brand]||0):0;
+  calcLines.push(`\n산출근거\n(정산 기준: 월 고정단가(${upRef.toLocaleString()}원) × 실제 운영 객실 수)`);
+  const ym2=tgt.replace('-','년 ')+'월';
+  return{costName:`${branches.join(',')} ${ym}_${brandStr}도어락서비스사용료_BQ계좌`,costType:'기타',taxType:'과세',totalAmt:total,execDate,vendor,account:'BQ_운영계좌',calcDetail:calcLines.join('\n\n'),specialNote:'매월 20~25일 사이 실제 운영객실수 기준 (장기숙박,직원숙소등 제외)',attach1:'집행처 사업자등록증',attach2:'집행처 통장 사본',attach3:'연간계약서',attach4:'고지서',attachOther:'',draftNote:`${branches.join(',')} ${ym2} ${brandStr} 도어락 서비스 사용료 상신의 건입니다.`,refLink:''};
+}
+
+function openAmaranthModal(type){
+  const d=type==='draft'?buildDraftAmaData():buildSvcAmaData();
+  if(!d)return;
+  const wrap=document.getElementById('amaranth-preview-wrap');
+  wrap.dataset.formType=type;
+  wrap.innerHTML=type==='draft'?buildPurchaseOrderHtml(d):buildServiceFeeHtml(d);
+  openMo('mo-amaranth');
+}
+
+function copyAmaranthHtml(){
+  const wrap=document.getElementById('amaranth-preview-wrap');
+  const d={};
+  wrap.querySelectorAll('[data-key]').forEach(el=>{d[el.dataset.key]=el.value;});
+  d.totalAmt=parseInt(d.totalAmt)||0;
+  const html=wrap.dataset.formType==='draft'?buildPurchaseOrderHtml(d):buildServiceFeeHtml(d);
+  const btn=document.getElementById('amaranth-copy-btn');
+  const ok=()=>{btn.textContent='✓ 복사 완료!';setTimeout(()=>{btn.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>HTML 복사 (아마란스 붙여넣기용)';},2500);};
+  const fail=()=>{btn.textContent='❌ 복사 실패';setTimeout(()=>{btn.textContent='HTML 복사 (아마란스 붙여넣기용)';},2500);};
+  if(navigator.clipboard?.writeText){navigator.clipboard.writeText(html).then(ok).catch(()=>_fbCopy(html,ok,fail));}
+  else{_fbCopy(html,ok,fail);}
+}
+function _fbCopy(text,ok,fail){
+  const ta=document.createElement('textarea');ta.value=text;
+  ta.style.cssText='position:fixed;top:0;left:0;opacity:0;pointer-events:none;';
+  document.body.appendChild(ta);ta.focus();ta.select();
+  try{document.execCommand('copy');ok();}catch(err){fail();}
+  document.body.removeChild(ta);
+}
+
 // 자동 동기화: 30초마다 Supabase에서 최신 데이터 로드 후 현재 페이지 갱신
 const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:()=>typeof renderR==='function'&&renderR(),order:()=>typeof renderO==='function'&&renderO(),install:()=>typeof renderI==='function'&&renderI(),monthly:()=>typeof renderM==='function'&&renderM(),svc:()=>typeof renderSvc==='function'&&renderSvc()};
 setInterval(async()=>{
@@ -2849,5 +3016,18 @@ setInterval(async()=>{
   if(cur&&PAGE_RENDER[cur])PAGE_RENDER[cur]();
 },30000);
 </script>
+
+<!-- 아마란스 품의서 복사 모달 -->
+<div class="mo" id="mo-amaranth">
+<div class="mb" style="width:860px;max-width:95vw;display:flex;flex-direction:column;max-height:92vh">
+  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:middle"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>아마란스 품의서 복사</span><button class="mx" onclick="closeMo('mo-amaranth')">✕</button></div>
+  <div style="padding:8px 20px 4px;font-size:11px;color:var(--text3);background:var(--surface);border-bottom:1px solid var(--border)">값 수정 후 아래 버튼 클릭 → 아마란스 품의서 편집기에서 <b style="color:var(--text2)">HTML 소스 붙여넣기</b></div>
+  <div id="amaranth-preview-wrap" style="padding:16px 20px;overflow-y:auto;flex:1"></div>
+  <div class="mfoot" style="gap:8px">
+    <button class="btn bo" onclick="closeMo('mo-amaranth')">닫기</button>
+    <button class="btn bp" id="amaranth-copy-btn" onclick="copyAmaranthHtml()" style="display:flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>HTML 복사 (아마란스 붙여넣기용)</button>
+  </div>
+</div>
+</div>
 </body>
 </html>
