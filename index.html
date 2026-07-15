@@ -517,6 +517,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
               <button class="btn bp bsm" id="new-ord-btn" onclick="openOMo(null)">+ 발주 등록</button>
               <button class="btn bo bsm" id="draft-btn" onclick="goToDraft()" style="display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 발주서 작성</button>
+              <button class="btn bo bsm" id="ord-ama-btn" onclick="openAmaranthModal('order')" style="display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
             </div>
           </div>
           <div style="overflow-x:auto"><table class="tbl">
@@ -2198,6 +2199,17 @@ function onOrdChkChange(){
       btn.innerHTML=`${CI.file} 발주서 작성`;
     }
   }
+  const ab=document.getElementById('ord-ama-btn');
+  if(ab){
+    const AMA_ICO='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>';
+    if(cnt>0){
+      ab.className='btn bp bsm';
+      ab.innerHTML=`${AMA_ICO} 선택 ${cnt}건 → 품의서 복사`;
+    } else {
+      ab.className='btn bo bsm';
+      ab.innerHTML=`${AMA_ICO} 품의서 복사`;
+    }
+  }
   const all=document.querySelectorAll('.ord-chk');
   const ca=document.getElementById('ord-chk-all');
   if(ca)ca.checked=all.length>0&&[...all].every(c=>c.checked);
@@ -2943,6 +2955,35 @@ function buildDraftAmaData(){
   return{costName,costType:'구매비(집기류)',taxType:'과세',totalAmt:total,execDate:nm,vendor:'(주)솔리티',account:'집기계좌',itemDetail,purchaseReason:`${tp} 도어락 설치`,attach1:'집행처 사업자등록증',attach2:'집행처 통장 사본',attach3:'기타',attachOther:'발주서',draftNote:`${branches.join(',')} ${ym2} 솔리티 도어락 구매비용 상신의 건입니다.`,refLink:''};
 }
 
+function buildOrderAmaData(){
+  const ids=[...document.querySelectorAll('.ord-chk:checked')].map(c=>parseInt(c.value));
+  if(!ids.length){toast('e','오류','발주 목록에서 품의서에 담을 발주 건을 체크해주세요.');return null;}
+  const ors=getOr();
+  const sel=ids.map(id=>ors.find(o=>o.id===id)).filter(Boolean);
+  if(!sel.length){toast('e','오류','선택된 발주를 찾을 수 없습니다.');return null;}
+  const total=sel.reduce((s,o)=>s+(o.qty||1)*((o.price||0)+(o.install||0)+(o.extra||0)),0);
+  const branches=[...new Set(sel.map(o=>o.branch))];
+  // 발주월 = 선택 발주 중 가장 최근 발주일 기준
+  const latest=sel.map(o=>o.orderDate).filter(Boolean).sort().reverse()[0]||new Date().toISOString().substring(0,10);
+  const[y,m]=latest.split('-').map(Number);
+  const execDate=m===12?`${y+1}-01-10`:`${y}-${String(m+1).padStart(2,'0')}-10`;
+  const ym=latest.substring(2,7).replace('-','.');
+  // 지점별 집계
+  const brLines=branches.map((b,i)=>{
+    const br=sel.filter(o=>o.branch===b);
+    const bQty=br.reduce((s,o)=>s+(o.qty||1),0);
+    const bTot=br.reduce((s,o)=>s+(o.qty||1)*((o.price||0)+(o.install||0)+(o.extra||0)),0);
+    const rooms=br.map(o=>o.room).filter(Boolean).join(', ');
+    return`${i+1}. ${b}\n   객실 : ${rooms||'—'}\n   수량 : ${bQty}실\n   합계 : ${bTot.toLocaleString()}원 (VAT포함)`;
+  });
+  const o0=sel[0];
+  const priceInfo=`도어락 ${(o0.price||0).toLocaleString()}원, 설치비 ${(o0.install||0).toLocaleString()}원${o0.extra?`, 자재비 ${o0.extra.toLocaleString()}원`:''}`;
+  const itemDetail=brLines.join('\n\n')+`\n\n\n산출내역 : ${priceInfo}`;
+  const types=[...new Set(sel.map(o=>o.type||'신규'))].join('/');
+  const ym2=latest.substring(0,7).replace('-','년 ')+'월';
+  return{costName:`${branches.join(',')} ${ym}_솔리티 도어락구매_집기계좌`,costType:'구매비(집기류)',taxType:'과세',totalAmt:total,execDate,vendor:'(주)솔리티',account:'집기계좌',itemDetail,purchaseReason:`${types} 도어락 설치`,attach1:'집행처 사업자등록증',attach2:'집행처 통장 사본',attach3:'기타',attachOther:'발주서',draftNote:`${branches.join(',')} ${ym2} 솔리티 도어락 구매비용 상신의 건입니다.`,refLink:''};
+}
+
 function buildSvcAmaData(){
   const d=getSvc();
   const fm=document.getElementById('svc-f-month').value;
@@ -2977,11 +3018,11 @@ function buildSvcAmaData(){
 }
 
 function openAmaranthModal(type){
-  const d=type==='draft'?buildDraftAmaData():buildSvcAmaData();
+  const d=type==='draft'?buildDraftAmaData():type==='order'?buildOrderAmaData():buildSvcAmaData();
   if(!d)return;
   const wrap=document.getElementById('amaranth-preview-wrap');
   wrap.dataset.formType=type;
-  wrap.innerHTML=type==='draft'?buildPurchaseOrderHtml(d):buildServiceFeeHtml(d);
+  wrap.innerHTML=type==='svc'?buildServiceFeeHtml(d):buildPurchaseOrderHtml(d);
   openMo('mo-amaranth');
 }
 
@@ -2990,7 +3031,7 @@ function copyAmaranthHtml(){
   const d={};
   wrap.querySelectorAll('[data-key]').forEach(el=>{d[el.dataset.key]=el.value;});
   d.totalAmt=parseInt(d.totalAmt)||0;
-  const html=wrap.dataset.formType==='draft'?buildPurchaseOrderHtml(d):buildServiceFeeHtml(d);
+  const html=wrap.dataset.formType==='svc'?buildServiceFeeHtml(d):buildPurchaseOrderHtml(d);
   const btn=document.getElementById('amaranth-copy-btn');
   const ok=()=>{btn.textContent='✓ 복사 완료!';setTimeout(()=>{btn.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>HTML 복사 (아마란스 붙여넣기용)';},2500);};
   const fail=()=>{btn.textContent='❌ 복사 실패';setTimeout(()=>{btn.textContent='HTML 복사 (아마란스 붙여넣기용)';},2500);};
