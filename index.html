@@ -762,6 +762,14 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
         <div class="bgrid" id="bgrid"></div>
       </div>
 
+      <!-- 종료 지점 (아카이브, admin) -->
+      <div class="page" id="page-archive">
+        <div class="panel" style="margin-bottom:16px">
+          <div class="pb" style="padding:14px 16px;color:var(--text2);font-size:13px;line-height:1.65">종료(폐업)된 지점을 모아둔 곳입니다. 과거 발주·청구 이력은 그대로 <b>보존</b>되며, 기본 화면·드롭다운에는 표시되지 않습니다. 다시 운영하려면 각 지점의 <b>[재개]</b> 버튼을 누르세요.</div>
+        </div>
+        <div class="bgrid" id="archive-grid"></div>
+      </div>
+
       <!-- 사용자 관리 (superadmin only) -->
       <div class="page" id="page-users">
         <div class="panel" style="margin-bottom:16px">
@@ -1129,6 +1137,8 @@ function repairOrders(){
 initData();
 
 const getBr=()=>ld(K.B,[]);
+const getActiveBr=()=>getBr().filter(b=>!b.closed);   // 운영중 지점만 (종료 제외)
+const getClosedBr=()=>getBr().filter(b=>b.closed);    // 종료(아카이브)된 지점만
 const getOr=()=>ld(K.O,[]);
 const getRc=()=>ld(K.R,[]);
 const getAc=()=>{let a=ld(K.A,null);if(!a){a=[{id:'admin',pw:'admin123',role:'superadmin',name:'관리자',branch:'본사'}];sv(K.A,a);}return a;};
@@ -1356,6 +1366,7 @@ const NI={
   branches:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
   users:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
   svc:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  archive:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="22" height="5" rx="1"/><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
 };
 // 콘텐츠 영역 아이콘 (15px, currentColor)
 const _s='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
@@ -1386,14 +1397,14 @@ function buildNav(){
   itms.push({sep:'운영'},{p:'receipt',ic:NI.receipt,l:'접수 관리'});
   if(a){itms.push({p:'order',ic:NI.order,l:'발주 관리'});itms.push({p:'draft',ic:NI.draft,l:'발주서 작성'});}
   itms.push({p:'install',ic:NI.install,l:'설치 현황'});
-  if(a){itms.push({sep:'정산'},{p:'monthly',ic:NI.monthly,l:'월마감 정산'},{p:'svc',ic:NI.svc,l:'서비스요금'},{sep:'설정'},{p:'branches',ic:NI.branches,l:'지점 관리'});}
+  if(a){itms.push({sep:'정산'},{p:'monthly',ic:NI.monthly,l:'월마감 정산'},{p:'svc',ic:NI.svc,l:'서비스요금'},{sep:'설정'},{p:'branches',ic:NI.branches,l:'지점 관리'},{p:'archive',ic:NI.archive,l:'종료 지점'});}
   if(sa)itms.push({p:'users',ic:NI.users,l:'사용자 관리'});
   document.getElementById('sb-nav').innerHTML=itms.map(i=>i.sep?`<div class="sg">${i.sep}</div>`:`<div class="ni" data-p="${i.p}" onclick="goP('${i.p}')"><span class="ic">${i.ic}</span>${i.l}</div>`).join('');
 }
 
-const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],svc:['서비스요금','직방·H2O·더엠알 월 서비스요금 관리'],branches:['지점 관리','지점 정보 및 계정'],users:['사용자 관리','접속 권한 부여 및 역할 설정']};
+const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],svc:['서비스요금','직방·H2O·더엠알 월 서비스요금 관리'],branches:['지점 관리','지점 정보 및 계정'],archive:['종료 지점','종료(아카이브)된 지점 · 재개 가능'],users:['사용자 관리','접속 권한 부여 및 역할 설정']};
 function goP(p){
-  if((p==='order'||p==='draft'||p==='monthly'||p==='branches'||p==='svc')&&!isAdm()){toast('e','권한 없음','관리자만 접근할 수 있습니다.');return;}
+  if((p==='order'||p==='draft'||p==='monthly'||p==='branches'||p==='svc'||p==='archive')&&!isAdm()){toast('e','권한 없음','관리자만 접근할 수 있습니다.');return;}
   if(p==='users'&&!isSA()){toast('e','권한 없음','최고관리자만 접근할 수 있습니다.');return;}
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(e=>e.classList.remove('on'));
@@ -1409,7 +1420,7 @@ function goP(p){
     if(saved&&[...el.options].some(o=>o.value===saved))el.value=saved;
     el.onchange=()=>sessionStorage.setItem('filter_'+id,el.value);
   });
-  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,branches:renderBr,users:renderUsers};
+  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,branches:renderBr,archive:renderArchive,users:renderUsers};
   if(fns[p])fns[p]();
   if(['receipt','order','install','monthly'].includes(p)){
     const tbr=document.getElementById('tb-r');
@@ -1420,7 +1431,7 @@ function goP(p){
 
 /* ── SELECTS ── */
 function populateSels(){
-  const bns=getBr().map(b=>b.name);
+  const bns=getActiveBr().map(b=>b.name);   // 종료 지점은 드롭다운에서 제외
   const branchLocked=S.branchLocked===true; // 로컬 지점계정만 제한, SSO 직원은 전체 선택 가능
   ['fr-b','fo-b','fi-b','fm-b'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const f=e.options[0];e.innerHTML='';e.appendChild(f);bns.forEach(n=>e.appendChild(new Option(n,n)));if(branchLocked){e.value=S.branch;e.disabled=true;}});
   ['r-branch','m-branch'].forEach(id=>{const e=document.getElementById(id);if(!e)return;const f=e.options[0];e.innerHTML='';e.appendChild(f);bns.forEach(n=>e.appendChild(new Option(n,n)));if(branchLocked){e.value=S.branch;e.disabled=true;}});
@@ -1462,10 +1473,10 @@ function renderD(){
   const dbb=document.getElementById('db-b')?.value||'';
   // db-b 옵션 채우기 (최초 1회)
   const dbSel=document.getElementById('db-b');
-  if(dbSel&&dbSel.options.length===1){getBr().forEach(b=>dbSel.appendChild(new Option(b.name,b.name)));}
+  if(dbSel&&dbSel.options.length===1){getActiveBr().forEach(b=>dbSel.appendChild(new Option(b.name,b.name)));}
   // 접수 status 기준 집계
   const mRcs=getRc().filter(r=>(r.date||'').startsWith(dbm));
-  let brs=getBr();
+  let brs=getActiveBr();
   if(dbb)brs=brs.filter(b=>b.name===dbb);
   const rows=brs.map(b=>{
     const br=mRcs.filter(r=>r.branch===b.name);
@@ -1859,10 +1870,10 @@ function renderBr(){
   document.getElementById('tb-r').innerHTML=`<button class="btn" onclick="syncDuckRoomsAndRender()" style="font-size:12px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button><button class="btn bo" onclick="repairBranchNames()" style="font-size:12px;margin-left:6px">지점명 복구</button>`;
   // Duck 캐시 적용 후 렌더
   syncDuckRooms().then(duck=>{
-    const brs=getBr();
+    const brs=getActiveBr();
     const syncAt=duck?.updatedAt?`<span style="font-size:11px;color:var(--text3);padding:4px 8px">마지막 Duck 동기화: ${duck.updatedAt.substring(0,10)}</span>`:'';
     document.getElementById('bgrid').innerHTML=`<div class="bc" onclick="openBrMo(null)" style="border:2px dashed var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;min-height:110px;flex-direction:column;gap:8px;color:var(--text3)"><div style="font-size:28px">+</div><div style="font-size:13px;font-weight:600">지점 추가</div></div>`
-      +brs.map(b=>`<div class="bc" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div></div>`).join('');
+      +brs.map(b=>`<div class="bc" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div><div style="margin-top:8px;text-align:right"><button class="btn bo bsm" onclick="event.stopPropagation();closeBranch(${b.id})" style="font-size:11px;color:#ea580c;border-color:rgba(234,88,12,.3)">지점 종료</button></div></div>`).join('');
     if(syncAt)document.getElementById('bgrid').insertAdjacentHTML('beforebegin',`<div style="display:flex;justify-content:flex-end;margin-bottom:4px">${syncAt}</div>`);
   });
 }
@@ -1903,6 +1914,32 @@ function repairBranchNames(){
   });
   if(fixed>0){sv(K.B,brs);toast('s','복구 완료',`${fixed}개 지점 복구됨: ${changes.join(' / ')}`);renderBr();}
   else toast('i','이상 없음','중복된 지점명이 없습니다.');
+}
+
+/* ── 지점 종료(아카이브) / 재개 ── */
+function closeBranch(id){
+  const b=getBr().find(x=>x.id===id);if(!b)return;
+  showCfm(CI.building,'지점 종료','"'+b.name+'" 지점을 종료 처리할까요? 과거 발주·청구 이력은 그대로 보존되고, 목록과 드롭다운에서 숨겨집니다. [종료 지점] 메뉴에서 언제든 다시 재개할 수 있습니다.',()=>{
+    const brs=getBr(),idx=brs.findIndex(x=>x.id===id);
+    if(idx>=0){brs[idx].closed=true;brs[idx].closedDate=new Date().toISOString().substring(0,10);sv(K.B,brs);}
+    populateSels();renderBr();toast('s','종료 완료',b.name+' 지점이 종료 처리되었습니다.');
+  });
+}
+function reopenBranch(id){
+  const b=getBr().find(x=>x.id===id);if(!b)return;
+  const brs=getBr(),idx=brs.findIndex(x=>x.id===id);
+  if(idx>=0){brs[idx].closed=false;delete brs[idx].closedDate;sv(K.B,brs);}
+  populateSels();renderArchive();toast('s','재개 완료',b.name+' 지점이 다시 운영중으로 전환되었습니다.');
+}
+function renderArchive(){
+  const el=document.getElementById('archive-grid');if(!el)return;
+  const brs=getClosedBr();
+  if(!brs.length){el.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text3)"><div style="font-size:32px;margin-bottom:8px">📁</div>종료된 지점이 없습니다.<div style="font-size:12px;margin-top:6px">[지점 관리]에서 각 지점의 <b>[지점 종료]</b> 버튼을 누르면 이곳으로 이동합니다.</div></div>`;return;}
+  el.innerHTML=brs.map(b=>{
+    const oc=getOr().filter(o=>o.branch===b.name).length;
+    const rc=getRc().filter(r=>r.branch===b.name).length;
+    return`<div class="bc" style="opacity:.9"><span class="bc-done" style="background:rgba(234,88,12,.12);color:#ea580c">종료 ${b.closedDate||''}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.clipboard} 접수 ${rc}건</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.box} 발주 ${oc}건</span></div><div style="margin-top:10px;display:flex;gap:6px;justify-content:flex-end"><button class="btn bo bsm" onclick="openBrMo(${b.id})" style="font-size:11px">정보 보기</button><button class="btn bp bsm" onclick="reopenBranch(${b.id})" style="font-size:11px">↻ 재개</button></div></div>`;
+  }).join('');
 }
 
 /* ── DRAFT ── */
