@@ -1037,12 +1037,21 @@ const sv=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));localStorage.removeIt
 const SB_URL='https://vsklmsiuxntcsiowrwsl.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZza2xtc2l1eG50Y3Npb3dyd3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODg0NDEsImV4cCI6MjA5MTM2NDQ0MX0.ZqCKdT1kxilUpag6D-9Ka1zVOOBDm34ddxXEQQZpMTw';
 const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
-async function sbSet(k,v){try{await fetch(SB_URL+'/rest/v1/kv_store',{method:'POST',headers:{...SB_H,'Prefer':'resolution=merge-duplicates'},body:JSON.stringify({key:k,value:v,updated_at:new Date().toISOString()})});}catch{}}
+/* ── kv 게이트웨이: 로그인한 사용자의 SSO 토큰으로만 kv_store 접근 (anon 키 직접 사용 안 함) ── */
+const KV_FN_URL=SB_URL+'/functions/v1/kv';
+async function kvFn(op,extra){
+  const t=(S&&S.token)||'';
+  if(!t)return null; // 로그인 전에는 클라우드 접근 안 함
+  const r=await fetch(KV_FN_URL,{method:'POST',headers:{'Content-Type':'application/json','x-sso-token':t},body:JSON.stringify({op,...(extra||{})})});
+  if(!r.ok)throw new Error('kv '+op+' '+r.status);
+  return r.json();
+}
+async function sbSet(k,v){try{if(!(S&&S.token))return;await kvFn('set',{key:k,value:v});}catch{}}
 async function sbSync(){
   try{
-    const r=await fetch(SB_URL+'/rest/v1/kv_store?select=key,value',{headers:SB_H});
-    if(!r.ok)return;
-    const rows=await r.json();
+    if(!(S&&S.token))return;
+    const rows=await kvFn('get_all');
+    if(!rows)return;
     const sbKeys=new Set(rows.map(r=>r.key));
     // 다중 사용자 공유 배열 키: ID 기준 병합 (Supabase 기반 + 로컬 전용 항목 추가)
     // 설정 키: 로컬 우선 (어드민만 수정)
@@ -1406,6 +1415,7 @@ function startApp(){
   else{re.className='ur ur-u';re.textContent='직원';}
   buildNav();populateSels();loadDCfg();
   goP('dashboard');
+  sbSync().then(()=>{ if(document.querySelector('.page.on')?.id==='page-dashboard'&&typeof renderD==='function')renderD(); }); // 로그인 후 최신 데이터 로드
 }
 
 const NI={
@@ -1930,10 +1940,9 @@ function submitAddUser(){
 const DUCK_NAME_MAP={'플라트더각양양':'양양브라운스톤'};
 async function syncDuckRooms(){
   try{
-    const r=await fetch(SB_URL+'/rest/v1/kv_store?key=eq.'+K.DR+'&select=value',{headers:SB_H});
-    if(!r.ok)return false;
-    const rows=await r.json();
-    if(!rows.length||!rows[0].value)return false;
+    if(!(S&&S.token))return false;
+    const rows=await kvFn('get_one',{key:K.DR});
+    if(!rows||!rows.length||!rows[0].value)return false;
     const duck=rows[0].value;
     if(!duck.rooms)return false;
     const brs=getBr();
