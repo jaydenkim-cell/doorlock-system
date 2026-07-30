@@ -11,7 +11,7 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css');
 *{margin:0;padding:0;box-sizing:border-box;}
 :root{
-  --bg:#edede9;--white:#fff;--surface:#f5f0ea;--border:#e0d9d0;--border2:#ccc4b8;
+  --bg:#edede9;--white:#fff;--surface:#f5f0ea;--bg2:#e7e1d8;--border:#e0d9d0;--border2:#ccc4b8;
   --text:#1a1a18;--text2:#4a4540;--text3:#9a9490;
   --accent:#3d2b1f;--accent-l:#f0e8e0;--accent-h:#2d1f17;
   --green:#2d7a4f;--green-l:#eaf5ee;
@@ -273,6 +273,9 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 .tbl td{padding:10px 12px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);}
 .tbl tr:last-child td{border-bottom:none;}
 .tbl tr:hover td{background:var(--surface);}
+/* 합계행(tfoot): tr:last-child 가 tbody 마지막 행의 하단선을 지우므로 상단선으로 구분한다 */
+.tbl tfoot td{border-top:2px solid var(--border2);}
+.tbl tfoot tr:hover td{background:var(--bg2);}
 .idc{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);}
 
 /* BADGE */
@@ -644,7 +647,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
         </div>
         <div class="panel">
           <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></div>
-          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>유형</th><th>완료건</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-all"></tbody></table></div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>유형</th><th>완료건</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-all"></tbody><tfoot id="m-foot-all"></tfoot></table></div>
         </div>
       </div>
 
@@ -1783,10 +1786,49 @@ function renderI(){
 }
 
 /* ── MONTHLY ── */
+/* 월마감정산 집계 — 화면(renderM)·엑셀(exportToExcel) 공용 단일 소스.
+   부가세 기준 = 지점·계정과목(전표) 단위로 반올림한 뒤 합산(bottom-up).
+   → 전체 합계 부가세가 항상 표의 부가세 열 합계와 정확히 일치하고,
+     공급가액 + 부가세 = 합계(포함)가 잔액 없이 성립한다.
+   (그룹마다 따로 반올림한 값을 더하면 총액 기준 1회 반올림과 지점 수만큼 오차가 생기므로,
+    기준을 하나로 고정해 표·카드·엑셀이 모두 같은 숫자를 쓰게 한다.) */
+const mIsNew=o=>o.type==='신규'||o.type==='추가'||!o.type;
+const mVat=t=>{const ex=Math.round(t*10/11);return{t,ex,tax:t-ex};};
+// 지점 표시키 — 그룹핑·검색·표시가 반드시 같은 값을 쓰게 한다.
+// (String() 은 백업 복원 등으로 branch 가 숫자/null 로 들어와도 .toLowerCase() 가 터지지 않게)
+const mBr=o=>String(o.branch||'(지점없음)');
+const mDoneOrs=()=>getOr().filter(o=>o.installed===true&&o.doneDate&&o.doneDate.length>0);
+function mGroupSum(bo){
+  const q=o=>Number(o.qty)||1;
+  const p=bo.reduce((s,o)=>s+(Number(o.price)||0)*q(o),0);
+  const i=bo.reduce((s,o)=>s+(Number(o.install)||0)*q(o),0);
+  const e=bo.reduce((s,o)=>s+(Number(o.extra)||0)*q(o),0);
+  return{cnt:bo.length,p,i,e,...mVat(p+i+e)};
+}
+function mSettle(){
+  const mv=document.getElementById('fm-m')?.value||'';
+  const bv=document.getElementById('fm-b')?.value||'';
+  const sv2=document.getElementById('fm-s')?.value.trim()||'';
+  let ors=mDoneOrs();
+  if(mv)ors=ors.filter(o=>o.doneDate.startsWith(mv));
+  if(bv)ors=ors.filter(o=>o.branch===bv);
+  // 검색어도 여기서 한 번만 적용 → 표·요약카드·엑셀이 항상 같은 범위를 본다
+  if(sv2)ors=ors.filter(o=>mBr(o).toLowerCase().includes(sv2.toLowerCase()));
+  const rows=[];
+  // 지점 미지정 발주도 '(지점없음)'으로 묶어 합계에서 누락되지 않게 한다
+  [...new Set(ors.map(mBr))].sort().forEach(bn=>{
+    [true,false].forEach(nw=>{
+      const bo=ors.filter(o=>mBr(o)===bn&&mIsNew(o)===nw);
+      if(bo.length)rows.push({branch:bn,isNew:nw,...mGroupSum(bo)});
+    });
+  });
+  const agg=rs=>rs.reduce((a,r)=>({cnt:a.cnt+r.cnt,p:a.p+r.p,i:a.i+r.i,e:a.e+r.e,t:a.t+r.t,ex:a.ex+r.ex,tax:a.tax+r.tax}),{cnt:0,p:0,i:0,e:0,t:0,ex:0,tax:0});
+  return{month:mv,filters:{branch:bv,search:sv2},rows,
+    sNew:agg(rows.filter(r=>r.isNew)),sRep:agg(rows.filter(r=>!r.isNew)),total:agg(rows)};
+}
 function renderM(){
-  // 1) 설치완료 발주 전체 (doneDate 기준)
-  const allOrs=getOr();
-  const doneOrs=allOrs.filter(o=>o.installed===true&&o.doneDate&&o.doneDate.length>0);
+  // 1) 설치완료 발주 전체 (doneDate 기준) — mSettle 과 같은 판정을 쓴다
+  const doneOrs=mDoneOrs();
 
   // 2) 월 선택지 갱신 (옵션을 하나씩 제거하는 안전한 방법)
   const fmm=document.getElementById('fm-m');
@@ -1798,53 +1840,36 @@ function renderM(){
     fmm.value=(months.includes(prev))?prev:(months.length>0?months[0]:'');
   }
 
-  // 3) 필터 적용
-  const mv=(fmm&&fmm.value)||'';
-  const bv=document.getElementById('fm-b')?.value||'';
-  let ors=doneOrs;
-  if(mv)ors=ors.filter(o=>o.doneDate.startsWith(mv));
-  if(bv)ors=ors.filter(o=>o.branch===bv);
-
-  // 4) 신규/추가 vs 교체 분류
-  const isNew=o=>o.type==='신규'||o.type==='추가'||!o.type;
-  const orsNew=ors.filter(o=>isNew(o));
-  const orsRep=ors.filter(o=>!isNew(o));
+  // 3) 집계 — 월/지점/검색 필터를 mSettle()에서 한 번만 적용(표·카드·엑셀 동일 범위)
+  const MS=mSettle();
+  const mv=MS.month;
   const mono="font-family:'JetBrains Mono',monospace";
 
-  // 5) 행 생성
-  const mkRow=(bo,bn,label,color,sub)=>{
-    if(!bo||!bo.length)return'';
-    const p=bo.reduce((s,o)=>s+(Number(o.price)||0)*(Number(o.qty)||1),0);
-    const i=bo.reduce((s,o)=>s+(Number(o.install)||0)*(Number(o.qty)||1),0);
-    const e=bo.reduce((s,o)=>s+(Number(o.extra)||0)*(Number(o.qty)||1),0);
-    const t=p+i+e;
-    const tEx=Math.round(t*10/11),tTax=t-tEx;
-    const isAccent=color==='var(--accent)';
-    const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${isAccent?'rgba(26,86,219,.1)':'rgba(245,158,11,.1)'};color:${color}">${label}</span><div style="font-size:10px;color:var(--text3);margin-top:2px">${sub}</div>`;
-    return`<tr><td style="font-weight:600">${bn}</td><td style="white-space:nowrap">${badge}</td><td>${bo.length}건</td><td style="${mono}">${p.toLocaleString()}</td><td style="${mono}">${i.toLocaleString()}</td><td style="${mono}">${e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${tEx.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${tTax.toLocaleString()}</td><td style="${mono};font-weight:700;color:${color}">${t.toLocaleString()}</td></tr>`;
-  };
-  const msv=document.getElementById('fm-s')?.value.toLowerCase().trim();
-  const bNames=[...new Set(ors.map(o=>o.branch).filter(Boolean))].sort().filter(bn=>!msv||bn.toLowerCase().includes(msv));
-  const allRows=bNames.flatMap(bn=>[
-    mkRow(orsNew.filter(o=>o.branch===bn),bn,'신규','var(--accent)','선급금/집기출금 · 6200'),
-    mkRow(orsRep.filter(o=>o.branch===bn),bn,'교체','var(--yellow)','수선비/지점출금 · 6055')
-  ]).filter(Boolean).join('');
+  // 4) 행 생성
+  const NEWM={label:'신규',color:'var(--accent)',sub:'선급금/집기출금 · 6200',bg:'rgba(26,86,219,.1)'};
+  const REPM={label:'교체',color:'var(--yellow)',sub:'수선비/지점출금 · 6055',bg:'rgba(245,158,11,.1)'};
+  const allRows=MS.rows.map(r=>{
+    const m=r.isNew?NEWM:REPM;
+    const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${m.bg};color:${m.color}">${m.label}</span><div style="font-size:10px;color:var(--text3);margin-top:2px">${m.sub}</div>`;
+    return`<tr><td style="font-weight:600">${r.branch}</td><td style="white-space:nowrap">${badge}</td><td>${r.cnt}건</td><td style="${mono}">${r.p.toLocaleString()}</td><td style="${mono}">${r.i.toLocaleString()}</td><td style="${mono}">${r.e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${r.ex.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${r.tax.toLocaleString()}</td><td style="${mono};font-weight:700;color:${m.color}">${r.t.toLocaleString()}</td></tr>`;
+  }).join('');
 
-  // 6) 요약 카드 업데이트
-  const sumOf=list=>{const t=list.reduce((s,o)=>s+(Number(o.price)||0)*(Number(o.qty)||1)+(Number(o.install)||0)*(Number(o.qty)||1)+(Number(o.extra)||0)*(Number(o.qty)||1),0);return{t,ex:Math.round(t*10/11),tax:t-Math.round(t*10/11)};};
-  const sN=sumOf(orsNew),sR=sumOf(orsRep),tc=sN.t+sR.t,tcTax=sN.tax+sR.tax;
+  // 5) 요약 카드 — 공급가액·부가세 모두 표의 열 합계와 정확히 일치(전표 합산 기준)
+  const sN=MS.sNew,sR=MS.sRep,tt=MS.total;
   document.getElementById('mc-new').textContent=sN.t.toLocaleString()+'원';
-  document.getElementById('mc-new-sub').textContent=orsNew.length+'건 · 별도 '+sN.ex.toLocaleString()+'원';
+  document.getElementById('mc-new-sub').textContent=sN.cnt+'건 · 별도 '+sN.ex.toLocaleString()+'원';
   document.getElementById('mc-rep').textContent=sR.t.toLocaleString()+'원';
-  document.getElementById('mc-rep-sub').textContent=orsRep.length+'건 · 별도 '+sR.ex.toLocaleString()+'원';
-  document.getElementById('mc-cv').textContent=tc.toLocaleString()+'원';
-  document.getElementById('mc-tax').textContent='부가세 '+tcTax.toLocaleString()+'원';
+  document.getElementById('mc-rep-sub').textContent=sR.cnt+'건 · 별도 '+sR.ex.toLocaleString()+'원';
+  document.getElementById('mc-cv').textContent=tt.t.toLocaleString()+'원';
+  document.getElementById('mc-tax').textContent='부가세 '+tt.tax.toLocaleString()+'원';
 
-  // 7) 테이블 렌더링
+  // 6) 테이블 렌더링 + 합계행(카드 숫자를 눈으로 대조할 수 있게)
   const tbody=document.getElementById('m-body-all');
   if(tbody)tbody.innerHTML=allRows||emp(9);
+  const tfootM=document.getElementById('m-foot-all');
+  if(tfootM)tfootM.innerHTML=MS.rows.length?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="2" style="text-align:right">합계</td><td>${tt.cnt}건</td><td style="${mono}">${tt.p.toLocaleString()}</td><td style="${mono}">${tt.i.toLocaleString()}</td><td style="${mono}">${tt.e.toLocaleString()}</td><td style="${mono}">${tt.ex.toLocaleString()}</td><td style="${mono}">${tt.tax.toLocaleString()}</td><td style="${mono}">${tt.t.toLocaleString()}</td></tr>`:'';
 
-  // 8) 마감 버튼 상태 업데이트
+  // 7) 마감 버튼 상태 업데이트
   const closeBtn=document.querySelector('[onclick="doClose()"]');
   if(closeBtn){
     const closedList=ld(K.MC,[]);
@@ -2777,36 +2802,22 @@ function exportToExcel(type){
     fileName=`설치현황_${today}.xlsx`;
 
   }else if(type==='monthly'){
-    const doneOrs=getOr().filter(o=>o.installed===true&&o.doneDate&&o.doneDate.length>0);
-    const mv=document.getElementById('fm-m')?.value||'';
-    const bv=document.getElementById('fm-b')?.value||'';
-    let ors=doneOrs;
-    if(mv)ors=ors.filter(o=>o.doneDate.startsWith(mv));
-    if(bv)ors=ors.filter(o=>o.branch===bv);
-    const isNewType=o=>o.type==='신규'||o.type==='추가'||!o.type;
+    // 화면과 완전히 동일한 집계를 사용 (mSettle) → 엑셀 합계행 = 화면 합계행 = 요약카드
+    const MS=mSettle();
+    const mv=MS.month;
     rows=[['지점','구분','건수','도어락','설치비','자재비','공급가액','부가세','합계','계정과목']];
-    const bNames=[...new Set(ors.map(o=>o.branch).filter(Boolean))].sort();
-    bNames.forEach(bn=>{
-      const doRow=(bo,label,acct)=>{
-        if(!bo||!bo.length)return;
-        const p=bo.reduce((s,o)=>s+(Number(o.price)||0)*(Number(o.qty)||1),0);
-        const i=bo.reduce((s,o)=>s+(Number(o.install)||0)*(Number(o.qty)||1),0);
-        const e=bo.reduce((s,o)=>s+(Number(o.extra)||0)*(Number(o.qty)||1),0);
-        const t=p+i+e,tEx=Math.round(t*10/11),tTax=t-tEx;
-        rows.push([bn,label,bo.length,p,i,e,tEx,tTax,t,acct]);
-      };
-      doRow(ors.filter(o=>o.branch===bn&&isNewType(o)),'신규','선급금/집기출금 · 6200');
-      doRow(ors.filter(o=>o.branch===bn&&!isNewType(o)),'교체','수선비/지점출금 · 6055');
-    });
-    // 합계 행
-    if(rows.length>1){
-      const p=ors.reduce((s,o)=>s+(Number(o.price)||0)*(Number(o.qty)||1),0);
-      const i=ors.reduce((s,o)=>s+(Number(o.install)||0)*(Number(o.qty)||1),0);
-      const e=ors.reduce((s,o)=>s+(Number(o.extra)||0)*(Number(o.qty)||1),0);
-      const t=p+i+e,tEx=Math.round(t*10/11),tTax=t-tEx;
-      rows.push(['합계','',ors.length,p,i,e,tEx,tTax,t,'']);
+    MS.rows.forEach(r=>rows.push([r.branch,r.isNew?'신규':'교체',r.cnt,r.p,r.i,r.e,r.ex,r.tax,r.t,
+      r.isNew?'선급금/집기출금 · 6200':'수선비/지점출금 · 6055']));
+    // 합계 행 — 각 행의 값을 그대로 더한다(전표 합산 기준). 기준을 파일에 남겨 대조 시 다툼이 없게 한다.
+    if(MS.rows.length){
+      const tt=MS.total;
+      rows.push(['합계','',tt.cnt,tt.p,tt.i,tt.e,tt.ex,tt.tax,tt.t,'부가세 기준: 지점·계정과목 단위 반올림 합산']);
     }
-    fileName=`월마감정산_${mv||'전체'}_${today}.xlsx`;
+    // 지점/검색 필터가 걸린 채 내보내면 부분 정산이므로 파일명에 범위를 드러낸다
+    const scope=[mv||'전체'];
+    if(MS.filters.branch)scope.push(MS.filters.branch);
+    if(MS.filters.search)scope.push('검색-'+MS.filters.search);
+    fileName=`월마감정산_${scope.join('_')}_${today}.xlsx`;
 
   }else if(type==='branches'){
     let list=getBr();
@@ -2827,14 +2838,13 @@ function exportToExcel(type){
     recs.sort((a,b)=>a.brand.localeCompare(b.brand)||b.month.localeCompare(a.month)||a.branch.localeCompare(b.branch,'ko'));
     rows=[['청구월','지점','브랜드','운영실수','단가(별도)','공급가액','부가세(10%)','합계(포함)','비고']];
     recs.forEach(r=>{
-      const up=r.unitPrice||SVC_DEF_PRICES[r.brand]||0;
-      const ex=r.rooms*up,vat=svcVat(ex);
-      rows.push([r.month,r.branch,r.brand,r.rooms,up,ex,vat,ex+vat,r.note||'']);
+      const c=svcCalc(r);
+      rows.push([r.month,r.branch,r.brand,r.rooms,svcUnit(r),c.ex,c.vat,c.t,r.note||'']);
     });
     if(recs.length>0){
-      const totEx=recs.reduce((s,r)=>s+r.rooms*(r.unitPrice||SVC_DEF_PRICES[r.brand]||0),0);
-      const totVat=svcVat(totEx);
-      rows.push(['합계','','','','',totEx,totVat,totEx+totVat,'']);
+      const st=svcTotal(recs);
+      rows.push(['합계','','','',''
+        ,st.ex,st.vat,st.t,'부가세 기준: 청구건 단위 반올림 합산']);
     }
     fileName=`서비스요금_${fm||'전체'}_${today}.xlsx`;
   }
@@ -2911,6 +2921,14 @@ const SVC_DEF_PRICES={'직방':2000,'H2O':3000,'더엠알':3000};
 function getSvc(){return ld(K.SV,{brandPrices:{...SVC_DEF_PRICES},records:[]});}
 function saveSvc(d){sv(K.SV,d);}
 function svcVat(amt){return Math.round(amt*0.1);}
+/* 서비스요금 집계 — 청구 1건(레코드)별로 반올림한 뒤 합산(bottom-up).
+   월마감정산(mSettle)과 같은 기준이라 합계 부가세가 항상 부가세 열의 합과 일치한다.
+   합산한 공급가액에 svcVat 을 한 번만 씌우면 행별 합과 최대 수원 어긋난다
+   (단가가 10의 배수면 오차 0이지만, 2,727원처럼 직접 입력하면 바로 벌어진다). */
+function svcUnit(r){return r.unitPrice||SVC_DEF_PRICES[r.brand]||0;}
+function svcCalc(r){const ex=r.rooms*svcUnit(r),vat=svcVat(ex);return{ex,vat,t:ex+vat};}
+function svcTotal(rs){return rs.reduce((a,r)=>{const c=svcCalc(r);
+  return{cnt:a.cnt+1,rooms:a.rooms+r.rooms,ex:a.ex+c.ex,vat:a.vat+c.vat,t:a.t+c.t};},{cnt:0,rooms:0,ex:0,vat:0,t:0});}
 let svcEditId=null;
 
 function renderSvc(){
@@ -2958,8 +2976,8 @@ function renderSvc(){
   document.getElementById('svc-body').innerHTML=recs.length===0
     ?`<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">청구 내역이 없습니다.</td></tr>`
     :recs.map(r=>{
-      const up=r.unitPrice||SVC_DEF_PRICES[r.brand]||0;
-      const ex=r.rooms*up;const vat=svcVat(ex);
+      const up=svcUnit(r);
+      const {ex,vat}=svcCalc(r);
       if(svcEditId===r.id){
         const brOpts=brs.map(b=>`<option value="${b.name}"${b.name===r.branch?' selected':''}>${b.name}</option>`).join('');
         const brndOpts=SVC_BRANDS.map(br=>`<option value="${br}"${br===r.brand?' selected':''}>${br}</option>`).join('');
@@ -2989,17 +3007,13 @@ function renderSvc(){
         <td style="white-space:nowrap"><button class="btn bo bsm" onclick="editSvcEntry(${r.id})" style="padding:2px 8px;font-size:11px;margin-right:4px">수정</button><button class="btn bo bsm" onclick="deleteSvcEntry(${r.id})" style="padding:2px 8px;font-size:11px">삭제</button></td>
       </tr>`;
     }).join('');
-  const totEx=recs.reduce((s,r)=>s+r.rooms*(r.unitPrice||SVC_DEF_PRICES[r.brand]||0),0);
-  const totVat=svcVat(totEx);
-  document.getElementById('svc-tfoot').innerHTML=recs.length>0?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="5" style="text-align:right">합계</td><td style="text-align:right">${fmt(totEx)}</td><td style="text-align:right">${fmt(totVat)}</td><td style="text-align:right">${fmt(totEx+totVat)}</td><td colspan="2"></td></tr>`:'';
-  // 요약 카드
+  const st=svcTotal(recs);
+  document.getElementById('svc-tfoot').innerHTML=recs.length>0?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="5" style="text-align:right">합계</td><td style="text-align:right">${fmt(st.ex)}</td><td style="text-align:right">${fmt(st.vat)}</td><td style="text-align:right">${fmt(st.t)}</td><td colspan="2"></td></tr>`:'';
+  // 요약 카드 — 표 합계와 같은 기준(청구건별 반올림 합산)
   const sumRecs=d.records.filter(r=>(!fm||r.month===fm)&&(!fb||r.branch===fb));
   const brandSum=SVC_BRANDS.map(br=>{
-    const bRecs=sumRecs.filter(r=>r.brand===br);
-    const rooms=bRecs.reduce((s,r)=>s+r.rooms,0);
-    const ex=bRecs.reduce((s,r)=>s+r.rooms*(r.unitPrice||SVC_DEF_PRICES[br]||0),0);
-    const vat=svcVat(ex);
-    return{br,rooms,ex,vat,cnt:bRecs.length};
+    const a=svcTotal(sumRecs.filter(r=>r.brand===br));
+    return{br,rooms:a.rooms,ex:a.ex,vat:a.vat,cnt:a.cnt};
   });
   const colors={'직방':'var(--accent)','H2O':'#22c55e','더엠알':'#f59e0b'};
   document.getElementById('svc-summary').innerHTML=brandSum.map(s=>`<div class="mcc" style="border-left:3px solid ${colors[s.br]}"><div class="ml">${s.br}${fm?' '+fm:''}</div><div class="mv" style="color:${colors[s.br]}">${(s.ex+s.vat).toLocaleString()}원</div><div class="ms">${s.rooms}실 · 공급가 ${s.ex.toLocaleString()}원 · 부가세 ${s.vat.toLocaleString()}원</div></div>`).join('');
@@ -3223,8 +3237,8 @@ function buildSvcAmaData(){
   if(fb)recs=recs.filter(r=>r.branch===fb);
   if(fbrand)recs=recs.filter(r=>r.brand===fbrand);
   if(!recs.length){toast('e','오류','청구 내역이 없습니다. 필터를 확인해주세요.');return null;}
-  const totEx=recs.reduce((s,r)=>s+r.rooms*(r.unitPrice||SVC_DEF_PRICES[r.brand]||0),0);
-  const total=totEx+svcVat(totEx);
+  // 아래 calcLines(산출근거)가 건별 금액을 나열하므로, 합계금액도 같은 기준으로 더해야 서로 맞는다
+  const total=svcTotal(recs).t;
   const tgt=fm||`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
   const[y,mo]=tgt.split('-').map(Number);
   const lastDay=new Date(y,mo,0).getDate();
@@ -3235,12 +3249,9 @@ function buildSvcAmaData(){
   const brandStr=brands.join('/');
   const vendorMap={'직방':'직방(주)','H2O':'에이치투오코리아','더엠알':'더엠알'};
   const vendor=brands.map(b=>vendorMap[b]||b).join('/');
-  const calcLines=recs.map((r,i)=>{
-    const up=r.unitPrice||SVC_DEF_PRICES[r.brand]||0;
-    const ex=r.rooms*up;
-    return`${i+1}. ${r.branch}\n- 객실 수 : ${r.rooms}실\n- 금액 : ${(ex+svcVat(ex)).toLocaleString()}원 (VAT 포함)`;
-  });
-  const upRef=recs[0]?(recs[0].unitPrice||SVC_DEF_PRICES[recs[0].brand]||0):0;
+  const calcLines=recs.map((r,i)=>
+    `${i+1}. ${r.branch}\n- 객실 수 : ${r.rooms}실\n- 금액 : ${svcCalc(r).t.toLocaleString()}원 (VAT 포함)`);
+  const upRef=recs[0]?svcUnit(recs[0]):0;
   calcLines.push(`\n산출근거\n(정산 기준: 월 고정단가(${upRef.toLocaleString()}원) × 실제 운영 객실 수)`);
   const ym2=tgt.replace('-','년 ')+'월';
   return{costName:`${branches.join(',')} ${ym}_${brandStr}도어락서비스사용료_BQ계좌`,costType:'기타',taxType:'과세',totalAmt:total,execDate,vendor,account:'BQ_운영계좌',calcDetail:calcLines.join('\n\n'),specialNote:'매월 20~25일 사이 실제 운영객실수 기준 (장기숙박,직원숙소등 제외)',attach1:'집행처 사업자등록증',attach2:'집행처 통장 사본',attach3:'연간계약서',attach4:'고지서',attachOther:'',draftNote:`${branches.join(',')} ${ym2} ${brandStr} 도어락 서비스 사용료 상신의 건입니다.`,refLink:''};
