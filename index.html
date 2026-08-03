@@ -1452,7 +1452,28 @@ function startApp(){
   else{re.className='ur ur-u';re.textContent='직원';}
   buildNav();populateSels();loadDCfg();
   goP('dashboard');
-  sbSync().then(()=>{ if(document.querySelector('.page.on')?.id==='page-dashboard'&&typeof renderD==='function')renderD(); }); // 로그인 후 최신 데이터 로드
+  sbSync().then(()=>{ migrateLockTypes(); if(document.querySelector('.page.on')?.id==='page-dashboard'&&typeof renderD==='function')renderD(); }); // 로그인 후 최신 데이터 로드
+}
+
+/* 도어락 유형 일괄 기록 (1회성, 멱등).
+   기존 지점은 lockType 필드가 없어 extraCost 에서 유도해 표시만 하고 있었다.
+   화면에 보이는 값(brLockType)을 그대로 필드에 확정해 둔다 — 값이 바뀌지 않는 no-op 이다.
+   지점 데이터(K.B)는 동기화에서 '로컬 우선'이라 Supabase 에 직접 써도 로컬 값에 덮이므로
+   반드시 앱에서 저장해야 한다. sbSync 이후에 돌려 병합된 최신 목록에 적용한다. */
+function migrateLockTypes(){
+  try{
+    if(!isAdm())return;                                  // 지점 계정이 지점 데이터를 쓰지 않게
+    const brs=getBr();
+    // b 자체가 null/비객체인 항목은 건너뛴다 — 안 그러면 아래 대입에서 터져 마이그레이션이 조용히 중단된다
+    const need=brs.filter(b=>b&&typeof b==='object'&&!(b.lockType&&(b.lockType in LOCK_TYPES)));
+    if(!need.length)return;                              // 이미 전부 기록됨 → 다음부터 즉시 종료
+    need.forEach(b=>{b.lockType=brLockType(b);b.extraCost=LOCK_TYPES[b.lockType];});
+    sv(K.B,brs);
+    const hotel=need.filter(b=>b.lockType==='호텔도어락').map(b=>b.name);
+    logAudit('도어락유형기록','전체지점',`${need.length}개 지점 기록 (호텔도어락 ${hotel.length}곳${hotel.length?': '+hotel.join(', '):''})`);
+    toast('s','도어락 유형 기록',`${need.length}개 지점에 도어락 유형을 저장했습니다 (호텔 ${hotel.length}곳).`);
+    if(document.querySelector('.page.on')?.id==='page-branches'&&typeof renderBr==='function')renderBr();
+  }catch(e){console.warn('lockType 기록 실패',e);}
 }
 
 const NI={
