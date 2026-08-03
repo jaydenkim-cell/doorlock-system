@@ -15,7 +15,7 @@ import BudgetTab from "./components/BudgetTab";
 import PackingTab from "./components/PackingTab";
 import MemoTab from "./components/MemoTab";
 
-const VERSION = "v7 (이루투어 패키지)";
+const VERSION = "v8 (여행사 최종 일정표)";
 
 type TabId = "schedule" | "payment" | "budget" | "packing" | "memo";
 const TABS: { id: TabId; label: string; icon: string }[] = [

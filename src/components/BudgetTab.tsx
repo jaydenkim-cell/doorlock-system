@@ -54,6 +54,8 @@ export default function BudgetTab() {
           ))}
         </ul>
         <p className="note">
+          {PACKAGE.paymentNote}
+          <br />
           팁은 현금으로 미리 준비하세요. 입금 전 취소·환불 위약금 규정을 확인하시길 권합니다.
         </p>
       </div>

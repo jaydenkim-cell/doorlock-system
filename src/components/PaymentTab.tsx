@@ -47,6 +47,8 @@ export default function PaymentTab({ me }: { me: string }) {
       <p className="lead">
         채이네·지호네가 어르신 한 분씩 나눠 부담합니다. 입금을 마치면 왼쪽 체크를 눌러 가족에게
         알려주세요.
+        <br />
+        <b>{PACKAGE.paymentNote}</b>
       </p>
 
       {PAYMENTS.map((p) => {
@@ -65,6 +67,9 @@ export default function PaymentTab({ me }: { me: string }) {
               <div className="info-col">
                 <h4>
                   {p.household} · {p.kind}
+                  <span className={"method " + (p.method === "현금" ? "cash" : "card")}>
+                    {p.method}
+                  </span>
                 </h4>
                 <div className="est">{won(p.amount)}만원</div>
                 <div className="pay-note">{p.note}</div>

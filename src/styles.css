@@ -499,6 +499,25 @@ input[type="time"] {
   color: var(--muted);
   margin-top: 3px;
 }
+/* 현금/카드 결제 구분 — 준비할 돈의 형태가 달라서 눈에 띄어야 한다 */
+.method {
+  font-size: 10.5px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.method.cash {
+  background: #fff3ea;
+  color: var(--coral);
+  border: 1px solid var(--coral);
+}
+.method.card {
+  background: #eaf7f5;
+  color: var(--ok);
+  border: 1px solid var(--ok);
+}
 .pay-note {
   font-size: 11.5px;
   color: var(--muted);
