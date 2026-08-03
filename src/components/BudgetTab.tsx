@@ -1,53 +1,61 @@
-import { BUDGET } from "../data/trip";
+import { PACKAGE } from "../data/trip";
+
+const won = (man: number) => man.toLocaleString("ko-KR");
 
 export default function BudgetTab() {
-  const totalMin = BUDGET.rows.reduce((s, r) => s + r.min, 0);
-  const totalMax = BUDGET.rows.reduce((s, r) => s + r.max, 0);
-  const maxRow = Math.max(...BUDGET.rows.map((r) => r.max));
-  const perMin = Math.round(totalMin / BUDGET.party);
-  const perMax = Math.round(totalMax / BUDGET.party);
-  const compareMax = Math.max(...BUDGET.compare.map((c) => c.max));
+  const { adultPrice, childPrice, adults, children, depositAdult, depositChild } = PACKAGE;
+  const total = adultPrice * adults + childPrice * children;
+  const maxHousehold = Math.max(...PACKAGE.households.map((h) => h.total));
 
   return (
     <>
       <div className="bud-total">
-        <div style={{ fontSize: 13, opacity: 0.85 }}>예상 총경비 (8인)</div>
-        <div className="big">약 {totalMin}만 ~ {totalMax}만원</div>
-        <div className="per">1인당 약 {perMin}만 ~ {perMax}만원</div>
+        <div style={{ fontSize: 13, opacity: 0.85 }}>더 이루투어 올인클루시브 패키지 · 총액 (8인)</div>
+        <div className="big">{won(total)}만원</div>
+        <div className="per">
+          성인 <b>{adultPrice}만</b> × {adults}명 · 초등 <b>{childPrice}만</b> × {children}명
+        </div>
       </div>
 
-      <h3 className="section-title">항목별</h3>
+      <h3 className="section-title">집별 분담</h3>
       <div className="card">
-        {BUDGET.rows.map((r) => (
-          <div className="bar-row" key={r.label}>
+        {PACKAGE.households.map((h) => (
+          <div className="bar-row" key={h.name}>
             <div className="lab">
-              <span>{r.label}</span>
-              <b>{r.min}~{r.max}만</b>
+              <span>{h.name}</span>
+              <b>{won(h.total)}만</b>
             </div>
             <div className="bar">
-              <span style={{ width: `${(r.max / maxRow) * 100}%` }} />
+              <span style={{ width: `${(h.total / maxHousehold) * 100}%` }} />
+            </div>
+            <div className="sub-note">
+              {h.members} · 예약금 {won(h.deposit)}만 / 잔금 {won(h.balance)}만
             </div>
           </div>
         ))}
+        <div className="sub-note" style={{ marginTop: 4 }}>
+          예약금 기준 성인 {depositAdult}만 · 초등 {depositChild}만. 두 집 모두 성인 3 · 초등 1이라
+          금액이 같습니다 (어르신을 어느 집이 맡든 동일).
+        </div>
       </div>
 
-      <h3 className="section-title">여행 방식 비교</h3>
-      <div className="card compare">
-        {BUDGET.compare.map((c) => (
-          <div className={"crow" + (c.self ? " self" : "")} key={c.label}>
-            <span>
-              {c.label}
-              {c.self && <span className="tag">추천</span>}
-            </span>
-            <b>{c.min}~{c.max}만</b>
-          </div>
-        ))}
-        <div className="bar" style={{ marginTop: 10 }}>
-          <span style={{ width: `${(BUDGET.compare[0].max / compareMax) * 100}%`, background: "var(--coral)" }} />
-        </div>
-        <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 8 }}>
-          운전자 2명이라 자유여행 가능. 운전이 부담되면 8인 단독 패키지 견적도 비교해 보세요.
-        </div>
+      <h3 className="section-title">포함 / 불포함</h3>
+      <div className="card incl">
+        <h4 className="ok">포함</h4>
+        <ul>
+          {PACKAGE.included.map((i) => (
+            <li key={i}>{i}</li>
+          ))}
+        </ul>
+        <h4 className="no">불포함</h4>
+        <ul>
+          {PACKAGE.excluded.map((i) => (
+            <li key={i}>{i}</li>
+          ))}
+        </ul>
+        <p className="note">
+          팁은 현금으로 미리 준비하세요. 입금 전 취소·환불 위약금 규정을 확인하시길 권합니다.
+        </p>
       </div>
     </>
   );

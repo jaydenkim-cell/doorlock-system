@@ -251,19 +251,30 @@ a {
   border-color: var(--sea-deep);
 }
 
-.departure-box {
+.package-box {
   background: linear-gradient(135deg, var(--shell), var(--sand));
   border: 1px dashed var(--gold);
 }
-.departure-box label {
+.package-box label {
   font-size: 12px;
   font-weight: 700;
   color: var(--sea);
 }
-.departure-box .hint {
+.package-box .hint {
   font-size: 11.5px;
   color: var(--muted);
   margin-top: 6px;
+}
+/* 집결 안내 — 놓치면 여행이 시작되지 않는 정보라 눈에 띄게 */
+.meet-warn {
+  margin-top: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff3ea;
+  border: 1px solid var(--coral);
+  color: var(--sea-deep);
+  font-size: 12.5px;
+  line-height: 1.5;
 }
 .row {
   display: flex;
@@ -339,6 +350,18 @@ input[type="time"] {
   font-size: 10px;
   color: var(--muted);
 }
+/* 시각이 확정되지 않은 방문지 — 시계 대신 순번만 (없는 시간을 지어내지 않는다) */
+.ev .time .ord {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--shell);
+  color: var(--muted);
+  font-size: 12px;
+}
 .ev .body {
   flex: 1;
   background: var(--shell);
@@ -392,45 +415,6 @@ input[type="time"] {
   background: var(--sand);
 }
 
-/* edit panel */
-.editor {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px dashed var(--line);
-}
-.editor .grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.editor label {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--muted);
-  display: block;
-  margin-bottom: 3px;
-}
-.move-warn {
-  font-size: 11.5px;
-  color: var(--coral);
-  margin-top: 4px;
-}
-.nudge {
-  display: inline-flex;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-}
-.nudge button {
-  padding: 6px 10px;
-  font-weight: 700;
-  color: var(--sea);
-  background: var(--shell);
-}
-.nudge button:active {
-  background: var(--sand);
-}
 
 /* ── Info cards grid ── */
 .info-grid {
@@ -499,11 +483,30 @@ input[type="time"] {
   color: var(--muted);
   margin-top: 3px;
 }
-.links {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 8px;
+.pay-note {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+.lead {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: -4px 0 12px;
+}
+.contact {
+  text-align: center;
+}
+.contact h4 {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 700;
+}
+.contact p {
+  font-size: 14.5px;
+  font-weight: 700;
+  margin: 4px 0 10px;
 }
 
 /* ── Budget ── */
@@ -550,27 +553,56 @@ input[type="time"] {
   background: linear-gradient(90deg, var(--lagoon), var(--sea));
   border-radius: 8px;
 }
-.compare .crow {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 9px 0;
-  border-bottom: 1px solid var(--line);
-  font-size: 13px;
+.sub-note {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.55;
+  margin-top: 5px;
 }
-.compare .crow:last-child {
-  border-bottom: none;
+/* 포함 / 불포함 */
+.incl h4 {
+  font-size: 12.5px;
+  font-weight: 700;
+  margin-bottom: 6px;
 }
-.compare .crow.self b {
+.incl h4.ok {
+  color: var(--ok);
+}
+.incl h4.no {
   color: var(--coral);
+  margin-top: 14px;
 }
-.tag {
-  font-size: 10px;
-  background: var(--coral);
-  color: #fff;
-  border-radius: 6px;
-  padding: 1px 6px;
-  margin-left: 6px;
+.incl ul {
+  list-style: none;
+  display: grid;
+  gap: 5px;
+}
+.incl li {
+  font-size: 12.5px;
+  color: var(--ink);
+  padding-left: 14px;
+  position: relative;
+  line-height: 1.5;
+}
+.incl li::before {
+  content: "·";
+  position: absolute;
+  left: 4px;
+  color: var(--muted);
+}
+.incl .note {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+  line-height: 1.6;
+}
+.verline {
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 14px 0 4px;
 }
 
 /* ── Packing ── */

@@ -1,25 +1,25 @@
 // ─────────────────────────────────────────────────────────────
 // 가족 공동 상태 저장소.
 //  - Supabase 가 설정돼 있으면: trip_state 테이블의 한 행(JSON 문서)을
-//    구독(Realtime)·갱신 → 다른 가족 화면에 즉시 반영. (핸드오프 §5-1·2 해결)
+//    구독(Realtime)·갱신 → 다른 가족 화면에 즉시 반영.
 //  - 설정이 없으면: localStorage + BroadcastChannel 로 "이 기기 저장" 모드.
 //
 // 상태는 단일 JSON 문서로 다룬다(가족 8명 규모엔 충분, 운영 단순).
-// 모든 변경에는 by(작성자)·at(시각)을 남긴다(§6.2).
+// 모든 변경에는 by(작성자)·at(시각)을 남긴다.
+//
+// v7(이루투어 패키지)부터 일정은 여행사 확정 일정이라 저장소에서 다루지 않는다.
+// 저장하는 것은 "가족이 만드는 값" — 입금 체크 · 준비물 체크 · 메모뿐.
+// (예전 문서에 남아 있는 departureTime/events/bookings 필드는 읽을 때 무시된다.)
 // ─────────────────────────────────────────────────────────────
 
 import { useSyncExternalStore } from "react";
-import { computeAutoSchedule, DayNo, EventState } from "./schedule";
-import { TRIP } from "../data/trip";
 import { supabase, TRIP_ID, isCloud } from "./supabase";
 
 export type Stamp = { done: boolean; by: string; at: number };
 export type Memo = { id: string; name: string; text: string; at: number };
 
 export type SharedState = {
-  departureTime: string;
-  events: EventState[];
-  bookings: Record<string, Stamp>;
+  payments: Record<string, Stamp>;
   packing: Record<string, Stamp>;
   memos: Memo[];
   updatedAt: number;
@@ -33,9 +33,7 @@ const LS_NAME = `okitrip:name`;
 
 function initialState(): SharedState {
   return {
-    departureTime: TRIP.defaultDepartureTime,
-    events: computeAutoSchedule(TRIP.defaultDepartureTime),
-    bookings: {},
+    payments: {},
     packing: {},
     memos: [],
     updatedAt: Date.now(),
@@ -44,13 +42,12 @@ function initialState(): SharedState {
 }
 
 // 원격/로컬에서 불러온 부분 데이터를 안전하게 채워 넣는다(스키마 진화 대비).
+// 모르는 필드는 그냥 버린다 — 자유여행 시절 문서를 읽어도 깨지지 않는다.
 function normalize(raw: Partial<SharedState> | null | undefined): SharedState {
   const base = initialState();
   if (!raw) return base;
   return {
-    departureTime: raw.departureTime || base.departureTime,
-    events: raw.events?.length ? raw.events : base.events,
-    bookings: raw.bookings || {},
+    payments: raw.payments || {},
     packing: raw.packing || {},
     memos: raw.memos || [],
     updatedAt: raw.updatedAt || Date.now(),
@@ -166,10 +163,7 @@ export function useReady(): boolean {
   return useSyncExternalStore(subscribe, getReady, getReady);
 }
 
-// ── 진행률(예약 완료 / 전체) ──
-export function bookingProgress(s: SharedState, total: number): number {
-  const done = Object.values(s.bookings).filter((b) => b.done).length;
-  return total ? Math.round((done / total) * 100) : 0;
+/** 입금 완료 건수. 헤더의 "입금 N/4" 표시에 쓴다. */
+export function paymentDoneCount(s: SharedState): number {
+  return Object.values(s.payments).filter((p) => p.done).length;
 }
-
-export type DayMove = { id: string; day: DayNo; startMin: number };

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { TRIP, BOOKINGS } from "./data/trip";
+import { PAYMENTS, TRIP } from "./data/trip";
 import {
-  bookingProgress,
   getMyName,
+  paymentDoneCount,
   setMyName,
   SYNC_MODE,
   useReady,
@@ -10,17 +10,19 @@ import {
 } from "./lib/store";
 import { subscribeToasts, Toast } from "./lib/toast";
 import ScheduleTab from "./components/ScheduleTab";
-import BookingTab from "./components/BookingTab";
+import PaymentTab from "./components/PaymentTab";
 import BudgetTab from "./components/BudgetTab";
 import PackingTab from "./components/PackingTab";
 import MemoTab from "./components/MemoTab";
 
-type TabId = "schedule" | "booking" | "budget" | "packing" | "memo";
+const VERSION = "v7 (이루투어 패키지)";
+
+type TabId = "schedule" | "payment" | "budget" | "packing" | "memo";
 const TABS: { id: TabId; label: string; icon: string }[] = [
-  { id: "schedule", label: "일정", icon: "🗓️" },
-  { id: "booking", label: "예약", icon: "✅" },
+  { id: "schedule", label: "일정", icon: "📍" },
+  { id: "payment", label: "결제", icon: "💳" },
   { id: "budget", label: "경비", icon: "💰" },
-  { id: "packing", label: "준비물", icon: "🎒" },
+  { id: "packing", label: "준비물", icon: "🧳" },
   { id: "memo", label: "가족메모", icon: "💬" },
 ];
 
@@ -31,9 +33,11 @@ function daysUntil(dateStr: string): number {
   return Math.round((target.getTime() - today.getTime()) / 86400000);
 }
 
-function ProgressRing({ pct }: { pct: number }) {
+/** 입금 진행 링. 퍼센트가 아니라 "N/4" 건수로 보여준다(가족이 세기 쉽게). */
+function ProgressRing({ done, total }: { done: number; total: number }) {
   const r = 26;
   const c = 2 * Math.PI * r;
+  const pct = total ? done / total : 0;
   return (
     <div className="ring">
       <svg width="64" height="64">
@@ -47,11 +51,12 @@ function ProgressRing({ pct }: { pct: number }) {
           fill="none"
           strokeLinecap="round"
           strokeDasharray={c}
-          strokeDashoffset={c - (c * pct) / 100}
+          strokeDashoffset={c - c * pct}
         />
       </svg>
       <div className="pct">
-        {pct}%<small>예약</small>
+        {done}/{total}
+        <small>입금</small>
       </div>
     </div>
   );
@@ -77,7 +82,7 @@ export default function App() {
   }, [me]);
 
   const dday = useMemo(() => daysUntil(TRIP.startDate), []);
-  const pct = bookingProgress(state, BOOKINGS.length);
+  const paid = paymentDoneCount(state);
 
   function saveName() {
     const n = nameInput.trim();
@@ -99,7 +104,7 @@ export default function App() {
             <b>{dday > 0 ? `D-${dday}` : dday === 0 ? "D-DAY" : `D+${-dday}`}</b>
             <span>출발까지</span>
           </div>
-          <ProgressRing pct={pct} />
+          <ProgressRing done={paid} total={PAYMENTS.length} />
           <div className="who">
             <button onClick={() => { setNameInput(me); setAskName(true); }}>
               {me ? `👤 ${me}` : "이름 설정"}
@@ -114,8 +119,8 @@ export default function App() {
 
       <main className="content">
         {!ready && <div className="empty">불러오는 중…</div>}
-        {ready && tab === "schedule" && <ScheduleTab me={me} />}
-        {ready && tab === "booking" && <BookingTab me={me} />}
+        {ready && tab === "schedule" && <ScheduleTab />}
+        {ready && tab === "payment" && <PaymentTab me={me} />}
         {ready && tab === "budget" && <BudgetTab />}
         {ready && tab === "packing" && <PackingTab me={me} />}
         {ready && tab === "memo" && <MemoTab me={me} />}
@@ -126,6 +131,10 @@ export default function App() {
             {new Date(state.updatedAt).toLocaleString("ko-KR", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
           </div>
         )}
+
+        <div className="verline">
+          {TRIP.title} · 계획표 <b>{VERSION}</b>
+        </div>
       </main>
 
       <nav className="tabbar">
