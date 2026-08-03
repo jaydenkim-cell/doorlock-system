@@ -2502,16 +2502,19 @@ function sendDraftMail(){
   let gt=0;
   const lines=rows.map((r,i)=>{
     const b=getBr().find(x=>x.name===r.branch);
-    const isHotel=r.extra>0;
+    // 도어락 유형은 지점 설정에서 읽는다. 자재비 금액으로 추론하면(예전 r.extra>0)
+    // 일반도어락 지점에 자재비를 입력한 순간 호텔도어락으로 잘못 표기된다.
+    const isHotel=brLockType(b)==='호텔도어락';
     const roomLabel=isHotel?'호텔객실 / 호텔도어락':'생숙객실 / 일반도어락';
-    const sub=(r.price+r.install+(isHotel?r.extra:0))*r.qty;gt+=sub;
+    // 소계는 입력된 자재비를 유형과 무관하게 항상 포함한다(화면 소계·합계와 동일 기준).
+    const sub=(r.price+r.install+r.extra)*r.qty;gt+=sub;
     let line=`${i+1}. ${r.branch} ${r.qty}객실 (${roomLabel})\n`;
     if(b?.addr)line+=`   - 배송지: ${b.addr}\n`;
     if(b?.recipient||b?.phone)line+=`   - 수신자: ${[b?.recipient,b?.phone].filter(Boolean).join(' / ')}\n`;
     if(r.openDate)line+=`   - 오픈예정일: ${r.openDate}\n`;
     line+=`   - 도어락 단가: ${r.price.toLocaleString()}원\n`;
     line+=`   - 설치비: ${r.install.toLocaleString()}원\n`;
-    if(isHotel)line+=`   - 자재비: ${r.extra.toLocaleString()}원\n`;
+    if(r.extra)line+=`   - 자재비: ${r.extra.toLocaleString()}원\n`;   // 유형이 아니라 입력값 유무로 표시
     line+=`   - 소계: ${sub.toLocaleString()}원`;
     if(r.memo)line+=` (${r.memo})`;
     return line;
