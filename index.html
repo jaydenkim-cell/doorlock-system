@@ -646,8 +646,8 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <div class="mcc"><div class="ml">마감 상태</div><div class="mv" id="mc-st" style="font-size:15px;color:var(--yellow)">미마감</div><div class="ms" id="mc-ss">처리 전</div></div>
         </div>
         <div class="panel">
-          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><span style="display:inline-flex;gap:6px"><button class="btn bo bsm" id="mc-reopen" onclick="reopenMonth()" style="display:none;color:#ea580c;border-color:rgba(234,88,12,.3)">마감 취소</button><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></span></div>
-          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>유형</th><th>완료건</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-all"></tbody><tfoot id="m-foot-all"></tfoot></table></div>
+          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><span style="display:inline-flex;gap:6px"><button class="btn bo bsm" id="mc-backfill" onclick="backfillClose()" style="display:none">확정 금액 저장</button><button class="btn bo bsm" id="mc-reopen" onclick="reopenMonth()" style="display:none;color:#ea580c;border-color:rgba(234,88,12,.3)">마감 취소</button><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></span></div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>유형</th><th>완료건</th><th>수량(실)</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-all"></tbody><tfoot id="m-foot-all"></tfoot></table></div>
         </div>
       </div>
 
@@ -970,15 +970,19 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
       <div class="fg"><label>신규 도어락</label><input class="fi" id="br-lockNew" placeholder="신규 모델/브랜드"></div>
     </div>
     <div class="fr2">
+      <div class="fg"><label>도어락 유형</label><select class="fs" id="br-lockType" onchange="onLockTypeSel()"><option value="일반도어락">일반도어락 (추가자재 없음)</option><option value="호텔도어락">호텔도어락 (추가자재 22,000원)</option></select></div>
+      <div class="fg"><label>추가자재비 <span style="font-size:10px;color:var(--text3);font-weight:400">· 유형에 따라 자동</span></label><input class="fi" id="br-extraCost" type="number" placeholder="0" readonly style="background:var(--surface)"></div>
+    </div>
+    <div class="fr2">
       <div class="fg"><label>도어락 단가</label><input class="fi" id="br-lockPrice" type="number" placeholder="0"></div>
       <div class="fg"><label>설치비</label><input class="fi" id="br-instCost" type="number" placeholder="0"></div>
     </div>
     <div class="fr2">
-      <div class="fg"><label>추가자재비</label><input class="fi" id="br-extraCost" type="number" placeholder="0"></div>
       <div class="fg" style="display:flex;flex-direction:column;justify-content:flex-end">
         <label style="margin-bottom:8px">시공설치 완료</label>
         <select class="fs" id="br-cDone"><option value="false">미완료</option><option value="true">완료</option></select>
       </div>
+      <div class="fg"></div>
     </div>
     <div class="fsec">계정 정보</div>
     <div class="fr2">
@@ -1082,15 +1086,27 @@ async function sbSync(){
           if(localOnly.length>0)sbSet(row.key,merged);
         }catch{}
       } else if(row.key===K.MCS){
-        // 월마감 확정 스냅샷: 월별 키 합집합 병합 — 다른 관리자가 마감한 확정 금액을
-        // 내 오래된 로컬 값이 덮어써 사라지는 일을 막는다(설정 키의 '로컬 우선'로는 유실됨).
-        // 마감 취소로 남은 고아 스냅샷은 K.MC 목록에 없으면 무시되므로 무해하다.
+        // 월마감 레코드: 월 단위 LWW(at 이 늦은 쪽 채택) — 설정 키의 '로컬 우선'로는
+        // 다른 관리자가 마감한 확정 금액이 내 오래된 로컬 값에 덮여 사라진다.
+        // 마감/취소(툼스톤) 모두 타임스탬프로 결판나므로 어느 쪽도 유실되지 않는다.
         try{
           const localObj=JSON.parse(local)||{};
           const sbObj=(sbVal&&typeof sbVal==='object'&&!Array.isArray(sbVal))?sbVal:{};
-          const merged={...sbObj,...localObj};
+          const merged={...sbObj};
+          Object.entries(localObj).forEach(([m,r])=>{
+            if(!(m in merged)||mRecAt(r)>=mRecAt(merged[m]))merged[m]=r;
+          });
           localStorage.setItem(row.key,JSON.stringify(merged));
           if(JSON.stringify(merged)!==JSON.stringify(sbObj))sbSet(row.key,merged);
+        }catch{}
+      } else if(row.key===K.MC){
+        // 마감 월 목록: 합집합 — 마감이 사라지지 않게 한다.
+        // 취소는 K.MCS 툼스톤이 mClosedList()에서 걸러내므로 되살아나지 않는다.
+        try{
+          const localArr=JSON.parse(local);
+          const merged=[...new Set([...(Array.isArray(sbVal)?sbVal:[]),...(Array.isArray(localArr)?localArr:[])])].sort();
+          localStorage.setItem(row.key,JSON.stringify(merged));
+          if(JSON.stringify(merged)!==JSON.stringify(sbVal))sbSet(row.key,merged);
         }catch{}
       } else {
         // 설정 데이터 → 로컬 유지, Supabase에 동기화
@@ -1183,7 +1199,7 @@ function repairOrders(){
       const nid=ors.length>0?Math.max(...ors.map(o=>typeof o.id==='number'?o.id:0))+1:1;
       ors.push({id:nid,receiptId:r.id,branch:r.branch,room:r.room,qty:rQty,
         type:tmap[r.type]||r.type||'신규',price:b?.lockPrice||132000,
-        install:rQty>=10?22000:(b?.instCost||55000),extra:b?.extraCost||0,
+        install:rQty>=10?22000:(b?.instCost||55000),extra:brExtra(b),
         orderDate:r.date||new Date().toISOString().substring(0,10),
         openDate:r.openDate||'',doneDate:r.installDate||'',
         installed:r.status==='결제',paid:r.paymentDone||false,
@@ -1194,6 +1210,13 @@ function repairOrders(){
   if(changed)sv(K.O,ors);
 }
 initData();
+
+/* 도어락 유형 → 추가자재비. 유형이 추가자재비를 결정한다(발주·발주서·정산까지 자동 반영).
+   기존 지점은 lockType 필드가 없으므로 extraCost 값에서 유형을 유도한다
+   (라이브 데이터가 0원/22,000원 두 가지뿐이라 마이그레이션 없이 그대로 맞는다). */
+const LOCK_TYPES={'일반도어락':0,'호텔도어락':22000};
+const brLockType=b=>(b&&b.lockType&&(b.lockType in LOCK_TYPES))?b.lockType:((Number(b&&b.extraCost)||0)>0?'호텔도어락':'일반도어락');
+const brExtra=b=>LOCK_TYPES[brLockType(b)];
 
 const getBr=()=>ld(K.B,[]);
 const getActiveBr=()=>getBr().filter(b=>!b.closed);   // 운영중 지점만 (종료 제외)
@@ -1668,7 +1691,7 @@ function advR(id,ns){
       const autoInstall=rQty>=10?22000:(b?.instCost||55000);
       ors.push({
         id:nid, receiptId:id, branch:r.branch, room:r.room, qty:rQty, type:orderType,
-        price:b?.lockPrice||132000, install:autoInstall, extra:b?.extraCost||0,
+        price:b?.lockPrice||132000, install:autoInstall, extra:brExtra(b),
         orderDate:new Date().toISOString().substring(0,10),
         openDate:r.openDate||'', doneDate:'', installed:false, paid:false, note:'접수→자동발주 ('+id+')'
       });
@@ -1687,7 +1710,7 @@ function advR(id,ns){
     const nid=ors.length>0?Math.max(...ors.map(o=>typeof o.id==='number'?o.id:0))+1:1;
     ors.push({id:nid,receiptId:rid,branch:receipt.branch,room:receipt.room,qty:rQty,
       type:tmap[receipt.type]||receipt.type||'신규',price:b?.lockPrice||132000,
-      install:rQty>=10?22000:(b?.instCost||55000),extra:b?.extraCost||0,
+      install:rQty>=10?22000:(b?.instCost||55000),extra:brExtra(b),
       orderDate:new Date().toISOString().substring(0,10),openDate:receipt.openDate||'',
       doneDate:'',installed:false,paid:false,note:'자동생성('+rid+')'});
     sv(K.O,ors);
@@ -1743,7 +1766,7 @@ function openOMo(id){
   }
   openMo('modal');
 }
-function onBrSel(){const bn=document.getElementById('m-branch').value;const b=getBr().find(x=>x.name===bn);if(b){document.getElementById('m-price').value=b.lockPrice||'';const curQty=parseInt(document.getElementById('m-qty').value)||1;document.getElementById('m-install').value=(curQty>=10)?22000:(b.instCost||'');document.getElementById('m-extra').value=b.extraCost||'';calcT();}}
+function onBrSel(){const bn=document.getElementById('m-branch').value;const b=getBr().find(x=>x.name===bn);if(b){document.getElementById('m-price').value=b.lockPrice||'';const curQty=parseInt(document.getElementById('m-qty').value)||1;document.getElementById('m-install').value=(curQty>=10)?22000:(b.instCost||'');document.getElementById('m-extra').value=brExtra(b);calcT();}}
 function calcT(){const q=parseInt(document.getElementById('m-qty').value)||1,p=parseInt(document.getElementById('m-price').value)||0,i=parseInt(document.getElementById('m-install').value)||0,e=parseInt(document.getElementById('m-extra').value)||0;document.getElementById('m-total').value=((p+i+e)*q).toLocaleString()+'원';}
 function saveOrder(){
   const br=document.getElementById('m-branch').value,rm=document.getElementById('m-room').value.trim(),od=document.getElementById('m-order-date').value;
@@ -1822,9 +1845,10 @@ function mGroupSum(bo){
   const p=bo.reduce((s,o)=>s+(Number(o.price)||0)*q(o),0);
   const i=bo.reduce((s,o)=>s+(Number(o.install)||0)*q(o),0);
   const e=bo.reduce((s,o)=>s+(Number(o.extra)||0)*q(o),0);
-  return{cnt:bo.length,p,i,e,...mVat(p+i+e)};
+  // cnt=발주 건수, qty=실 수량. 금액 열은 모두 수량 가중이라 건수만으로는 검산이 안 된다
+  return{cnt:bo.length,qty:bo.reduce((s,o)=>s+q(o),0),p,i,e,...mVat(p+i+e)};
 }
-const mAgg=rs=>rs.reduce((a,r)=>({cnt:a.cnt+r.cnt,p:a.p+r.p,i:a.i+r.i,e:a.e+r.e,t:a.t+r.t,ex:a.ex+r.ex,tax:a.tax+r.tax}),{cnt:0,p:0,i:0,e:0,t:0,ex:0,tax:0});
+const mAgg=rs=>rs.reduce((a,r)=>({cnt:a.cnt+r.cnt,qty:a.qty+(r.qty||0),p:a.p+r.p,i:a.i+r.i,e:a.e+r.e,t:a.t+r.t,ex:a.ex+r.ex,tax:a.tax+r.tax}),{cnt:0,qty:0,p:0,i:0,e:0,t:0,ex:0,tax:0});
 // 화면 필터를 기본값으로 쓰지만, 마감 스냅샷을 만들 때는 월 전체가 필요하므로 ov 로 덮어쓸 수 있다
 function mSettle(ov){
   const g=id=>document.getElementById(id)?.value||'';
@@ -1851,10 +1875,24 @@ function mSettle(ov){
 /* 마감된 월은 마감 시점에 저장한 스냅샷을 보여준다.
    마감 후 발주 금액/수량이 수정돼도 확정된 정산액은 바뀌지 않는다(회계 방어).
    실데이터가 스냅샷과 달라지면 drift 로 알려 조용히 어긋나는 일이 없게 한다.
-   스냅샷은 K.MC(월 목록, 기존 배열 그대로) 와 분리된 K.MCS 에 저장 → 구버전 캐시 클라이언트와 충돌 없음. */
-const mClosedList=()=>{const v=ld(K.MC,[]);return Array.isArray(v)?v:[];};
+   스냅샷은 K.MC(월 목록, 기존 배열 그대로) 와 분리된 K.MCS 에 저장 → 구버전 캐시 클라이언트와 충돌 없음.
+
+   다중 관리자 안전성: K.MCS 는 월별 레코드({state,at,rows,...})로 두고 동기화 시
+   at 이 늦은 쪽을 채택(월 단위 LWW)한다. K.MC 는 합집합 병합이라 마감이 사라지지 않고,
+   마감 취소는 K.MCS 에 state:'reopened' 툼스톤을 남겨 다른 기기의 오래된 목록을 눌러 이긴다.
+   K.MC 는 파생값으로만 쓰므로 형식이 배열 그대로여서 구버전 클라이언트도 계속 동작한다. */
 const mSnaps=()=>{const v=ld(K.MCS,{});return(v&&typeof v==='object'&&!Array.isArray(v))?v:{};};
 const mSnapGet=m=>{const s=mSnaps()[m];return(s&&Array.isArray(s.rows))?s:null;};
+const mRecAt=r=>Date.parse((r&&(r.at||r.closedAt))||'')||0;
+function mClosedList(){
+  const raw=ld(K.MC,[]);
+  const out=new Set(Array.isArray(raw)?raw:[]);   // 구버전이 만든 목록(스냅샷 없는 마감)도 유지
+  Object.entries(mSnaps()).forEach(([m,r])=>{
+    if(r&&r.state==='reopened')out.delete(m);
+    else if(r&&(r.state==='closed'||Array.isArray(r.rows)))out.add(m);
+  });
+  return[...out].sort();
+}
 function mView(){
   const mv=document.getElementById('fm-m')?.value||'';
   const closed=!!mv&&mClosedList().includes(mv);
@@ -1870,7 +1908,7 @@ function mView(){
   const drift=mSettle({branch:'',search:''}).total.t-mAgg(snap.rows).t;
   return{month:mv,filters:{branch:bv,search:sv2},rows,
     sNew:mAgg(rows.filter(r=>r.isNew)),sRep:mAgg(rows.filter(r=>!r.isNew)),total:mAgg(rows),
-    closed:true,snap:true,closedAt:snap.closedAt,closedBy:snap.closedBy,drift};
+    closed:true,snap:true,closedAt:snap.closedAt,closedBy:snap.closedBy,backfilled:!!snap.backfilled,drift};
 }
 function renderM(){
   // 1) 설치완료 발주 전체 (doneDate 기준) — mSettle 과 같은 판정을 쓴다
@@ -1897,7 +1935,7 @@ function renderM(){
   const allRows=MS.rows.map(r=>{
     const m=r.isNew?NEWM:REPM;
     const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${m.bg};color:${m.color}">${m.label}</span><div style="font-size:10px;color:var(--text3);margin-top:2px">${m.sub}</div>`;
-    return`<tr><td style="font-weight:600">${r.branch}</td><td style="white-space:nowrap">${badge}</td><td>${r.cnt}건</td><td style="${mono}">${r.p.toLocaleString()}</td><td style="${mono}">${r.i.toLocaleString()}</td><td style="${mono}">${r.e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${r.ex.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${r.tax.toLocaleString()}</td><td style="${mono};font-weight:700;color:${m.color}">${r.t.toLocaleString()}</td></tr>`;
+    return`<tr><td style="font-weight:600">${r.branch}</td><td style="white-space:nowrap">${badge}</td><td>${r.cnt}건</td><td style="${mono}">${r.qty==null?'—':r.qty+'실'}</td><td style="${mono}">${r.p.toLocaleString()}</td><td style="${mono}">${r.i.toLocaleString()}</td><td style="${mono}">${r.e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${r.ex.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${r.tax.toLocaleString()}</td><td style="${mono};font-weight:700;color:${m.color}">${r.t.toLocaleString()}</td></tr>`;
   }).join('');
 
   // 5) 요약 카드 — 공급가액·부가세 모두 표의 열 합계와 정확히 일치(전표 합산 기준)
@@ -1911,9 +1949,9 @@ function renderM(){
 
   // 6) 테이블 렌더링 + 합계행(카드 숫자를 눈으로 대조할 수 있게)
   const tbody=document.getElementById('m-body-all');
-  if(tbody)tbody.innerHTML=allRows||emp(9);
+  if(tbody)tbody.innerHTML=allRows||emp(10);
   const tfootM=document.getElementById('m-foot-all');
-  if(tfootM)tfootM.innerHTML=MS.rows.length?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="2" style="text-align:right">합계</td><td>${tt.cnt}건</td><td style="${mono}">${tt.p.toLocaleString()}</td><td style="${mono}">${tt.i.toLocaleString()}</td><td style="${mono}">${tt.e.toLocaleString()}</td><td style="${mono}">${tt.ex.toLocaleString()}</td><td style="${mono}">${tt.tax.toLocaleString()}</td><td style="${mono}">${tt.t.toLocaleString()}</td></tr>`:'';
+  if(tfootM)tfootM.innerHTML=MS.rows.length?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="2" style="text-align:right">합계</td><td>${tt.cnt}건</td><td style="${mono}">${tt.qty?tt.qty+'실':'—'}</td><td style="${mono}">${tt.p.toLocaleString()}</td><td style="${mono}">${tt.i.toLocaleString()}</td><td style="${mono}">${tt.e.toLocaleString()}</td><td style="${mono}">${tt.ex.toLocaleString()}</td><td style="${mono}">${tt.tax.toLocaleString()}</td><td style="${mono}">${tt.t.toLocaleString()}</td></tr>`:'';
 
   // 7) 마감 상태 카드 + 버튼 (월을 바꿀 때마다 갱신 — 이전엔 doClose 에서만 갱신돼 값이 남아 있었다)
   const stEl=document.getElementById('mc-st'),ssEl=document.getElementById('mc-ss');
@@ -1922,7 +1960,7 @@ function renderM(){
       stEl.textContent=MS.snap?'마감 완료 (확정)':'마감 완료';
       stEl.style.color='var(--green)';
       const when=MS.closedAt?new Date(MS.closedAt).toLocaleDateString('ko-KR'):'';
-      ssEl.textContent=MS.snap?`${when} 확정${MS.closedBy?' · '+MS.closedBy:''}`:'확정 금액 미저장(구버전 마감)';
+      ssEl.textContent=MS.snap?`${when} ${MS.backfilled?'사후 확정':'확정'}${MS.closedBy?' · '+MS.closedBy:''}`:'확정 금액 미저장(구버전 마감)';
       ssEl.style.color=MS.snap?'':'var(--yellow)';
       // 마감 후 실데이터가 바뀌면 조용히 넘어가지 않고 표시한다
       if(MS.snap&&MS.drift){
@@ -1947,6 +1985,9 @@ function renderM(){
   // 마감 취소 버튼 — 잠금이 되돌릴 수 없는 함정이 되지 않게 (관리자 전용)
   const rbtn=document.getElementById('mc-reopen');
   if(rbtn)rbtn.style.display=(MS.closed&&isAdm())?'inline-flex':'none';
+  // 확정 금액 저장 — 구버전 마감(스냅샷 없음)일 때만 노출
+  const bbtn=document.getElementById('mc-backfill');
+  if(bbtn)bbtn.style.display=(MS.closed&&!MS.snap&&isAdm())?'inline-flex':'none';
 }
 function doClose(){
   const mv=document.getElementById('fm-m')?.value||'';
@@ -1958,14 +1999,35 @@ function doClose(){
   const tt=full.total;
   showCfm(CI.calendar,'월마감 실행',
     `${mv} 정산을 확정합니다.\n합계 ${tt.t.toLocaleString()}원 (부가세 ${tt.tax.toLocaleString()}원 · ${tt.cnt}건)\n확정 후에는 발주 금액을 수정해도 이 금액이 바뀌지 않습니다.`,()=>{
-    const cl=mClosedList();
-    if(!cl.includes(mv)){cl.push(mv);sv(K.MC,cl);}
-    // 확정 금액 스냅샷 저장 → 이후 발주 데이터가 수정돼도 정산액 불변
-    const snaps=mSnaps();
-    snaps[mv]={rows:full.rows,closedAt:new Date().toISOString(),closedBy:(S&&(S.name||S.id))||''};
-    sv(K.MCS,snaps);
+    mSaveClose(mv,full.rows,false);
     logAudit('월마감',mv,`합계 ${tt.t.toLocaleString()}원 / 부가세 ${tt.tax.toLocaleString()}원 / ${tt.cnt}건 확정`);
     toast('s','월마감 완료',`${mv} 정산이 확정되었습니다.`);
+    renderM();
+  });
+}
+/* 확정 저장 — K.MCS 에 월 레코드를 쓰고 K.MC(구버전 호환 목록)는 파생값으로 갱신한다 */
+function mSaveClose(mv,rows,backfilled){
+  const now=new Date().toISOString();
+  const snaps=mSnaps();
+  snaps[mv]={state:'closed',at:now,rows,closedAt:now,closedBy:(S&&(S.name||S.id))||'',backfilled:!!backfilled};
+  sv(K.MCS,snaps);
+  sv(K.MC,mClosedList());
+}
+/* 구버전 마감(월 목록만 있고 확정 금액이 없는 월)에 확정 금액을 저장한다.
+   마감 당시 데이터가 남아 있지 않으므로 '현재 데이터 기준'임을 명확히 표시한다. */
+function backfillClose(){
+  if(!isAdm()){toast('e','권한 없음','관리자만 확정 금액을 저장할 수 있습니다.');return;}
+  const mv=document.getElementById('fm-m')?.value||'';
+  if(!mv||!mClosedList().includes(mv)){toast('w','마감 아님','마감된 월이 아닙니다.');return;}
+  if(mSnapGet(mv)){toast('w','이미 확정됨',`${mv}은 확정 금액이 이미 저장되어 있습니다.`);return;}
+  const full=mSettle({month:mv,branch:'',search:''});
+  if(!full.rows.length){toast('w','데이터 없음',`${mv}에 정산 내역이 없습니다.`);return;}
+  const tt=full.total;
+  showCfm(CI.calendar,'확정 금액 저장',
+    `${mv} 확정 금액을 지금 데이터 기준으로 저장합니다.\n합계 ${tt.t.toLocaleString()}원 (부가세 ${tt.tax.toLocaleString()}원 · ${tt.cnt}건)\n※ 마감 당시 금액이 아니라 현재 데이터입니다. 저장 후에는 발주를 수정해도 바뀌지 않습니다.`,()=>{
+    mSaveClose(mv,full.rows,true);
+    logAudit('확정금액저장',mv,`사후 확정 · 합계 ${tt.t.toLocaleString()}원 / 부가세 ${tt.tax.toLocaleString()}원 / ${tt.cnt}건`);
+    toast('s','확정 금액 저장',`${mv} 확정 금액이 저장되었습니다.`);
     renderM();
   });
 }
@@ -1977,8 +2039,11 @@ function reopenMonth(){
   const was=snap?mAgg(snap.rows).t:0;
   showCfm(CI.calendar,'월마감 취소',
     `${mv} 마감을 취소합니다.\n확정 금액${was?' '+was.toLocaleString()+'원':''}이 삭제되고 실데이터 기준으로 다시 계산됩니다.`,()=>{
-    sv(K.MC,mClosedList().filter(m=>m!==mv));
-    const snaps=mSnaps();delete snaps[mv];sv(K.MCS,snaps);
+    // 툼스톤을 남긴다 — 그냥 지우면 다른 기기의 오래된 마감 목록이 동기화로 되살린다
+    const snaps=mSnaps();
+    snaps[mv]={state:'reopened',at:new Date().toISOString(),by:(S&&(S.name||S.id))||''};
+    sv(K.MCS,snaps);
+    sv(K.MC,mClosedList());
     logAudit('월마감취소',mv,was?`확정 금액 ${was.toLocaleString()}원 삭제`:'확정 금액 없음');
     toast('s','마감 취소',`${mv} 마감이 취소되었습니다.`);
     renderM();
@@ -2080,7 +2145,7 @@ function renderBr(){
     const brs=getActiveBr();
     const syncAt=duck?.updatedAt?`<span style="font-size:11px;color:var(--text3);padding:4px 8px">마지막 Duck 동기화: ${duck.updatedAt.substring(0,10)}</span>`:'';
     document.getElementById('bgrid').innerHTML=`<div class="bc" onclick="openBrMo(null)" style="border:2px dashed var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;min-height:110px;flex-direction:column;gap:8px;color:var(--text3)"><div style="font-size:28px">+</div><div style="font-size:13px;font-weight:600">지점 추가</div></div>`
-      +brs.map(b=>`<div class="bc" data-brc data-name="${(b.name||'').toLowerCase()}" data-loc="${(b.loc||'').toLowerCase()}" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div><div style="margin-top:8px;text-align:right"><button class="btn bo bsm" onclick="event.stopPropagation();closeBranch(${b.id})" style="font-size:11px;color:#ea580c;border-color:rgba(234,88,12,.3)">지점 종료</button></div></div>`).join('');
+      +brs.map(b=>`<div class="bc" data-brc data-name="${(b.name||'').toLowerCase()}" data-loc="${(b.loc||'').toLowerCase()}" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div style="margin:4px 0"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${brLockType(b)==='호텔도어락'?'rgba(147,51,234,.1)':'rgba(26,86,219,.08)'};color:${brLockType(b)==='호텔도어락'?'var(--purple)':'var(--accent)'}">${brLockType(b)}${brExtra(b)?' · 자재 '+brExtra(b).toLocaleString()+'원':''}</span></div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div><div style="margin-top:8px;text-align:right"><button class="btn bo bsm" onclick="event.stopPropagation();closeBranch(${b.id})" style="font-size:11px;color:#ea580c;border-color:rgba(234,88,12,.3)">지점 종료</button></div></div>`).join('');
     if(syncAt)document.getElementById('bgrid').insertAdjacentHTML('beforebegin',`<div style="display:flex;justify-content:flex-end;margin-bottom:4px">${syncAt}</div>`);
     filterBr();
   });
@@ -2102,14 +2167,24 @@ function openBrMo(id){
   const b=id?getBr().find(x=>x.id===id):null;
   document.getElementById('br-edit-id').value=id||'';document.getElementById('br-modal-title').innerHTML=id?`${CI.building} 지점 수정`:`${CI.building} 지점 추가`;document.getElementById('br-del-btn').style.display=id?'':'none';brDelId=id;
   ['br-name','br-short','br-addr','br-loc','br-manager','br-recipient','br-phone','br-email','br-lockOld','br-lockNew','br-note','br-account'].forEach(i=>{document.getElementById(i).value=b?.[i.replace('br-','')]||'';});
-  document.getElementById('br-rooms').value=b?.rooms||'';document.getElementById('br-lockPrice').value=b?.lockPrice||'';document.getElementById('br-instCost').value=b?.instCost||'';document.getElementById('br-extraCost').value=b?.extraCost||'';document.getElementById('br-cDone').value=b?.cDone?'true':'false';document.getElementById('br-pw-new').value='';
+  document.getElementById('br-rooms').value=b?.rooms||'';document.getElementById('br-lockPrice').value=b?.lockPrice||'';document.getElementById('br-instCost').value=b?.instCost||'';document.getElementById('br-cDone').value=b?.cDone?'true':'false';document.getElementById('br-pw-new').value='';
+  // 도어락 유형: 기존 지점은 extraCost 에서 유도(brLockType) → 추가자재비는 유형이 결정한다
+  document.getElementById('br-lockType').value=brLockType(b);
+  onLockTypeSel();
   openMo('br-modal');
+}
+// 유형을 바꾸면 추가자재비를 즉시 반영 (일반 0원 / 호텔 22,000원)
+function onLockTypeSel(){
+  const t=document.getElementById('br-lockType').value;
+  document.getElementById('br-extraCost').value=LOCK_TYPES[t]??0;
 }
 function saveBr(){
   const nm=document.getElementById('br-name').value.trim();if(!nm){toast('e','입력 오류','지점명은 필수입니다.');return;}
   const brs=getBr(),eid=document.getElementById('br-edit-id').value,acct=document.getElementById('br-account').value.trim(),npw=document.getElementById('br-pw-new').value;
   if(brs.some(b=>b.name===nm&&String(b.id)!==String(eid))){toast('e','입력 오류','동일한 지점명이 이미 있습니다.');return;}
-  const data={name:nm,short:document.getElementById('br-short').value,addr:document.getElementById('br-addr').value,loc:document.getElementById('br-loc').value,rooms:parseInt(document.getElementById('br-rooms').value)||0,manager:document.getElementById('br-manager').value,recipient:document.getElementById('br-recipient').value,phone:document.getElementById('br-phone').value,email:document.getElementById('br-email').value,lockOld:document.getElementById('br-lockOld').value,lockNew:document.getElementById('br-lockNew').value,lockPrice:parseInt(document.getElementById('br-lockPrice').value)||0,instCost:parseInt(document.getElementById('br-instCost').value)||0,extraCost:parseInt(document.getElementById('br-extraCost').value)||0,cDone:document.getElementById('br-cDone').value==='true',note:document.getElementById('br-note').value,account:acct};
+  // 추가자재비는 유형에서 결정 — 화면 값이 조작돼도 규칙(일반 0 / 호텔 22,000)을 벗어나지 않는다
+  const lt=(document.getElementById('br-lockType').value in LOCK_TYPES)?document.getElementById('br-lockType').value:'일반도어락';
+  const data={name:nm,short:document.getElementById('br-short').value,addr:document.getElementById('br-addr').value,loc:document.getElementById('br-loc').value,rooms:parseInt(document.getElementById('br-rooms').value)||0,manager:document.getElementById('br-manager').value,recipient:document.getElementById('br-recipient').value,phone:document.getElementById('br-phone').value,email:document.getElementById('br-email').value,lockOld:document.getElementById('br-lockOld').value,lockNew:document.getElementById('br-lockNew').value,lockPrice:parseInt(document.getElementById('br-lockPrice').value)||0,instCost:parseInt(document.getElementById('br-instCost').value)||0,lockType:lt,extraCost:LOCK_TYPES[lt]??0,cDone:document.getElementById('br-cDone').value==='true',note:document.getElementById('br-note').value,account:acct};
   if(eid){const idx=brs.findIndex(b=>b.id==eid);if(idx>=0)brs[idx]={...brs[idx],...data};}else{const nid=brs.length>0?Math.max(...brs.map(b=>b.id))+1:1;brs.push({id:nid,...data});}
   sv(K.B,brs);
   logAudit(eid?'지점수정':'지점추가', nm, eid?`지점 정보 수정 (ID ${eid})`:'신규 지점 등록');
@@ -2215,7 +2290,7 @@ function onDraftBrSel(idx){
     document.getElementById(`dr-price-${idx}`).value=b.lockPrice||0;
     const curQty=parseInt(document.getElementById(`dr-qty-${idx}`)?.value)||1;
     document.getElementById(`dr-install-${idx}`).value=(curQty>=10)?22000:(b.instCost||0);
-    document.getElementById(`dr-extra-${idx}`).value=b.extraCost||0;
+    document.getElementById(`dr-extra-${idx}`).value=brExtra(b);
     // 해당 지점의 가장 최근 접수에서 오픈예정일 자동 반영
     const openEl=document.getElementById(`dr-open-${idx}`);
     if(openEl&&!openEl.value){
@@ -2895,14 +2970,15 @@ function exportToExcel(type){
     // 화면과 완전히 동일한 집계를 사용 (mView) → 엑셀 = 화면. 마감된 월은 확정 금액이 나간다.
     const MS=mView();
     const mv=MS.month;
-    rows=[['지점','구분','건수','도어락','설치비','자재비','공급가액','부가세','합계','계정과목']];
-    MS.rows.forEach(r=>rows.push([r.branch,r.isNew?'신규':'교체',r.cnt,r.p,r.i,r.e,r.ex,r.tax,r.t,
+    // 수량(실)을 함께 낸다 — 금액 열은 수량 가중이므로 건수만으로는 검산이 안 된다
+    rows=[['지점','구분','건수','수량(실)','도어락','설치비','자재비','공급가액','부가세','합계','계정과목']];
+    MS.rows.forEach(r=>rows.push([r.branch,r.isNew?'신규':'교체',r.cnt,r.qty??'',r.p,r.i,r.e,r.ex,r.tax,r.t,
       r.isNew?'선급금/집기출금 · 6200':'수선비/지점출금 · 6055']));
     // 합계 행 — 각 행의 값을 그대로 더한다(전표 합산 기준). 기준을 파일에 남겨 대조 시 다툼이 없게 한다.
     if(MS.rows.length){
       const tt=MS.total;
-      rows.push(['합계','',tt.cnt,tt.p,tt.i,tt.e,tt.ex,tt.tax,tt.t,
-        (MS.snap?`마감확정(${(MS.closedAt||'').substring(0,10)}) · `:'')+'부가세 기준: 지점·계정과목 단위 반올림 합산']);
+      rows.push(['합계','',tt.cnt,tt.qty||'',tt.p,tt.i,tt.e,tt.ex,tt.tax,tt.t,
+        (MS.snap?`${MS.backfilled?'사후확정':'마감확정'}(${(MS.closedAt||'').substring(0,10)}) · `:'')+'부가세 기준: 지점·계정과목 단위 반올림 합산']);
     }
     // 지점/검색 필터가 걸린 채 내보내면 부분 정산이므로 파일명에 범위를 드러낸다
     const scope=[mv||'전체'];
@@ -2914,8 +2990,8 @@ function exportToExcel(type){
   }else if(type==='branches'){
     let list=getBr();
     list.sort((a,b)=>(a.name||'').localeCompare(b.name||'','ko'));
-    rows=[['지점명','약칭','상태','주소','위치','객실수','담당자','수령인','연락처','이메일','기존도어락','신규도어락','도어락단가','설치비','자재비','시공완료','계정ID','비고']];
-    list.forEach(b=>rows.push([b.name||'',b.short||'',b.closed?'종료':'운영중',b.addr||'',b.loc||'',b.rooms||0,b.manager||'',b.recipient||'',b.phone||'',b.email||'',b.lockOld||'',b.lockNew||'',b.lockPrice||0,b.instCost||0,b.extraCost||0,b.cDone?'완료':'진행중',b.account||'',b.note||'']));
+    rows=[['지점명','약칭','상태','주소','위치','객실수','담당자','수령인','연락처','이메일','기존도어락','신규도어락','도어락유형','도어락단가','설치비','자재비','시공완료','계정ID','비고']];
+    list.forEach(b=>rows.push([b.name||'',b.short||'',b.closed?'종료':'운영중',b.addr||'',b.loc||'',b.rooms||0,b.manager||'',b.recipient||'',b.phone||'',b.email||'',b.lockOld||'',b.lockNew||'',brLockType(b),b.lockPrice||0,b.instCost||0,brExtra(b),b.cDone?'완료':'진행중',b.account||'',b.note||'']));
     fileName=`지점목록_${today}.xlsx`;
 
   }else if(type==='svc'){
