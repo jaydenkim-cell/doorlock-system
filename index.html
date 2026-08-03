@@ -646,7 +646,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <div class="mcc"><div class="ml">마감 상태</div><div class="mv" id="mc-st" style="font-size:15px;color:var(--yellow)">미마감</div><div class="ms" id="mc-ss">처리 전</div></div>
         </div>
         <div class="panel">
-          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></div>
+          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><span style="display:inline-flex;gap:6px"><button class="btn bo bsm" id="mc-reopen" onclick="reopenMonth()" style="display:none;color:#ea580c;border-color:rgba(234,88,12,.3)">마감 취소</button><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></span></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>유형</th><th>완료건</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-all"></tbody><tfoot id="m-foot-all"></tfoot></table></div>
         </div>
       </div>
@@ -1028,7 +1028,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <script>
 'use strict';
 /* ── localStorage keys (기존 그대로 유지) ── */
-const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close',SV:'doorlock_svc',LOG:'doorlock_audit'};
+const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close',MCS:'doorlock_monthly_snap',SV:'doorlock_svc',LOG:'doorlock_audit'};
 const getSlackProfile=(email)=>{const sp=ld(K.SP,{});return sp[(email||'').toLowerCase()]||null;};
 const getUserEmailByName=(name)=>{if(!name)return null;const users=ld(K.U,[]);const u=users.find(u=>u.name===name);return u?.email||null;};
 const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${p.avatar}" alt="${p.name||name||''}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${p.name||name||email||'—'}`;const initials=(name||email||'?').charAt(0).toUpperCase();return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${name||email||'—'}</span>`;};
@@ -1080,6 +1080,17 @@ async function sbSync(){
           const merged=[...sbArr,...localOnly];
           localStorage.setItem(row.key,JSON.stringify(merged));
           if(localOnly.length>0)sbSet(row.key,merged);
+        }catch{}
+      } else if(row.key===K.MCS){
+        // 월마감 확정 스냅샷: 월별 키 합집합 병합 — 다른 관리자가 마감한 확정 금액을
+        // 내 오래된 로컬 값이 덮어써 사라지는 일을 막는다(설정 키의 '로컬 우선'로는 유실됨).
+        // 마감 취소로 남은 고아 스냅샷은 K.MC 목록에 없으면 무시되므로 무해하다.
+        try{
+          const localObj=JSON.parse(local)||{};
+          const sbObj=(sbVal&&typeof sbVal==='object'&&!Array.isArray(sbVal))?sbVal:{};
+          const merged={...sbObj,...localObj};
+          localStorage.setItem(row.key,JSON.stringify(merged));
+          if(JSON.stringify(merged)!==JSON.stringify(sbObj))sbSet(row.key,merged);
         }catch{}
       } else {
         // 설정 데이터 → 로컬 유지, Supabase에 동기화
@@ -1805,10 +1816,13 @@ function mGroupSum(bo){
   const e=bo.reduce((s,o)=>s+(Number(o.extra)||0)*q(o),0);
   return{cnt:bo.length,p,i,e,...mVat(p+i+e)};
 }
-function mSettle(){
-  const mv=document.getElementById('fm-m')?.value||'';
-  const bv=document.getElementById('fm-b')?.value||'';
-  const sv2=document.getElementById('fm-s')?.value.trim()||'';
+const mAgg=rs=>rs.reduce((a,r)=>({cnt:a.cnt+r.cnt,p:a.p+r.p,i:a.i+r.i,e:a.e+r.e,t:a.t+r.t,ex:a.ex+r.ex,tax:a.tax+r.tax}),{cnt:0,p:0,i:0,e:0,t:0,ex:0,tax:0});
+// 화면 필터를 기본값으로 쓰지만, 마감 스냅샷을 만들 때는 월 전체가 필요하므로 ov 로 덮어쓸 수 있다
+function mSettle(ov){
+  const g=id=>document.getElementById(id)?.value||'';
+  const mv=ov&&'month'in ov?ov.month:g('fm-m');
+  const bv=ov&&'branch'in ov?ov.branch:g('fm-b');
+  const sv2=((ov&&'search'in ov?ov.search:g('fm-s'))||'').trim();
   let ors=mDoneOrs();
   if(mv)ors=ors.filter(o=>o.doneDate.startsWith(mv));
   if(bv)ors=ors.filter(o=>o.branch===bv);
@@ -1822,9 +1836,33 @@ function mSettle(){
       if(bo.length)rows.push({branch:bn,isNew:nw,...mGroupSum(bo)});
     });
   });
-  const agg=rs=>rs.reduce((a,r)=>({cnt:a.cnt+r.cnt,p:a.p+r.p,i:a.i+r.i,e:a.e+r.e,t:a.t+r.t,ex:a.ex+r.ex,tax:a.tax+r.tax}),{cnt:0,p:0,i:0,e:0,t:0,ex:0,tax:0});
   return{month:mv,filters:{branch:bv,search:sv2},rows,
-    sNew:agg(rows.filter(r=>r.isNew)),sRep:agg(rows.filter(r=>!r.isNew)),total:agg(rows)};
+    sNew:mAgg(rows.filter(r=>r.isNew)),sRep:mAgg(rows.filter(r=>!r.isNew)),total:mAgg(rows)};
+}
+
+/* 마감된 월은 마감 시점에 저장한 스냅샷을 보여준다.
+   마감 후 발주 금액/수량이 수정돼도 확정된 정산액은 바뀌지 않는다(회계 방어).
+   실데이터가 스냅샷과 달라지면 drift 로 알려 조용히 어긋나는 일이 없게 한다.
+   스냅샷은 K.MC(월 목록, 기존 배열 그대로) 와 분리된 K.MCS 에 저장 → 구버전 캐시 클라이언트와 충돌 없음. */
+const mClosedList=()=>{const v=ld(K.MC,[]);return Array.isArray(v)?v:[];};
+const mSnaps=()=>{const v=ld(K.MCS,{});return(v&&typeof v==='object'&&!Array.isArray(v))?v:{};};
+const mSnapGet=m=>{const s=mSnaps()[m];return(s&&Array.isArray(s.rows))?s:null;};
+function mView(){
+  const mv=document.getElementById('fm-m')?.value||'';
+  const closed=!!mv&&mClosedList().includes(mv);
+  const snap=closed?mSnapGet(mv):null;
+  if(!snap)return{...mSettle(),closed,snap:false,drift:0};
+  // 스냅샷은 월 전체이므로 지점/검색 필터는 저장된 행에 적용한다
+  const bv=document.getElementById('fm-b')?.value||'';
+  const sv2=(document.getElementById('fm-s')?.value||'').trim().toLowerCase();
+  let rows=snap.rows;
+  if(bv)rows=rows.filter(r=>r.branch===bv);
+  if(sv2)rows=rows.filter(r=>String(r.branch).toLowerCase().includes(sv2));
+  // 마감 후 실데이터가 바뀌었는지: 월 전체 기준으로 비교
+  const drift=mSettle({branch:'',search:''}).total.t-mAgg(snap.rows).t;
+  return{month:mv,filters:{branch:bv,search:sv2},rows,
+    sNew:mAgg(rows.filter(r=>r.isNew)),sRep:mAgg(rows.filter(r=>!r.isNew)),total:mAgg(rows),
+    closed:true,snap:true,closedAt:snap.closedAt,closedBy:snap.closedBy,drift};
 }
 function renderM(){
   // 1) 설치완료 발주 전체 (doneDate 기준) — mSettle 과 같은 판정을 쓴다
@@ -1840,8 +1878,8 @@ function renderM(){
     fmm.value=(months.includes(prev))?prev:(months.length>0?months[0]:'');
   }
 
-  // 3) 집계 — 월/지점/검색 필터를 mSettle()에서 한 번만 적용(표·카드·엑셀 동일 범위)
-  const MS=mSettle();
+  // 3) 집계 — 마감된 월은 스냅샷, 아니면 실데이터. 필터는 한 곳에서만 적용(표·카드·엑셀 동일 범위)
+  const MS=mView();
   const mv=MS.month;
   const mono="font-family:'JetBrains Mono',monospace";
 
@@ -1869,29 +1907,72 @@ function renderM(){
   const tfootM=document.getElementById('m-foot-all');
   if(tfootM)tfootM.innerHTML=MS.rows.length?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="2" style="text-align:right">합계</td><td>${tt.cnt}건</td><td style="${mono}">${tt.p.toLocaleString()}</td><td style="${mono}">${tt.i.toLocaleString()}</td><td style="${mono}">${tt.e.toLocaleString()}</td><td style="${mono}">${tt.ex.toLocaleString()}</td><td style="${mono}">${tt.tax.toLocaleString()}</td><td style="${mono}">${tt.t.toLocaleString()}</td></tr>`:'';
 
-  // 7) 마감 버튼 상태 업데이트
+  // 7) 마감 상태 카드 + 버튼 (월을 바꿀 때마다 갱신 — 이전엔 doClose 에서만 갱신돼 값이 남아 있었다)
+  const stEl=document.getElementById('mc-st'),ssEl=document.getElementById('mc-ss');
+  if(stEl&&ssEl){
+    if(MS.closed){
+      stEl.textContent=MS.snap?'마감 완료 (확정)':'마감 완료';
+      stEl.style.color='var(--green)';
+      const when=MS.closedAt?new Date(MS.closedAt).toLocaleDateString('ko-KR'):'';
+      ssEl.textContent=MS.snap?`${when} 확정${MS.closedBy?' · '+MS.closedBy:''}`:'확정 금액 미저장(구버전 마감)';
+      ssEl.style.color=MS.snap?'':'var(--yellow)';
+      // 마감 후 실데이터가 바뀌면 조용히 넘어가지 않고 표시한다
+      if(MS.snap&&MS.drift){
+        stEl.textContent='마감 완료 ⚠';
+        stEl.style.color='var(--red)';
+        ssEl.textContent=`확정 후 실데이터 ${MS.drift>0?'+':''}${MS.drift.toLocaleString()}원 변경됨`;
+        ssEl.style.color='var(--red)';
+      }
+    } else {
+      stEl.textContent='미마감';stEl.style.color='var(--yellow)';
+      ssEl.textContent='처리 전';ssEl.style.color='';
+    }
+  }
   const closeBtn=document.querySelector('[onclick="doClose()"]');
   if(closeBtn){
-    const closedList=ld(K.MC,[]);
-    if(mv&&closedList.includes(mv)){
+    if(MS.closed){
       closeBtn.disabled=true;closeBtn.textContent='✓ 마감완료';closeBtn.style.opacity='0.6';closeBtn.style.cursor='not-allowed';
     } else {
       closeBtn.disabled=false;closeBtn.textContent='월마감 실행';closeBtn.style.opacity='';closeBtn.style.cursor='';
     }
   }
+  // 마감 취소 버튼 — 잠금이 되돌릴 수 없는 함정이 되지 않게 (관리자 전용)
+  const rbtn=document.getElementById('mc-reopen');
+  if(rbtn)rbtn.style.display=(MS.closed&&isAdm())?'inline-flex':'none';
 }
 function doClose(){
   const mv=document.getElementById('fm-m')?.value||'';
   if(!mv){toast('w','월 미선택','마감할 월을 선택해주세요.');return;}
-  const closed=ld(K.MC,[]);
-  if(closed.includes(mv)){toast('w','이미 마감됨',`${mv}은 이미 마감 처리되었습니다.`);return;}
-  showCfm(CI.calendar,'월마감 실행',`${mv} 데이터로 월마감을 처리합니다.`,()=>{
-    const cl=ld(K.MC,[]);
+  if(mClosedList().includes(mv)){toast('w','이미 마감됨',`${mv}은 이미 마감 처리되었습니다.`);return;}
+  // 화면 필터와 무관하게 그 달 전체를 확정한다
+  const full=mSettle({month:mv,branch:'',search:''});
+  if(!full.rows.length){toast('w','데이터 없음',`${mv}에 마감할 정산 내역이 없습니다.`);return;}
+  const tt=full.total;
+  showCfm(CI.calendar,'월마감 실행',
+    `${mv} 정산을 확정합니다.\n합계 ${tt.t.toLocaleString()}원 (부가세 ${tt.tax.toLocaleString()}원 · ${tt.cnt}건)\n확정 후에는 발주 금액을 수정해도 이 금액이 바뀌지 않습니다.`,()=>{
+    const cl=mClosedList();
     if(!cl.includes(mv)){cl.push(mv);sv(K.MC,cl);}
-    document.getElementById('mc-st').textContent='마감 완료';
-    document.getElementById('mc-st').style.color='var(--green)';
-    document.getElementById('mc-ss').textContent=new Date().toLocaleDateString('ko-KR')+' 처리';
-    toast('s','월마감 완료','정산이 확정되었습니다.');
+    // 확정 금액 스냅샷 저장 → 이후 발주 데이터가 수정돼도 정산액 불변
+    const snaps=mSnaps();
+    snaps[mv]={rows:full.rows,closedAt:new Date().toISOString(),closedBy:(S&&(S.name||S.id))||''};
+    sv(K.MCS,snaps);
+    logAudit('월마감',mv,`합계 ${tt.t.toLocaleString()}원 / 부가세 ${tt.tax.toLocaleString()}원 / ${tt.cnt}건 확정`);
+    toast('s','월마감 완료',`${mv} 정산이 확정되었습니다.`);
+    renderM();
+  });
+}
+function reopenMonth(){
+  if(!isAdm()){toast('e','권한 없음','관리자만 마감을 취소할 수 있습니다.');return;}
+  const mv=document.getElementById('fm-m')?.value||'';
+  if(!mv||!mClosedList().includes(mv)){toast('w','마감 아님','마감된 월이 아닙니다.');return;}
+  const snap=mSnapGet(mv);
+  const was=snap?mAgg(snap.rows).t:0;
+  showCfm(CI.calendar,'월마감 취소',
+    `${mv} 마감을 취소합니다.\n확정 금액${was?' '+was.toLocaleString()+'원':''}이 삭제되고 실데이터 기준으로 다시 계산됩니다.`,()=>{
+    sv(K.MC,mClosedList().filter(m=>m!==mv));
+    const snaps=mSnaps();delete snaps[mv];sv(K.MCS,snaps);
+    logAudit('월마감취소',mv,was?`확정 금액 ${was.toLocaleString()}원 삭제`:'확정 금액 없음');
+    toast('s','마감 취소',`${mv} 마감이 취소되었습니다.`);
     renderM();
   });
 }
@@ -2092,8 +2173,9 @@ function saveDraftCfg(){
 
 function addDraftRow(){
   const idx=draftRowIdx++;
-  // 시공완료 지점 제외
-  const bns=getBr().filter(b=>!b.cDone).map(b=>b.name);
+  // 접수·지점관리 화면과 같은 목록(운영중 전체). 시공완료 지점도 교체·추가 발주가 생기므로 제외하지 않는다.
+  // (기존 getBr().filter(!cDone) 은 시공완료 지점을 막는 동시에 종료 지점은 걸러내지 못했다)
+  const bns=getActiveBr().map(b=>b.name);
   const opts=`<option value="">지점 선택</option>`+bns.map(n=>`<option value="${n}">${n}</option>`).join('');
   const tr=document.createElement('tr');tr.id=`dr-${idx}`;
   tr.innerHTML=`
@@ -2802,8 +2884,8 @@ function exportToExcel(type){
     fileName=`설치현황_${today}.xlsx`;
 
   }else if(type==='monthly'){
-    // 화면과 완전히 동일한 집계를 사용 (mSettle) → 엑셀 합계행 = 화면 합계행 = 요약카드
-    const MS=mSettle();
+    // 화면과 완전히 동일한 집계를 사용 (mView) → 엑셀 = 화면. 마감된 월은 확정 금액이 나간다.
+    const MS=mView();
     const mv=MS.month;
     rows=[['지점','구분','건수','도어락','설치비','자재비','공급가액','부가세','합계','계정과목']];
     MS.rows.forEach(r=>rows.push([r.branch,r.isNew?'신규':'교체',r.cnt,r.p,r.i,r.e,r.ex,r.tax,r.t,
@@ -2811,10 +2893,12 @@ function exportToExcel(type){
     // 합계 행 — 각 행의 값을 그대로 더한다(전표 합산 기준). 기준을 파일에 남겨 대조 시 다툼이 없게 한다.
     if(MS.rows.length){
       const tt=MS.total;
-      rows.push(['합계','',tt.cnt,tt.p,tt.i,tt.e,tt.ex,tt.tax,tt.t,'부가세 기준: 지점·계정과목 단위 반올림 합산']);
+      rows.push(['합계','',tt.cnt,tt.p,tt.i,tt.e,tt.ex,tt.tax,tt.t,
+        (MS.snap?`마감확정(${(MS.closedAt||'').substring(0,10)}) · `:'')+'부가세 기준: 지점·계정과목 단위 반올림 합산']);
     }
     // 지점/검색 필터가 걸린 채 내보내면 부분 정산이므로 파일명에 범위를 드러낸다
     const scope=[mv||'전체'];
+    if(MS.snap)scope.push('확정');
     if(MS.filters.branch)scope.push(MS.filters.branch);
     if(MS.filters.search)scope.push('검색-'+MS.filters.search);
     fileName=`월마감정산_${scope.join('_')}_${today}.xlsx`;
