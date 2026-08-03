@@ -350,6 +350,22 @@ input[type="time"] {
   font-size: 10px;
   color: var(--muted);
 }
+/* 시각이 나와야 하는데 아직 여행사 확정 전 — 추정치 대신 '미정' */
+.ev .time .tbd {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--coral);
+  border: 1px dashed var(--coral);
+  border-radius: 6px;
+  padding: 1px 5px;
+}
+.ev.pending .body {
+  border-left-color: var(--coral);
+}
+.tbd-inline {
+  color: var(--coral);
+}
 /* 시각이 확정되지 않은 방문지 — 시계 대신 순번만 (없는 시간을 지어내지 않는다) */
 .ev .time .ord {
   display: inline-grid;

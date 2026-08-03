@@ -11,10 +11,13 @@ function mapUrl(place?: keyof typeof PLACES) {
  * 하루치 일정을 화면 순서대로 돌려준다.
  * 시각이 없는 방문지에는 그 날 안에서의 순번(1,2,3…)을 매긴다.
  * — 여행사 일정표에 없는 시각을 지어내지 않기 위한 표기 방식.
+ * 확정 시각이 있거나(time) 확정 대기 중인(timePending) 항목은 순번을 쓰지 않는다.
  */
 function eventsOfDay(day: DayNo): { ev: PlanEvent; ord?: number }[] {
   let n = 0;
-  return PLAN.filter((e) => e.day === day).map((ev) => (ev.time ? { ev } : { ev, ord: ++n }));
+  return PLAN.filter((e) => e.day === day).map((ev) =>
+    ev.time || ev.timePending ? { ev } : { ev, ord: ++n },
+  );
 }
 
 export default function ScheduleTab() {
@@ -31,7 +34,15 @@ export default function ScheduleTab() {
           방문 순서는 여행사 일정표 기준이며, 현지 사정에 따라 순서가 바뀔 수 있어요.
         </div>
         <div className="meet-warn">
-          📣 <b>10/24 {TRIP.meet.time}</b> · {TRIP.meet.place}
+          📣 집결 · {TRIP.meet.place}
+          <br />
+          {TRIP.meet.time ? (
+            <b>
+              10/24 {TRIP.meet.time}
+            </b>
+          ) : (
+            <b className="tbd-inline">{TRIP.meet.pendingNote}</b>
+          )}
         </div>
         <div className="row" style={{ marginTop: 10 }}>
           <a className="btn ghost sm" href={`tel:${TRIP.agency.phone}`}>
@@ -58,13 +69,23 @@ export default function ScheduleTab() {
         {rows.map(({ ev, ord }) => {
           const link = mapUrl(ev.place);
           return (
-            <div key={ev.id} className={"ev" + (ev.highlight ? " hl" : "") + (ev.time ? " fixed" : "")}>
+            <div
+              key={ev.id}
+              className={
+                "ev" +
+                (ev.highlight ? " hl" : "") +
+                (ev.time || ev.timePending ? " fixed" : "") +
+                (ev.timePending ? " pending" : "")
+              }
+            >
               <div className="time">
                 {ev.time ? (
                   <>
                     {ev.time}
                     <small>확정</small>
                   </>
+                ) : ev.timePending ? (
+                  <span className="tbd">미정</span>
                 ) : (
                   <span className="ord">{ord}</span>
                 )}

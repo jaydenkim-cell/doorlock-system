@@ -21,10 +21,24 @@ export const TRIP = {
   },
   hotel: "휴잇트 리조트 나하 (2연박)",
   meet: {
-    time: "08:30",
-    place: "인천공항 제1터미널 · 이스타항공 수속 카운터 앞",
+    // 여행사가 집결 시각을 확정해 주면 "07:15" 처럼 채운다.
+    // 확정 전에는 null — 항공 스케줄에서 역산한 추정치를 넣지 않는다.
+    // (예전 08:30 은 11:30 출발 기준이라 09:45 출발에는 맞지 않는다.)
+    time: null as string | null,
+    place: "인천공항 제1터미널 · 진에어 수속 카운터 앞",
+    pendingNote: "집결 시각은 여행사 확정 연락 예정",
   },
 } as const;
+
+/**
+ * 항공 스케줄. 일정 타임라인과 정보 카드가 같은 값을 보게 해서
+ * 한쪽만 고쳐져 어긋나는 일을 막는다. (2026-08-03 이스타 → 진에어 변경)
+ */
+export const FLIGHTS = {
+  out: { no: "진에어 LJ341", date: "10/24", dep: "09:45", arr: "12:05", from: "인천", to: "나하" },
+  back: { no: "진에어 LJ396", date: "10/26", dep: "13:35", arr: "15:55", from: "나하", to: "인천" },
+  durationText: "직항 약 2시간 20분 · 시차 없음",
+};
 
 export type Coord = { lat: number; lng: number };
 
@@ -47,14 +61,16 @@ export type DayNo = 1 | 2 | 3;
 
 /**
  * 일정 한 칸.
- * time 이 있으면 = 여행사가 확정해 준 시각(항공·집결). 시계로 표시한다.
- * time 이 없으면 = 시각 미정인 방문지. 순서 번호로만 표시한다.
+ * time 이 있으면 = 여행사가 확정해 준 시각(항공). 시계로 표시한다.
+ * timePending 이면 = 시각이 정해져야 하는데 아직 안 나온 항목. '미정'으로 표시한다.
+ * 둘 다 없으면 = 시각 개념이 없는 방문지. 순서 번호로만 표시한다.
  *   ※ 패키지 일정표에 없는 시각을 앱이 지어내지 않는다.
  */
 export type PlanEvent = {
   id: string;
   day: DayNo;
   time?: string;
+  timePending?: boolean;
   title: string;
   place?: keyof typeof PLACES;
   memo?: string;
@@ -73,17 +89,19 @@ export const PLAN: PlanEvent[] = [
   {
     id: "d1-meet",
     day: 1,
-    time: "08:30",
+    timePending: true,
     title: "인천공항 제1터미널 집결",
-    memo: "이스타항공 수속 카운터 앞에서 로컬 가이드 미팅. 사전 체크인은 여행사가 진행합니다.",
+    memo:
+      "진에어 수속 카운터 앞에서 로컬 가이드 미팅. 사전 체크인은 여행사가 진행합니다. " +
+      "집결 시각은 여행사에서 확정 연락 예정입니다.",
   },
   {
     id: "d1-fly",
     day: 1,
-    time: "11:30",
-    title: "인천 출발 → 나하 도착 14:00",
+    time: FLIGHTS.out.dep,
+    title: `${FLIGHTS.out.from} 출발 → ${FLIGHTS.out.to} 도착 ${FLIGHTS.out.arr}`,
     place: "나하공항",
-    memo: "이스타항공 ZE631 · 직항 약 2시간 30분 · 시차 없음",
+    memo: `${FLIGHTS.out.no} · ${FLIGHTS.durationText}`,
   },
   {
     id: "d1-umikaji",
@@ -192,10 +210,10 @@ export const PLAN: PlanEvent[] = [
   {
     id: "d3-fly",
     day: 3,
-    time: "15:00",
-    title: "나하 출발 → 인천 도착 17:50",
+    time: FLIGHTS.back.dep,
+    title: `${FLIGHTS.back.from} 출발 → ${FLIGHTS.back.to} 도착 ${FLIGHTS.back.arr}`,
     place: "나하공항",
-    memo: "이스타항공 ZE632 · 행사 종료",
+    memo: `${FLIGHTS.back.no} · 행사 종료`,
   },
 ];
 
@@ -266,7 +284,7 @@ export const PACKAGE = {
     },
   ],
   included: [
-    "왕복 항공 (이스타) · 택스 · 유류할증",
+    "왕복 항공 (진에어) · 택스 · 유류할증",
     "여행자보험 (최대 1억)",
     "전 일정 식사",
     "표기 입장료 (츄라우미 · 나고 파인애플파크 등)",
@@ -312,12 +330,14 @@ export const INFO_CARDS = [
   {
     icon: "✈️",
     title: "항공편",
-    body: "이스타 ZE631 · 10/24 11:30 인천 → 14:00 나하 / ZE632 · 10/26 15:00 나하 → 17:50 인천.",
+    body:
+      `${FLIGHTS.out.no} · ${FLIGHTS.out.date} ${FLIGHTS.out.dep} ${FLIGHTS.out.from} → ${FLIGHTS.out.arr} ${FLIGHTS.out.to} / ` +
+      `${FLIGHTS.back.no} · ${FLIGHTS.back.date} ${FLIGHTS.back.dep} ${FLIGHTS.back.from} → ${FLIGHTS.back.arr} ${FLIGHTS.back.to}.`,
   },
   {
     icon: "📣",
     title: "집결 (중요)",
-    body: "10/24 08:30, 인천공항 제1터미널 이스타항공 수속 카운터 앞. 사전 체크인은 여행사가 진행합니다.",
+    body: `${TRIP.meet.place}. 집결 시각은 여행사 확정 연락 예정 — 나오는 대로 여기에 표시됩니다. 사전 체크인은 여행사가 진행합니다.`,
   },
   { icon: "🏨", title: "호텔", body: "휴잇트 리조트 나하 2연박. 숙소 이동이 없어 짐을 풀어둘 수 있습니다." },
   { icon: "🚌", title: "가이드 · 교통", body: "전담 로컬 가이드 + 전용버스. 자가운전이 없어 운전 부담이 없습니다." },
