@@ -1494,8 +1494,16 @@ function goP(p){
     const el=document.getElementById(id);
     if(!el)return;
     const saved=sessionStorage.getItem('filter_'+id);
-    if(saved&&[...el.options].some(o=>o.value===saved))el.value=saved;
-    el.onchange=()=>sessionStorage.setItem('filter_'+id,el.value);
+    // fr-m 은 <input type="month"> 라 options 가 없다 → 예전 코드는 저장값이 생긴 뒤
+    // 재방문할 때 [...el.options] 에서 예외가 나 goP 가 중단되고 화면이 렌더되지 않았다
+    if(saved&&(!el.options||[...el.options].some(o=>o.value===saved)))el.value=saved;
+    // 인라인 onchange(renderR/renderO/renderI/renderM)를 프로퍼티 대입으로 덮어쓰면
+    // 필터를 바꿔도 화면이 갱신되지 않는다(30초 자동 새로고침까지 지연) → 리스너로 추가.
+    // goP 는 페이지 이동마다 실행되므로 플래그로 중복 등록을 막는다.
+    if(!el.dataset.fsave){
+      el.addEventListener('change',()=>sessionStorage.setItem('filter_'+id,el.value));
+      el.dataset.fsave='1';
+    }
   });
   const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog};
   if(fns[p])fns[p]();
