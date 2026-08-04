@@ -106,6 +106,7 @@ export const PLAN: PlanEvent[] = [
     place: "나하공항",
     memo: `${FLIGHTS.out.no} · ${FLIGHTS.durationText}. 도착 후 입국 심사 · 수하물 수취 · 세관 심사를 거쳐 전용 차량으로 나하 시내로 이동합니다.`,
   },
+  // 원래 3일차에 잡혀 있던 중식을 1일차로 옮겼다(2026-08-04 여행사 조정).
   { id: "d1-lunch", day: 1, title: "중식 · 현지식", memo: "나하 시내 도착 후 첫 식사" },
   {
     id: "d1-umikaji",
@@ -184,7 +185,8 @@ export const PLAN: PlanEvent[] = [
   },
 
   // ── 제3일 (10/26 월) 남부 절경 & 출국 ──
-  // 13:35 출발이라 오전 관광 후 바로 공항으로 간다. 일정표 상세일정에 중식 단계가 없다.
+  // 13:35 출발이라 오전 관광 후 바로 공항으로 간다.
+  // 중식은 1일차로 옮겨져 이 날은 조식 이후 식사가 없다(2026-08-04 여행사 확인).
   {
     id: "d3-checkout",
     day: 3,
@@ -217,7 +219,7 @@ export const PLAN: PlanEvent[] = [
     day: 3,
     title: "나하 국제공항 이동 · 탑승 수속",
     place: "나하공항",
-    memo: "수하물 탁송 → 출국 심사 → 게이트 이동",
+    memo: "수하물 탁송 → 출국 심사 → 게이트 이동. 이 날 중식은 불포함이고 기내식도 없으니 공항에서 요기해 두세요.",
   },
   {
     id: "d3-fly",
@@ -255,8 +257,8 @@ export const PAYMENTS: PaymentItem[] = [
     key: "pay-chae-balance",
     household: "채이네",
     kind: "잔금",
-    amount: 267,
-    note: "집 합계 517만 − 예약금 250만",
+    amount: 260,
+    note: "집 합계 510만 − 예약금 250만",
     method: "카드",
   },
   {
@@ -271,16 +273,19 @@ export const PAYMENTS: PaymentItem[] = [
     key: "pay-jiho-balance",
     household: "지호네",
     kind: "잔금",
-    amount: 267,
-    note: "집 합계 517만 − 예약금 250만",
+    amount: 260,
+    note: "집 합계 510만 − 예약금 250만",
     method: "카드",
   },
 ];
 
 // ── 패키지 단가 · 집별 분담 (만원 단위) ──
+// 2026-08-04 단가 조정: 성인 132→130, 소아 121→120.
+// 예약금(성인 65 / 소아 55)은 그대로라 집별 예약금 250 은 유지되고 잔금만 줄었다.
+//   총액 130×6 + 120×2 = 1,020 = 510 × 2 = 예약금 500 + 잔금 520 ✓
 export const PACKAGE = {
-  adultPrice: 132,
-  childPrice: 121,
+  adultPrice: 130,
+  childPrice: 120,
   adults: 6,
   children: 2,
   depositAdult: 65,
@@ -289,24 +294,24 @@ export const PACKAGE = {
     {
       name: "채이네",
       members: "부부(성인2) + 아이(초등1) + 할머니(성인1)",
-      total: 517,
+      total: 510,
       deposit: 250,
-      balance: 267,
+      balance: 260,
     },
     {
       name: "지호네",
       members: "부부(성인2) + 아이(초등1) + 할아버지(성인1)",
-      total: 517,
+      total: 510,
       deposit: 250,
-      balance: 267,
+      balance: 260,
     },
   ],
   paymentNote:
     "항공요금과 계약금(예약금)은 현금 결제, 잔액은 카드 결제 기준입니다. 현금 결제분은 현금영수증이 발행됩니다.",
   included: [
     "왕복 항공 (진에어) · 택스(공항세) · 유류할증료",
-    "여행자보험 (최대 1억원)",
-    "전 일정 식사 (1일차 조식 · 3일차 석식 제외)",
+    "여행자보험 (최대 1억원) — 증권 발급 예정",
+    "전 일정 식사 (1일차 조식 · 3일차 중식·석식 제외)",
     "일정 표기 입장료 — 슈리성 정전 관람은 불포함",
     "전담 로컬 가이드 · 전용 버스",
     "석식 2회 특식 (철판 스테이크 · 야키니쿠 타베호다이)",
@@ -326,6 +331,7 @@ export const PACKING: { group: string; items: { key: string; label: string }[] }
         label: "여행사 서류 수령 (일정표·항공권·수하물 이름표·일본 입국 서류) — 당일 공항",
       },
       { key: "p7-seat", label: "가족 인접 좌석 요청 — 사전 체크인 전에 여행사에 전달" },
+      { key: "p7-insurance", label: "여행자보험 증권 수령 — 어르신 두 분 보장액 확인" },
     ],
   },
   {
@@ -373,7 +379,9 @@ export const INFO_CARDS = [
   {
     icon: "🍽️",
     title: "식사",
-    body: "1일차 조식과 3일차 석식은 불포함(항공사 기내식 미제공). 그 외 전 일정 식사 포함, 석식 2회는 특식입니다.",
+    body:
+      "1일차 조식, 3일차 중식·석식은 불포함입니다(진에어는 기내식 미제공). " +
+      "3일차는 호텔 조식 이후 귀가할 때까지 식사가 없으니 공항에서 요기하세요. 그 외 전 일정 식사 포함, 석식 2회는 특식입니다.",
   },
   {
     icon: "✅",

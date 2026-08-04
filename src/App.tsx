@@ -15,7 +15,7 @@ import BudgetTab from "./components/BudgetTab";
 import PackingTab from "./components/PackingTab";
 import MemoTab from "./components/MemoTab";
 
-const VERSION = "v8 (여행사 최종 일정표)";
+const VERSION = "v9 (금액 조정 · 성인 130 / 소아 120)";
 
 type TabId = "schedule" | "payment" | "budget" | "packing" | "memo";
 const TABS: { id: TabId; label: string; icon: string }[] = [
