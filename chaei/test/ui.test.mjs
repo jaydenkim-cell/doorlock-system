@@ -251,10 +251,79 @@ const paid = await page.evaluate(() => {
 ok(paid.ok && paid.after === paid.before - 300, `현금화하면 잔액이 준다 (${paid.before} → ${paid.after})`);
 ok(paid.last.kind === 'payout' && paid.last.note === '문방구', '지급 내역이 남는다');
 
+console.log('\n[둘째 아이 추가]');
+await page.locator('button:has-text("+ 아이 추가")').click();
+await page.waitForSelector('text=친구를 추가해요');
+ok(await page.locator('text=몇 학년이에요?').isVisible(), '학년을 고를 수 있다');
+await page.locator('input[aria-label="이름"]').fill('민준');
+await page.locator('.card:has-text("몇 학년이에요?") button:has-text("1학년")').click();
+await page.locator('.card:has-text("용돈 저금통") button').click();   // 저금통 끄기
+ok((await page.locator('.card:has-text("용돈 저금통") button').textContent()).includes('안 쓸래요'),
+   '저금통을 꺼둘 수 있다');
+await shot('10-add-kid', true);
+await page.locator('button:has-text("만들기")').click();
+
+console.log('\n[초1 화면]');
+await page.waitForSelector('.q');
+const placeSkill = await page.evaluate(() => window.__chaei.sess.placementSkill());
+ok(placeSkill === 'addsub', `초1 진단은 곱셈구구가 아니다 → ${placeSkill}`);
+await page.locator('.icon-btn').click();          // 진단 건너뛰기
+await page.waitForSelector('.screen');
+ok(!(await page.locator('text=구구단 지도').count()), '초1에게 구구단 지도가 안 보인다');
+ok(await page.locator('text=받아올림 지도').isVisible(), '받아올림 지도가 대신 보인다');
+ok(!(await page.locator('.piggy').count()), '저금통을 끈 아이는 저금통 카드가 없다');
+const openSkills = await page.evaluate(() => window.__chaei.sess.openSkills());
+ok(JSON.stringify(openSkills) === '["addsub"]', `초1 스킬 → ${openSkills}`);
+await shot('11-grade1-home', true);
+
+console.log('\n[초1 문제는 한 자리]');
+await page.locator('button:has-text("오늘의 공부 시작")').click();
+await page.waitForSelector('.q');
+let plainOk = true;
+for (let i = 0; i < 5; i++) {
+  const q = await current();
+  if (!q) break;
+  if (q.ctx.x >= 20 || q.ctx.y >= 10) plainOk = false;
+  await answerCurrent();
+  await clearFlash();
+}
+ok(plainOk, '초1에게 두 자리 문제가 나왔다');
+await shot('12-grade1-question');
+
+console.log('\n[아이 전환]');
+await page.evaluate(() => window.__chaei.go('home'));
+await page.waitForSelector('.screen');
+ok(await page.locator('.avatar-swap').isVisible(), '아이가 둘이면 얼굴에 전환 표시가 뜬다');
+await page.locator('button.avatar').click();
+await page.waitForSelector('.who-list');
+ok((await page.locator('.who-card').count()) === 2, '"누구야?" 화면에 두 명이 뜬다');
+await shot('13-who');
+await page.locator('.who-card:has-text("채이")').click();
+await page.waitForSelector('.map');
+ok(await page.locator('text=구구단 지도').isVisible(), '채이로 돌아오면 구구단 지도가 보인다');
+ok(await page.locator('.piggy').isVisible(), '채이는 저금통이 그대로 있다');
+
+console.log('\n[진도가 섞이지 않는다]');
+const split = await page.evaluate(() => {
+  const { store, allowance } = window.__chaei;
+  const out = {};
+  for (const p of store.profiles()) {
+    store.setActiveProfile(p.id);
+    out[p.name] = { grade: p.grade, facts: Object.keys(store.pdata().mastery).length,
+                    won: allowance.enabled() ? allowance.balance() : null };
+  }
+  return out;
+});
+ok(Object.keys(split).length === 2, '두 아이가 각자 기록을 갖는다');
+ok(split['민준'].won === null && split['채이'].won !== null,
+   `저금통이 아이별로 분리된다 → ${JSON.stringify(split)}`);
+ok(split['민준'].grade === 1 && split['채이'].grade === 2, '학년이 각자 유지된다');
+
 console.log('\n[백업]');
 const exported = await page.evaluate(() => window.__chaei.store.exportJSON());
 ok(exported.includes('mastery') && exported.includes('wallet') && exported.length > 500,
    '내보내기에 진도와 저금통이 함께 담긴다');
+ok(exported.includes('채이') && exported.includes('민준'), '백업 하나에 두 아이가 모두 담긴다');
 
 if (BUNDLE) {
   console.log('\n[PWA] 단일 파일 빌드라 건너뜀 (manifest·서비스워커·오프라인)');

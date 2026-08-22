@@ -78,12 +78,13 @@ js/
   state.js            저장소·프로필·진도 (스키마 버전 + 마이그레이션 훅)
   srs.js              Leitner 간격 반복
   difficulty.js       자동 난이도 레벨 + 부모 프리셋
-  allowance.js        용돈 저금통 (적립·지급·내역)
+  allowance.js        용돈 저금통 (적립·지급·내역, 아이별 on/off)
+  grades.js           학년별 차이 (초1~3: 열리는 스킬·문제 자릿수·기본 난이도)
   session.js          한 판 진행 · 문항 선택 · 중단 복구
   feedback.js         소리·진동 (WebAudio 합성, 외부 파일 없음)
   ko.js               한국어 조사 처리
   generators/         문항 생성기 (곱셈구구 / 받아올림·받아내림)
-  ui/screens/         온보딩 · 진단 · 홈 · 세션 · 결과 · 랠리 · 부모
+  ui/screens/         온보딩 · 누구야 · 진단 · 홈 · 세션 · 결과 · 랠리 · 부모
 data/curriculum.json  2022 개정 교육과정 매핑
 docs/PLAN.md          기획서
 ```
@@ -100,8 +101,9 @@ VARIANTS                [{ id, minLevel, weight }] 문제 형태 목록
 canUse(variantId, key)  이 형태를 이 문항에 쓸 수 있는가
 newFactOrder()          처음 배울 때의 순서 (allFacts 순서와 별개)
 placementFacts()        진단 판 대표 문항
-makeQuestion(key, box, variant)
+makeQuestion(key, box, variant, opts)
                         { prompt, answer, mode, render, choices?, ctx?, hint }
+                        opts.plain 이면 두 자리로 감싸지 않는다 (초1)
                         render = { type:'expr'|'sequence'|'groups', … }
                         형태가 무엇이든 factKey 는 유지해야 한다
 diagnose(key, given, ctx)  오답을 사람이 읽을 수 있는 이름으로

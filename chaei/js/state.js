@@ -110,9 +110,22 @@ export function save() {
   }
 }
 
+/**
+ * id 만들기. 시각만 쓰면 같은 밀리초에 만든 둘이 같은 id 를 받아
+ * 데이터 버킷을 공유해 버린다 (아이 둘 진도가 통째로 섞인다).
+ * 무작위를 섞고, 그래도 겹치면 다시 뽑는다.
+ */
+function uid(prefix, taken = []) {
+  let id;
+  do {
+    id = prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  } while (taken.includes(id));
+  return id;
+}
+
 export function createProfile({ name, grade = 2, avatar = '🦊', color = 'grape' }) {
   const s = load();
-  const id = 'p' + Date.now().toString(36);
+  const id = uid('p', s.profiles.map((p) => p.id));
   s.profiles.push({ id, name, grade, avatar, color, createdAt: Date.now() });
   s.data[id] = emptyProfileData();
   s.activeProfileId = id;
@@ -130,6 +143,22 @@ export function activeProfile() {
 export function setActiveProfile(id) {
   const s = load();
   if (s.data[id]) { s.activeProfileId = id; save(); }
+}
+
+/**
+ * 프로필을 지운다. 그 아이의 진도와 **저금통 잔액까지** 사라진다.
+ * 되돌릴 수 없으므로 호출하는 쪽에서 반드시 확인을 받아야 한다.
+ * @returns {string|null} 지운 뒤 활성화된 프로필 id (아무도 안 남으면 null)
+ */
+export function deleteProfile(id) {
+  const s = load();
+  s.profiles = s.profiles.filter((p) => p.id !== id);
+  delete s.data[id];
+  if (s.activeProfileId === id) {
+    s.activeProfileId = s.profiles[0]?.id || null;
+  }
+  save();
+  return s.activeProfileId;
 }
 
 export function updateProfile(patch) {

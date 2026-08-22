@@ -263,6 +263,36 @@ button:disabled{opacity:.35;cursor:default}
 .chip.warn{background:var(--coral-l);color:#b8402a}
 .chip.fast{background:var(--sun-l);color:#a9701a}
 
+/* ── 프로필 선택 ──────────────────────────────────── */
+.who-list{display:flex;flex-direction:column;gap:10px}
+.who-card{
+  display:flex;align-items:center;gap:14px;width:100%;
+  padding:16px;border-radius:var(--r);background:var(--card);box-shadow:var(--sh);
+  transition:transform .08s;
+}
+.who-card:active{transform:scale(.98)}
+.who-face{
+  width:58px;height:58px;border-radius:19px;background:var(--grape-l);
+  display:grid;place-items:center;font-size:32px;flex:none;
+}
+.who-face.sm{width:42px;height:42px;border-radius:14px;font-size:23px}
+.who-name{font-size:19px;font-weight:800;line-height:1.2}
+
+/* 홈 상단 얼굴을 눌러 바꿀 수 있다는 표시 */
+.avatar{position:relative}
+button.avatar{cursor:pointer}
+.avatar-swap{
+  position:absolute;right:-3px;bottom:-3px;
+  width:20px;height:20px;border-radius:10px;background:var(--grape);color:#fff;
+  font-size:11px;font-weight:800;display:grid;place-items:center;
+  box-shadow:0 0 0 2px var(--bg);
+}
+
+.kid-row{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:10px 0;border-top:1px solid var(--line);
+}
+
 /* ── 용돈 저금통 ──────────────────────────────────── */
 .piggy-em{
   width:52px;height:52px;border-radius:17px;background:var(--mint-l);

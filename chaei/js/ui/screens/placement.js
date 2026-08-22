@@ -14,7 +14,8 @@ import * as fx from '../../feedback.js';
 import { choices } from '../numpad.js';
 import { renderBody } from './play.js';
 
-export function placement(go, { skillId = 'mul' } = {}) {
+export function placement(go, { skillId } = {}) {
+  skillId = skillId || sess.placementSkill();   // 초1은 곱셈구구를 아직 안 배웠다
   const questions = sess.placementQuestions(skillId);
   const results = [];
   let i = 0;
@@ -100,6 +101,9 @@ export function placement(go, { skillId = 'mul' } = {}) {
     sess.applyPlacement(skillId, []);
     go('home');
   }
+
+  // 진단 문항이 없는 스킬이면 그냥 넘어간다
+  if (!questions.length) { skip(); return root; }
 
   render();
   return root;

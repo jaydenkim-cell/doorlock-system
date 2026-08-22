@@ -22,6 +22,7 @@
 import * as store from './state.js';
 
 export const DEFAULTS = {
+  enabled: true,        // 아이별로 켜고 끈다 (놀러 온 친구는 꺼두면 된다)
   perSession: 10,       // 한 판 완주
   dailySessionCap: 3,   // 하루에 적립되는 판수 상한 (초2에게 하루 3판이면 충분하다)
   masteryBonus: 100,    // 한 단 마스터
@@ -43,6 +44,9 @@ export function config() {
   const s = store.settings();
   return { ...DEFAULTS, ...(s.allowance || {}) };
 }
+
+/** 이 아이에게 저금통을 쓰는가 */
+export function enabled() { return config().enabled !== false; }
 
 export function setConfig(patch) {
   store.updateSettings({ allowance: { ...config(), ...patch } });
@@ -88,6 +92,7 @@ function add(kind, amount, note) {
  * @returns {Array<{kind:string, amount:number, note:string}>} 결과 화면에 보여줄 항목들
  */
 export function awardForSession(summary, { weeklyGoalMet = false } = {}) {
+  if (!enabled()) return [];
   const c = config();
   const got = [];
 
@@ -107,6 +112,7 @@ export function awardForSession(summary, { weeklyGoalMet = false } = {}) {
 }
 
 export function awardForRally() {
+  if (!enabled()) return null;
   const c = config();
   if (countToday('rally') >= 1) return null;
   return add('rally', c.rallyBonus, '60초 랠리 최고 기록');

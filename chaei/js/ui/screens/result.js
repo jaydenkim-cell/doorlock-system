@@ -58,6 +58,7 @@ export function result(go, summary) {
 
 /** 이번 판에 얼마가 쌓였는지. 아이에게는 이게 별보다 셀 수 있는 보상이다. */
 function earnCard(summary) {
+  if (!allowance.enabled()) return null;
   const got = summary.earned || [];
   const c = allowance.config();
   const total = got.reduce((sum, g) => sum + g.amount, 0);

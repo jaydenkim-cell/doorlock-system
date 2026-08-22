@@ -1,8 +1,11 @@
 /**
- * 홈 — 구구단 지도 · 오늘의 공부 · 주간 도장
+ * 홈 — 지도 · 오늘의 공부 · 주간 도장 · 저금통
  *
  * 스트릭 대신 주간 도장을 쓴다. 초2는 스스로 앱을 못 켠다.
  * 하루 빠졌다고 0으로 리셋되면 거기서 앱 수명이 끝난다.
+ *
+ * 무엇을 보여줄지는 학년이 정한다. 초1은 곱셈구구를 아직 안 배웠으므로
+ * 구구단 지도 대신 받아올림 지도가 메인이다.
  */
 
 import { h } from '../dom.js';
@@ -11,6 +14,7 @@ import * as srs from '../../srs.js';
 import * as sess from '../../session.js';
 import * as difficulty from '../../difficulty.js';
 import * as allowance from '../../allowance.js';
+import * as grades from '../../grades.js';
 
 const DAY_LABEL = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -44,59 +48,9 @@ function weekCard() {
   );
 }
 
-function mapCard(go) {
-  const gen = sess.skill('mul');
-  const targetMs = store.settings().targetMs;
-
-  const tiles = gen.groups().map((g) => {
-    const r = groupRatio('mul', g.facts, targetMs);
-    const due = sess.dueCount('mul', g.id);
-    const done = r >= 0.95;
-    return h('button', {
-      class: 'tile' + (done ? ' done' : ''),
-      onclick: () => go('session', { skillId: 'mul', groupId: g.id }),
-      'aria-label': `${g.label} 연습, 숙련도 ${Math.round(r * 100)}퍼센트`,
-    },
-      h('div', { class: 'fill', style: { height: `${Math.round(r * 100)}%` } }),
-      h('div', { class: 'tile-inner' },
-        h('div', { class: 'lab' }, g.label),
-        h('div', { class: 'sub' }, done ? '마스터' : `${Math.round(r * 100)}%`),
-      ),
-      due > 0 ? h('div', { class: 'badge' }, String(due)) : null,
-    );
-  });
-
-  return h('div', { class: 'card' },
-    h('div', { class: 'row', style: { marginBottom: '12px' } },
-      h('div', { class: 'h2' }, '✖️ 구구단 지도'),
-      h('div', { class: 'spacer' }),
-      h('div', { class: 'muted' }, '칸을 눌러 연습'),
-    ),
-    h('div', { class: 'map' }, tiles),
-  );
-}
-
-function skillCard(skillId, go) {
-  const gen = sess.skill(skillId);
-  const targetMs = store.settings().targetMs;
-  const all = gen.allFacts();
-  const r = groupRatio(skillId, all, targetMs);
-  const due = sess.dueCount(skillId);
-
-  return h('button', { class: 'skill', onclick: () => go('session', { skillId }) },
-    h('div', { class: 'em' }, gen.emoji),
-    h('div', { style: { flex: '1' } },
-      h('div', { class: 'h2' }, gen.title),
-      h('div', { class: 'muted' },
-        due > 0 ? `복습할 문제 ${due}개` : `${Math.round(r * 100)}% 익혔어요`),
-      h('div', { class: 'bar' }, h('i', { style: { width: `${Math.round(r * 100)}%` } })),
-    ),
-    h('div', { class: 'go' }, '›'),
-  );
-}
-
 /** 저금통. 아이에게 별보다 셀 수 있는 보상이라 홈 위쪽에 크게 둔다. */
 function piggyCard() {
+  if (!allowance.enabled()) return null;
   const c = allowance.config();
   const bal = allowance.balance();
   const pct = Math.round(allowance.progress() * 100);
@@ -118,9 +72,62 @@ function piggyCard() {
   );
 }
 
-function rallyCard(go) {
-  const best = sess.rallyBest('mul');
-  return h('button', { class: 'skill rally-card', onclick: () => go('rally', { skillId: 'mul' }) },
+/** 진도 지도. 곱셈구구는 8칸(2~9단), 받아올림은 2칸으로 같은 UI를 쓴다. */
+function mapCard(go, skillId) {
+  const gen = sess.skill(skillId);
+  const targetMs = store.settings().targetMs;
+  const list = gen.groups();
+
+  const tiles = list.map((g) => {
+    const r = groupRatio(skillId, g.facts, targetMs);
+    const due = sess.dueCount(skillId, g.id);
+    const done = r >= 0.95;
+    return h('button', {
+      class: 'tile' + (done ? ' done' : ''),
+      onclick: () => go('session', { skillId, groupId: g.id }),
+      'aria-label': `${g.label} 연습, 숙련도 ${Math.round(r * 100)}퍼센트`,
+    },
+      h('div', { class: 'fill', style: { height: `${Math.round(r * 100)}%` } }),
+      h('div', { class: 'tile-inner' },
+        h('div', { class: 'lab' }, g.label),
+        h('div', { class: 'sub' }, done ? '마스터' : `${Math.round(r * 100)}%`),
+      ),
+      due > 0 ? h('div', { class: 'badge' }, String(due)) : null,
+    );
+  });
+
+  return h('div', { class: 'card' },
+    h('div', { class: 'row', style: { marginBottom: '12px' } },
+      h('div', { class: 'h2' }, `${gen.emoji} ${gen.mapTitle || gen.title + ' 지도'}`),
+      h('div', { class: 'spacer' }),
+      h('div', { class: 'muted' }, '칸을 눌러 연습'),
+    ),
+    h('div', { class: 'map', style: list.length <= 3
+      ? { gridTemplateColumns: `repeat(${list.length}, 1fr)` } : {} }, tiles),
+  );
+}
+
+function skillCard(skillId, go) {
+  const gen = sess.skill(skillId);
+  const targetMs = store.settings().targetMs;
+  const r = groupRatio(skillId, gen.allFacts(), targetMs);
+  const due = sess.dueCount(skillId);
+
+  return h('button', { class: 'skill', onclick: () => go('session', { skillId }) },
+    h('div', { class: 'em' }, gen.emoji),
+    h('div', { style: { flex: '1' } },
+      h('div', { class: 'h2' }, gen.title),
+      h('div', { class: 'muted' },
+        due > 0 ? `복습할 문제 ${due}개` : `${Math.round(r * 100)}% 익혔어요`),
+      h('div', { class: 'bar' }, h('i', { style: { width: `${Math.round(r * 100)}%` } })),
+    ),
+    h('div', { class: 'go' }, '›'),
+  );
+}
+
+function rallyCard(go, skillId) {
+  const best = sess.rallyBest(skillId);
+  return h('button', { class: 'skill rally-card', onclick: () => go('rally', { skillId }) },
     h('div', { class: 'em', style: { background: 'var(--sky-l)' } }, '⚡️'),
     h('div', { style: { flex: '1' } },
       h('div', { class: 'h2' }, '60초 랠리'),
@@ -132,7 +139,7 @@ function rallyCard(go) {
 
 function placementCard(go) {
   return h('button', { class: 'skill', style: { background: 'var(--sun-l)' },
-    onclick: () => go('placement', { skillId: 'mul' }) },
+    onclick: () => go('placement') },
     h('div', { class: 'em', style: { background: '#fff' } }, '🔎'),
     h('div', { style: { flex: '1' } },
       h('div', { class: 'h2' }, '어디까지 아는지 볼까요?'),
@@ -145,36 +152,47 @@ function placementCard(go) {
 export function home(go) {
   const p = store.activeProfile();
   const d = store.pdata();
-  const resume = d.activeSession;
+  const g = grades.of();
+  const open = sess.openSkills();
+  const main = open.includes(g.mainSkill) ? g.mainSkill : open[0];
+  const others = open.filter((id) => id !== main);
+  const manyKids = store.profiles().length > 1;
 
-  const totalDue = sess.dueCount('mul') + sess.dueCount('addsub');
+  const resume = d.activeSession;
+  const totalDue = open.reduce((sum, id) => sum + sess.dueCount(id), 0);
   const cta = resume
     ? { label: '이어서 하기 ▶︎', skillId: resume.skillId, groupId: resume.groupId ?? null }
     : { label: totalDue > 0 ? `오늘의 공부 시작 (${totalDue}개 복습)` : '오늘의 공부 시작',
-        skillId: sess.dueCount('addsub') > sess.dueCount('mul') ? 'addsub' : 'mul', groupId: null };
+        skillId: main, groupId: null };
 
   return h('div', { class: 'screen' },
     h('div', { class: 'topbar' },
-      h('div', { class: 'avatar' }, p.avatar),
+      // 아이가 여럿이면 얼굴을 눌러 바꾼다
+      manyKids
+        ? h('button', { class: 'avatar', title: '다른 친구로 바꾸기',
+            'aria-label': '다른 친구로 바꾸기', onclick: () => go('who') },
+            p.avatar, h('span', { class: 'avatar-swap' }, '⇄'))
+        : h('div', { class: 'avatar' }, p.avatar),
       h('div', {},
-        h('div', { class: 'who' }, `${p.name} 어린이`),
+        h('div', { class: 'who-name' }, `${p.name} 어린이`),
         h('div', { class: 'muted' },
-          `초등 ${p.grade}학년 · 별 ${d.sessions.length}개 · ${difficulty.preset().label}`),
+          `${g.label} · 별 ${d.sessions.length}개 · ${difficulty.preset().label}`),
       ),
       h('div', { class: 'spacer' }),
       h('button', { class: 'icon-btn', title: '부모님 화면', 'aria-label': '부모님 화면',
         onclick: () => go('parent') }, '👨‍👩‍👧'),
     ),
 
-    h('button', { class: 'btn btn-block', onclick: () => go('session', { skillId: cta.skillId, groupId: cta.groupId }) },
+    h('button', { class: 'btn btn-block',
+      onclick: () => go('session', { skillId: cta.skillId, groupId: cta.groupId }) },
       cta.label),
 
     sess.placementDone() ? null : placementCard(go),
     piggyCard(),
     weekCard(),
-    mapCard(go),
-    rallyCard(go),
-    skillCard('addsub', go),
+    main ? mapCard(go, main) : null,
+    main ? rallyCard(go, main) : null,
+    others.map((id) => skillCard(id, go)),
 
     d.stickers.length
       ? h('div', { class: 'card' },

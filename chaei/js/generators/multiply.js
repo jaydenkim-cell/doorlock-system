@@ -19,6 +19,7 @@ export { wa };
 export const id = 'mul';
 export const title = '곱셈구구';
 export const emoji = '✖️';
+export const mapTitle = '구구단 지도';   // 아이가 쓰는 말로
 
 const MIN_TABLE = 2;
 const MAX_TABLE = 9;

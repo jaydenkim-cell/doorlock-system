@@ -15,6 +15,7 @@ const sess  = await import(B + 'session.js');
 const mul   = await import(B + 'generators/multiply.js');
 const diff  = await import(B + 'difficulty.js');
 const wal   = await import(B + 'allowance.js');
+const gr    = await import(B + 'grades.js');
 const as    = await import(B + 'generators/addsub.js');
 
 let pass = 0, fail = 0;
@@ -517,6 +518,156 @@ t('세션을 끝내면 요약에 적립 내역이 담긴다', () => {
   eq(sum.balance, wal.balance());
 });
 
+console.log('\n[여러 아이]');
+t('프로필을 여럿 만들고 전환할 수 있다', () => {
+  store.resetAll();
+  const a = store.createProfile({ name: '채이', grade: 2, avatar: '🦄' });
+  const b2 = store.createProfile({ name: '조카', grade: 1, avatar: '🐧' });
+  eq(store.profiles().length, 2);
+  eq(store.activeProfile().id, b2, '새로 만든 아이가 활성화되어야 함');
+  store.setActiveProfile(a);
+  eq(store.activeProfile().name, '채이');
+});
+t('아이별로 진도·저금통·레벨이 섞이지 않는다', () => {
+  const [a, b2] = store.profiles().map((p) => p.id);
+
+  store.setActiveProfile(a);
+  store.mastery('mul', '7x8').box = 4;
+  wal.adjust(500, '채이');
+  diff.setPreset('hard');
+
+  store.setActiveProfile(b2);
+  ok(!store.pdata().mastery['mul:7x8'], '조카에게 채이 진도가 보임');
+  eq(wal.balance(), 0, '조카에게 채이 저금통이 보임');
+  eq(store.settings().difficulty, 'auto', '조카에게 채이 난이도가 넘어감');
+
+  store.setActiveProfile(a);
+  eq(store.pdata().mastery['mul:7x8'].box, 4, '채이 진도가 사라짐');
+  eq(wal.balance(), 500, '채이 저금통이 사라짐');
+  diff.setPreset('auto');
+});
+t('세션도 아이별로 따로 돌아간다', () => {
+  const [a, b2] = store.profiles().map((p) => p.id);
+  store.setActiveProfile(a);
+  sess.startOrResume('mul');
+  const mine = sess.active().id;
+
+  store.setActiveProfile(b2);
+  eq(sess.active(), null, '조카에게 채이 세션이 보임');
+  sess.startOrResume('addsub');
+  ok(sess.active().id !== mine);
+
+  store.setActiveProfile(a);
+  eq(sess.active().id, mine, '채이 세션이 사라짐');
+  sess.abandon();
+  store.setActiveProfile(b2); sess.abandon();
+  store.setActiveProfile(a);
+});
+t('한 아이를 지워도 다른 아이는 남는다', () => {
+  const [a, b2] = store.profiles().map((p) => p.id);
+  const next = store.deleteProfile(b2);
+  eq(store.profiles().length, 1);
+  eq(next, a, '남은 아이로 활성이 옮겨가야 함');
+  eq(store.activeProfile().name, '채이');
+  eq(wal.balance(), 500, '지우면서 남은 아이 저금통이 날아감');
+});
+t('활성 아이를 지우면 남은 아이로 옮겨간다', () => {
+  const c = store.createProfile({ name: '친구', grade: 3, avatar: '🐢' });
+  eq(store.activeProfile().id, c);
+  const next = store.deleteProfile(c);
+  eq(store.activeProfile().name, '채이');
+  ok(next);
+});
+t('마지막 아이를 지우면 아무도 안 남는다', () => {
+  const only = store.profiles()[0].id;
+  eq(store.deleteProfile(only), null);
+  eq(store.profiles().length, 0);
+  eq(store.activeProfile(), null, '온보딩으로 돌아가야 함');
+});
+
+console.log('\n[학년]');
+t('초1은 곱셈구구가 열리지 않는다', () => {
+  store.resetAll();
+  store.createProfile({ name: '1학년', grade: 1, avatar: '🐣' });
+  eq(sess.openSkills(), ['addsub']);
+  ok(!gr.hasSkill('mul', 1), '초1에게 곱셈구구가 열림');
+  ok(gr.hasSkill('mul', 2), '초2에게 곱셈구구가 안 열림');
+});
+t('초1의 덧뺄셈은 한 자리 그대로 나온다', () => {
+  sess.startOrResume('addsub');
+  for (let i = 0; i < 12; i++) {
+    const q = sess.active()?.question;
+    if (!q) break;
+    ok(q.ctx.x < 20 && q.ctx.y < 10, `두 자리가 나옴: ${q.prompt}`);
+    sess.submit(q.answer);
+  }
+  sess.finish();
+});
+t('초1 진단은 덧뺄셈 문항으로 나온다', () => {
+  eq(sess.placementSkill(), 'addsub');
+  const qs = sess.placementQuestions();
+  ok(qs.length > 0);
+  ok(qs.every((q) => q.skillId === 'addsub'), '진단에 곱셈구구가 섞임');
+  ok(qs.every((q) => q.ctx.x < 20), '진단 문항이 두 자리로 나옴');
+});
+t('초2는 두 자리로 감싸서 나온다', () => {
+  store.resetAll();
+  store.createProfile({ name: '2학년', grade: 2, avatar: '🦊' });
+  eq(sess.placementSkill(), 'mul');
+  sess.startOrResume('addsub');
+  let sawTwoDigit = false;
+  for (let i = 0; i < 12; i++) {
+    const q = sess.active()?.question;
+    if (!q) break;
+    if (q.ctx.x >= 20) sawTwoDigit = true;
+    sess.submit(q.answer);
+  }
+  sess.finish();
+  ok(sawTwoDigit, '초2인데 한 자리만 나옴');
+});
+t('학년을 바꾸면 열리는 스킬도 바뀐다', () => {
+  eq(sess.openSkills().length, 2);
+  store.updateProfile({ grade: 1 });
+  eq(sess.openSkills(), ['addsub']);
+  store.updateProfile({ grade: 2 });
+  eq(sess.openSkills().length, 2);
+});
+t('없는 학년은 2학년 기준으로 떨어진다', () => {
+  eq(gr.of(9).label, gr.GRADES[2].label);
+  eq(gr.of(undefined).label, '2학년');
+});
+
+console.log('\n[저금통 켜고 끄기]');
+t('끄면 완주해도 적립되지 않는다', () => {
+  store.resetAll();
+  store.createProfile({ name: '친구', grade: 2, avatar: '🐨' });
+  wal.setConfig({ enabled: false });
+  ok(!wal.enabled());
+  eq(wal.awardForSession({ newStickers: ['3단'] }, { weeklyGoalMet: true }).length, 0);
+  eq(wal.awardForRally(), null);
+  eq(wal.balance(), 0);
+});
+t('다시 켜면 적립된다', () => {
+  wal.setConfig({ enabled: true });
+  ok(wal.enabled());
+  ok(wal.awardForSession({ newStickers: [] }).length > 0);
+  ok(wal.balance() > 0);
+});
+t('저금통 설정은 아이별로 따로다', () => {
+  const on = store.activeProfile().id;
+  const off = store.createProfile({ name: '손님', grade: 2, avatar: '🌸' });
+  wal.setConfig({ enabled: false });
+  ok(!wal.enabled(), '새 아이는 꺼둘 수 있어야 함');
+  store.setActiveProfile(on);
+  ok(wal.enabled(), '한 아이를 끄니 다른 아이도 꺼짐');
+  store.setActiveProfile(off);
+});
+t('기본값은 켜짐 (기존 아이 동작이 안 바뀐다)', () => {
+  store.resetAll();
+  store.createProfile({ name: '기본', grade: 2, avatar: '⭐️' });
+  ok(wal.enabled());
+});
+
 console.log('\n[백업]');
 t('내보내고 다시 불러오면 기록이 그대로다', () => {
   const before = store.exportJSON();
@@ -526,6 +677,26 @@ t('내보내고 다시 불러오면 기록이 그대로다', () => {
   store.importJSON(before);
   eq(store.profiles().length, 1);
   eq(store.pdata().sessions.length, sessions);
+});
+t('백업 하나에 모든 아이가 담기고 전원이 복구된다', () => {
+  store.resetAll();
+  const a = store.createProfile({ name: '채이', grade: 2, avatar: '🦄' });
+  wal.adjust(700, '채이');
+  const b2 = store.createProfile({ name: '조카', grade: 1, avatar: '🐧' });
+  wal.adjust(300, '조카');
+
+  const dump = store.exportJSON();
+  store.resetAll();
+  eq(store.profiles().length, 0);
+
+  store.importJSON(dump);
+  eq(store.profiles().length, 2, '한 명만 복구됨');
+  store.setActiveProfile(a);
+  eq(wal.balance(), 700, '채이 저금통이 안 돌아옴');
+  eq(store.activeProfile().grade, 2);
+  store.setActiveProfile(b2);
+  eq(wal.balance(), 300, '조카 저금통이 안 돌아옴');
+  eq(store.activeProfile().grade, 1, '학년이 안 돌아옴');
 });
 t('엉뚱한 파일은 거부한다', () => {
   let threw = false;

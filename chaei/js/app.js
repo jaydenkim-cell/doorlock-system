@@ -13,6 +13,7 @@ import { result } from './ui/screens/result.js';
 import { parent } from './ui/screens/parent.js';
 import { rally } from './ui/screens/rally.js';
 import { placement } from './ui/screens/placement.js';
+import { who } from './ui/screens/who.js';
 
 const root = document.getElementById('app');
 
@@ -24,6 +25,8 @@ const SCREENS = {
   parent:  (go) => parent(go),
   rally:     (go, p) => rally(go, p || {}),
   placement: (go, p) => placement(go, p || {}),
+  who:       (go) => who(go),
+  onboard2:  (go) => onboard(go, { first: false }),   // 둘째 아이 추가
 };
 
 let current = null;
@@ -46,6 +49,8 @@ function boot() {
   window.addEventListener('pointerdown', () => fx.unlock(), { once: true });
 
   if (!store.activeProfile()) { go('onboard'); return; }
+  // 아이가 여럿이면 누가 쓸 건지 먼저 고른다
+  if (store.profiles().length > 1) { go('who'); return; }
   go('home');
 }
 

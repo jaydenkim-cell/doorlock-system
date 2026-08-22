@@ -16,6 +16,7 @@
 export const id = 'addsub';
 export const title = '받아올림·받아내림';
 export const emoji = '➕';
+export const mapTitle = '받아올림 지도';
 
 /** 곱셈구구와 같은 형태 체계. minLevel 에서 열리고 weight 만큼 자주 나온다. */
 export const VARIANTS = [
@@ -81,9 +82,14 @@ function shuffle(arr) {
   return a;
 }
 
-/** 핵심 한 자리 계산에 십의 자리 옷을 입혀 두 자리 문제로 만든다 */
-function dress(key) {
+/**
+ * 핵심 한 자리 계산에 십의 자리 옷을 입혀 두 자리 문제로 만든다.
+ * 초1은 아직 두 자리를 안 배웠으므로 plain 이면 옷을 입히지 않고
+ * 7 + 8 / 15 − 8 을 그대로 낸다.
+ */
+function dress(key, plain) {
   const { a, op, b } = parseFact(key);
+  if (plain) return { x: a, y: b, op };
   if (op === '+') {
     // a + b >= 10 이므로 십의 자리 합이 8을 넘으면 세 자리가 된다
     const t1 = randInt(1, 7);
@@ -167,8 +173,8 @@ export function diagnose(key, given, ctx) {
  * 세션에 넣을 문항 하나를 만든다.
  * 형태가 무엇이든 factKey 는 그대로 유지된다 — 간격 반복이 깨지지 않도록.
  */
-export function makeQuestion(key, box = 0, variant = 'basic') {
-  const { x, y, op } = dress(key);
+export function makeQuestion(key, box = 0, variant = 'basic', opts = {}) {
+  const { x, y, op } = dress(key, opts.plain);
   const sign = op === '+' ? '+' : '−';
   const total = op === '+' ? x + y : x - y;
   const use = VARIANTS.some((v) => v.id === variant) ? variant : 'basic';

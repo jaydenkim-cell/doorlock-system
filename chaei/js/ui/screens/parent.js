@@ -15,6 +15,7 @@ import * as srs from '../../srs.js';
 import * as sess from '../../session.js';
 import * as difficulty from '../../difficulty.js';
 import * as allowance from '../../allowance.js';
+import * as grades from '../../grades.js';
 
 export function parent(go) {
   const pin = store.settings().parentPin;
@@ -79,6 +80,7 @@ function dashboard(go) {
       h('div', { class: 'box' }, h('b', {}, avgMs ? fmtSec(avgMs) : '–'), h('span', {}, `평균 (목표 ${fmtSec(s.targetMs)})`)),
     ),
 
+    kidsCard(go),
     walletCard(go),
     levelCard(),
     weakCard(),
@@ -102,12 +104,100 @@ function dashboard(go) {
 }
 
 /**
+ * 아이 관리 — 추가 / 학년 / 삭제
+ *
+ * 진도·저금통·난이도가 전부 아이별로 나뉘어 있어서(state.js 의 data[profileId])
+ * 여기서 만들기만 하면 나머지는 저절로 분리된다.
+ */
+function kidsCard(go) {
+  const list = store.profiles();
+  const activeId = store.activeProfile()?.id;
+  const card = h('div', { class: 'card' });
+
+  const rows = list.map((p) => {
+    const isActive = p.id === activeId;
+    const row = h('div', { class: 'kid-row' },
+      h('div', { class: 'who-face sm' }, p.avatar),
+      h('div', { style: { flex: '1' } },
+        h('div', { style: { fontWeight: '800' } }, p.name,
+          isActive ? h('span', { class: 'chip', style: { marginLeft: '6px', fontSize: '11px' } }, '지금') : null),
+        h('div', { class: 'muted' }, grades.of(p.grade).label),
+      ),
+    );
+
+    // 학년 바꾸기
+    for (const g of grades.GRADE_KEYS) {
+      row.append(h('button', {
+        class: 'btn btn-sm' + (p.grade === g ? '' : ' btn-ghost'),
+        style: p.grade === g ? { background: 'var(--grape)', color: '#fff', boxShadow: '0 3px 0 var(--grape-d)' } : {},
+        onclick: () => {
+          const was = store.activeProfile()?.id;
+          store.setActiveProfile(p.id);
+          store.updateProfile({ grade: g });
+          if (was && was !== p.id) store.setActiveProfile(was);
+          toast(`${p.name} · ${grades.GRADES[g].label}`);
+          go('parent');
+        },
+      }, String(g)));
+    }
+
+    row.append(h('button', { class: 'btn btn-sm btn-ghost', onclick: () => removeKid(p) }, '삭제'));
+    return row;
+  });
+
+  function removeKid(p) {
+    const was = store.activeProfile()?.id;
+    store.setActiveProfile(p.id);
+    const bal = allowance.enabled() ? allowance.balance() : 0;
+    if (was && was !== p.id) store.setActiveProfile(was);
+
+    // 잔액은 실제 돈 약속이다. 지우기 전에 금액을 보여주고 한 번 더 묻는다.
+    const warn = bal > 0
+      ? `\n\n저금통에 ${allowance.won(bal)}이 남아 있어요. 함께 사라집니다.`
+      : '';
+    if (!confirm(`${p.name}의 진도와 기록을 모두 지울까요?${warn}\n\n되돌릴 수 없어요.`)) return;
+
+    const next = store.deleteProfile(p.id);
+    toast(`${p.name}을(를) 지웠어요`);
+    go(next ? 'parent' : 'onboard');
+  }
+
+  card.append(
+    h('h3', {}, `👧 아이 (${list.length}명)`),
+    ...rows,
+    h('button', { class: 'btn btn-sm btn-ghost', style: { marginTop: '10px' },
+      onclick: () => go('onboard2') }, '+ 아이 추가'),
+    list.length > 1
+      ? h('div', { class: 'note', style: { marginTop: '10px' } },
+          '아이가 여럿이면 앱을 켤 때 "누구야?" 화면이 먼저 뜹니다. ' +
+          '홈 화면 왼쪽 위 얼굴을 눌러도 바꿀 수 있어요.')
+      : null,
+    h('div', { class: 'muted', style: { marginTop: '8px', fontSize: '13px' } },
+      '숫자는 학년이에요. 1학년은 곱셈구구를 잠그고 받아올림을 한 자리로 냅니다. ' +
+      '지금은 1~3학년 내용만 있어요.'),
+  );
+  return card;
+}
+
+/**
  * 용돈 저금통 — 잔액, 적립 내역, 현금 지급.
  *
  * 여기 적힌 잔액은 실제 돈 약속이다. 그래서 지급에는 잠금 번호를 반드시 요구하고,
  * 지급 내역을 남겨서 나중에 "언제 얼마 줬더라"가 서로 확인 가능하게 한다.
  */
 function walletCard(go) {
+  if (!allowance.enabled()) {
+    const off = h('div', { class: 'card' });
+    const on = h('button', { class: 'btn btn-sm btn-ghost', onclick: () => {
+      allowance.setConfig({ enabled: true }); go('parent');
+    } }, '켜기');
+    off.append(
+      h('div', { class: 'row' },
+        h('h3', { style: { flex: '1', marginBottom: '0' } }, '🐷 용돈 저금통'), on),
+      h('div', { class: 'muted', style: { marginTop: '8px' } },
+        '이 아이는 저금통을 쓰지 않아요'));
+    return off;
+  }
   const c = allowance.config();
   const bal = allowance.balance();
   const weeks = allowance.weeksToGoal();
@@ -133,8 +223,18 @@ function walletCard(go) {
     go('parent');
   };
 
+  const onoff = h('button', { class: 'btn btn-sm' + (allowance.enabled() ? '' : ' btn-ghost') },
+    allowance.enabled() ? '켜짐' : '꺼짐');
+  onoff.addEventListener('click', () => {
+    allowance.setConfig({ enabled: !allowance.enabled() });
+    toast(allowance.enabled() ? '저금통을 켰어요' : '저금통을 껐어요');
+    go('parent');
+  });
+
   card.append(
-    h('h3', {}, '🐷 용돈 저금통'),
+    h('div', { class: 'row' },
+      h('h3', { style: { flex: '1', marginBottom: '0' } }, '🐷 용돈 저금통'), onoff),
+    h('div', { style: { height: '10px' } }),
     h('div', { class: 'row', style: { marginBottom: '10px' } },
       h('b', { style: { fontSize: '30px', fontVariantNumeric: 'tabular-nums' } }, allowance.won(bal)),
       h('div', { class: 'spacer' }),
@@ -368,7 +468,8 @@ function backupCard() {
   return h('div', { class: 'card' },
     h('h3', {}, '💾 백업'),
     h('div', { class: 'note', style: { marginBottom: '10px' } },
-      '기록은 이 브라우저 안에만 있습니다. 브라우저 저장소를 지우면 사라지니 가끔 백업해 두세요.'),
+      '백업 하나에 모든 아이의 기록과 저금통이 함께 담깁니다. ' +
+      '브라우저 저장소를 지우면 사라지니 가끔 받아 두세요.'),
     h('div', { class: 'row', style: { marginBottom: '10px' } },
       h('button', { class: 'btn btn-sm btn-ghost', onclick: async () => {
         const text = store.exportJSON();

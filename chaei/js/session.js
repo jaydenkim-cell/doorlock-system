@@ -12,12 +12,18 @@ import * as store from './state.js';
 import * as srs from './srs.js';
 import * as difficulty from './difficulty.js';
 import * as allowance from './allowance.js';
+import * as grades from './grades.js';
 import * as multiply from './generators/multiply.js';
 import * as addsub from './generators/addsub.js';
 
 export const SKILLS = { [multiply.id]: multiply, [addsub.id]: addsub };
 
 export function skill(skillId) { return SKILLS[skillId]; }
+
+/** 지금 프로필의 학년에서 열려 있는 스킬 목록 */
+export function openSkills() {
+  return grades.of().skills.filter((id) => SKILLS[id]);
+}
 
 /** 이 스킬에서 지금 복습할 때가 된 문항 수 (홈 화면 배지용) */
 export function dueCount(skillId, groupId) {
@@ -136,7 +142,8 @@ function nextQuestion(sess) {
   const level = difficulty.levelOf(sess.skillId);
   // 직전 문항과 같은 형태는 피한다. 연속 두 번이면 다양해진 느낌이 사라진다.
   const variant = difficulty.pickVariant(gen, key, level, sess.lastVariant);
-  const q = gen.makeQuestion(key, boxOf(sess.skillId, key), variant);
+  // 학년에 따라 덧뺄셈을 한 자리로 낼지 두 자리로 감쌀지가 갈린다
+  const q = gen.makeQuestion(key, boxOf(sess.skillId, key), variant, grades.questionOpts());
   sess.lastVariant = q.variant;
   return q;
 }
@@ -148,7 +155,7 @@ export function startOrResume(skillId, groupId = null) {
   if (a && a.skillId === skillId && (a.groupId ?? null) === groupId) return a;
 
   const sess = {
-    id: 's' + Date.now().toString(36),
+    id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
     skillId,
     groupId,
     startedAt: Date.now(),
@@ -343,7 +350,7 @@ export function rallyQuestion(skillId, prevVariant) {
   const key = pool[Math.floor(Math.random() * pool.length)];
   const level = difficulty.levelOf(skillId);
   const variant = difficulty.pickVariant(gen, key, level, prevVariant);
-  return gen.makeQuestion(key, 1, variant); // box 1 → 보기 없이 직접 입력
+  return gen.makeQuestion(key, 1, variant, grades.questionOpts()); // box 1 → 직접 입력
 }
 
 export function rallyRecord(skillId, q, given, ms) {
@@ -384,9 +391,14 @@ export function rallyBest(skillId) {
 
 const PLACEMENT_FAST_MS = 4000;
 
-export function placementQuestions(skillId = 'mul') {
+/** 진단에 쓸 스킬은 학년이 정한다 (초1은 곱셈구구를 아직 안 배웠다) */
+export function placementSkill() {
+  return grades.of().placementSkill;
+}
+
+export function placementQuestions(skillId = placementSkill()) {
   const gen = SKILLS[skillId];
-  return gen.placementFacts().map((k) => gen.makeQuestion(k, 0, 'basic'));
+  return gen.placementFacts().map((k) => gen.makeQuestion(k, 0, 'basic', grades.questionOpts()));
 }
 
 /**
@@ -394,6 +406,7 @@ export function placementQuestions(skillId = 'mul') {
  * @returns {{seeded:number, known:string[], weak:string[]}}
  */
 export function applyPlacement(skillId, results) {
+  skillId = skillId || placementSkill();
   const gen = SKILLS[skillId];
   const byGroup = new Map();
   for (const g of gen.groups()) byGroup.set(g.id, { group: g, hits: [] });
