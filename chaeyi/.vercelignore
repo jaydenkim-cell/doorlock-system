@@ -1,0 +1,4 @@
+# 배포에 올릴 필요 없는 것들
+test/
+docs/
+README.md

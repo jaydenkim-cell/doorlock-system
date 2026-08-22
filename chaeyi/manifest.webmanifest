@@ -1,0 +1,15 @@
+{
+  "name": "채이 수학",
+  "short_name": "채이수학",
+  "description": "초등 2학년 곱셈구구·받아올림 연습",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fdf6ec",
+  "theme_color": "#fdf6ec",
+  "lang": "ko",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
