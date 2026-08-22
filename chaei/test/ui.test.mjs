@@ -67,6 +67,18 @@ await shot('1-onboard');
 await page.locator('button[aria-label="🦄"]').click();
 await page.locator('button:has-text("시작하기")').click();
 
+console.log('\n[부모 잠금]');
+await page.waitForSelector('text=부모님 잠금 번호');
+ok(true, '첫 실행에서 잠금 번호를 반드시 정하게 한다');
+const punch = async (code) => { for (const c of code) await page.locator(`.pad-key:text-is("${c}")`).click(); };
+await punch('1234');
+await page.waitForSelector('text=한 번 더');
+await punch('1239');                       // 일부러 다르게
+await page.waitForSelector('text=부모님 잠금 번호');
+ok(true, '두 번이 다르면 처음부터 다시 받는다');
+await punch('1234'); await page.waitForSelector('text=한 번 더'); await punch('1234');
+await shot('1b-lock');
+
 console.log('\n[실력 진단]');
 await page.waitForSelector('.q');
 ok(await page.locator('text=어디까지 아는지').isVisible(), '온보딩 다음에 진단 판이 나온다');
@@ -210,8 +222,13 @@ await page.locator('.icon-btn').click();
 console.log('\n[부모 화면]');
 await page.waitForSelector('.map');
 await page.locator('button[title="부모님 화면"]').click();
+await page.waitForSelector('text=비밀번호를 눌러주세요');
+ok(true, '부모 화면은 잠금 번호를 먼저 묻는다');
+for (const c of '9999') await page.locator(`.pad-key:text-is("${c}")`).click();
+ok(await page.locator('text=비밀번호를 눌러주세요').isVisible(), '틀린 번호로는 안 열린다');
+for (const c of '1234') await page.locator(`.pad-key:text-is("${c}")`).click();
 await page.waitForSelector('.parent');
-ok(await page.locator('text=학습 리포트').isVisible(), '리포트가 열린다');
+ok(await page.locator('text=학습 리포트').isVisible(), '맞는 번호면 리포트가 열린다');
 ok(await page.locator('text=용돈 저금통').isVisible(), '저금통 관리가 있다');
 ok(await page.locator('text=지금 난이도').isVisible(), '난이도 상태가 보인다');
 ok(await page.locator('text=지금 약한 곳').isVisible(), '약한 곳 섹션');
@@ -236,13 +253,15 @@ await page.waitForTimeout(200);
 console.log('\n[현금화 안전장치]');
 const noPin = await page.evaluate(() => {
   const w = window.__chaei;
+  const keep = w.store.settings().parentPin;
   w.store.updateSettings({ parentPin: '' });
-  return w.allowance.payout(10).reason;
+  const r = w.allowance.payout(10).reason;
+  w.store.updateSettings({ parentPin: keep });   // 바로 되돌린다
+  return r;
 });
 ok(noPin === 'PIN_REQUIRED', '잠금 번호가 없으면 현금화가 막힌다');
 const paid = await page.evaluate(() => {
   const w = window.__chaei;
-  w.store.updateSettings({ parentPin: '1234' });
   w.allowance.adjust(1000, '테스트');
   const before = w.allowance.balance();
   const r = w.allowance.payout(300, '문방구');

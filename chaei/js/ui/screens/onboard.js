@@ -97,7 +97,9 @@ export function onboard(go, { first = true } = {}) {
       // 학년에 맞는 난이도로 시작하고, 저금통 여부를 이 아이에게만 적용한다
       difficulty.setPreset(grades.of(grade).defaultPreset);
       allowance.setConfig({ enabled: piggy });
-      go('placement');
+      // 첫 아이라면 부모 잠금부터 정한다. 저금통과 설정을 아이가 못 건드리게.
+      go(first && !store.settings().parentPin ? 'lock' : 'placement',
+         first ? { next: 'placement' } : undefined);
     } }, first ? '시작하기' : '만들기'),
     !first
       ? h('button', { class: 'btn btn-block btn-ghost', onclick: () => go('parent') }, '취소')

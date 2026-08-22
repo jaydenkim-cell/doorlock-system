@@ -19,7 +19,8 @@ import * as grades from '../../grades.js';
 
 export function parent(go) {
   const pin = store.settings().parentPin;
-  if (!pin) return dashboard(go);
+  // 잠금이 없으면 대시보드를 그냥 열지 않는다. 이 뒤에 저금통 현금 지급이 있다.
+  if (!pin) { go('lock', { next: 'parent' }); return h('div', { class: 'screen' }); }
 
   const root = h('div', { class: 'screen' });
   let entry = '';

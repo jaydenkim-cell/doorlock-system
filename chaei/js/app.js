@@ -14,6 +14,7 @@ import { parent } from './ui/screens/parent.js';
 import { rally } from './ui/screens/rally.js';
 import { placement } from './ui/screens/placement.js';
 import { who } from './ui/screens/who.js';
+import { lock } from './ui/screens/lock.js';
 
 const root = document.getElementById('app');
 
@@ -27,6 +28,7 @@ const SCREENS = {
   placement: (go, p) => placement(go, p || {}),
   who:       (go) => who(go),
   onboard2:  (go) => onboard(go, { first: false }),   // 둘째 아이 추가
+  lock:      (go, p) => lock(go, p || {}),
 };
 
 let current = null;
@@ -65,5 +67,17 @@ if (!window.__CHAEI_SINGLE_FILE__ && 'serviceWorker' in navigator) {
 window.addEventListener('error', (e) => console.error('[채이앱]', e.message));
 boot();
 
-// 개발/검증용 훅 (Playwright 등에서 상태를 확인하기 위해)
-window.__chaei = { store, go, sess, allowance, difficulty };
+/**
+ * 개발·검증용 훅.
+ *
+ * 배포된 주소에서는 열지 않는다. 저금통은 실제 돈 약속이라
+ * 개발자도구에서 window.__chaei.allowance.adjust(999999) 한 줄이면
+ * 잔액을 마음대로 만들 수 있게 된다. 초2가 그럴 일은 없겠지만
+ * 형이나 친구가 옆에 있을 수도 있고, 무엇보다 열어둘 이유가 없다.
+ *
+ * 로컬(테스트)과 ?debug=1 을 붙였을 때만 켠다.
+ */
+const isLocal = ['localhost', '127.0.0.1', '0.0.0.0', ''].includes(location.hostname);
+if (isLocal || new URLSearchParams(location.search).has('debug')) {
+  window.__chaei = { store, go, sess, allowance, difficulty };
+}
