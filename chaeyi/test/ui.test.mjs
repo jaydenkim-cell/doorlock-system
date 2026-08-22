@@ -1,19 +1,19 @@
 /**
  * 브라우저 시나리오 테스트
  *   python3 -m http.server 7777  로 서버를 띄운 뒤
- *   CHROMIUM=<크로미움경로> node chaei/test/ui.test.mjs /tmp/shots
+ *   CHROMIUM=<크로미움경로> node chaeyi/test/ui.test.mjs /tmp/shots
  *
- * 단일 파일 빌드(dist/chaei-standalone.html)를 검증할 때는 BUNDLE=1 을 준다.
+ * 단일 파일 빌드(dist/chaeyi-standalone.html)를 검증할 때는 BUNDLE=1 을 준다.
  * manifest·서비스워커·오프라인 3개는 단일 파일에 해당 없는 항목이라 건너뛴다.
  * 나머지 시나리오는 그대로 돌아야 한다 — 번들이 원본과 다르게 동작하면 안 되므로.
  *
  * 문제 형태가 6종이라 화면을 파싱해서 정답을 알아내지 않는다.
- * window.__chaei 로 현재 문항을 읽어서 형태에 맞는 방식으로 답한다.
+ * window.__chaeyi 로 현재 문항을 읽어서 형태에 맞는 방식으로 답한다.
  */
 import { chromium } from 'playwright';
-const SHOT = process.argv[2] || '/tmp/chaei-shots';
+const SHOT = process.argv[2] || '/tmp/chaeyi-shots';
 await (await import('node:fs/promises')).mkdir(SHOT, { recursive: true });
-const URL = process.env.APP_URL || 'http://localhost:7777/chaei/';
+const URL = process.env.APP_URL || 'http://localhost:7777/chaeyi/';
 const BUNDLE = !!process.env.BUNDLE;
 let fails = 0;
 const ok = (c, m) => { console.log((c ? '  ✓ ' : '  ✗ ') + m); if (!c) fails++; };
@@ -29,7 +29,7 @@ const shot = async (name, full = false) => {
   await page.screenshot({ path: `${SHOT}/${name}.png`, fullPage: full });
 };
 
-const current = () => page.evaluate(() => window.__chaei.store.pdata().activeSession?.question || null);
+const current = () => page.evaluate(() => window.__chaeyi.store.pdata().activeSession?.question || null);
 
 /** 현재 문항에 답한다. wrong=true 면 일부러 틀린다. */
 async function answerCurrent({ wrong = false } = {}) {
@@ -131,14 +131,14 @@ await page.locator('.flash.no button').click();
 console.log('\n[중단 복구]');
 await page.waitForSelector('.q');
 const before = await page.evaluate(() => {
-  const s = window.__chaei.store.pdata().activeSession;
+  const s = window.__chaeyi.store.pdata().activeSession;
   return { key: s.question.factKey, variant: s.question.variant, index: s.index };
 });
 await page.reload({ waitUntil: 'networkidle' });
 await page.locator('button:has-text("이어서 하기")').click();
 await page.waitForSelector('.q');
 const after = await page.evaluate(() => {
-  const s = window.__chaei.store.pdata().activeSession;
+  const s = window.__chaeyi.store.pdata().activeSession;
   return { key: s.question.factKey, variant: s.question.variant, index: s.index };
 });
 ok(before.key === after.key && before.index === after.index,
@@ -197,7 +197,7 @@ ok(Number(t1) < Number(t0), `타이머가 줄어든다 (${t0} → ${t1})`);
 
 // 랠리는 세션이 아니라서 activeSession 이 없다. 화면에서 직접 답한다.
 const boxBefore = await page.evaluate(() => {
-  const d = window.__chaei.store.pdata();
+  const d = window.__chaeyi.store.pdata();
   return Object.values(d.mastery).map((m) => m.box).reduce((a, x) => a + x, 0);
 });
 for (let i = 0; i < 3; i++) {
@@ -212,7 +212,7 @@ for (let i = 0; i < 3; i++) {
   await page.waitForTimeout(150);
 }
 const boxAfter = await page.evaluate(() => {
-  const d = window.__chaei.store.pdata();
+  const d = window.__chaeyi.store.pdata();
   return Object.values(d.mastery).map((m) => m.box).reduce((a, x) => a + x, 0);
 });
 ok(boxAfter >= boxBefore, '랠리에서 틀려도 진도가 깎이지 않는다');
@@ -240,19 +240,19 @@ console.log('\n[난이도 조정]');
 await page.locator('.card:has-text("설정") button:has-text("도전")').click();
 await page.waitForTimeout(300);
 const hard = await page.evaluate(() => {
-  const s = window.__chaei.store.settings();
+  const s = window.__chaeyi.store.settings();
   return { difficulty: s.difficulty, targetMs: s.targetMs };
 });
 ok(hard.difficulty === 'hard' && hard.targetMs === 2500,
    `도전을 고르면 목표 시간도 따라온다 → ${JSON.stringify(hard)}`);
-const lv = await page.evaluate(() => window.__chaei.store.pdata().levels.mul.level);
+const lv = await page.evaluate(() => window.__chaeyi.store.pdata().levels.mul.level);
 ok(lv >= 4, `도전은 레벨을 4 이상으로 끌어올린다 → ${lv}`);
 await page.locator('.card:has-text("설정") button:has-text("자동")').click();
 await page.waitForTimeout(200);
 
 console.log('\n[현금화 안전장치]');
 const noPin = await page.evaluate(() => {
-  const w = window.__chaei;
+  const w = window.__chaeyi;
   const keep = w.store.settings().parentPin;
   w.store.updateSettings({ parentPin: '' });
   const r = w.allowance.payout(10).reason;
@@ -261,7 +261,7 @@ const noPin = await page.evaluate(() => {
 });
 ok(noPin === 'PIN_REQUIRED', '잠금 번호가 없으면 현금화가 막힌다');
 const paid = await page.evaluate(() => {
-  const w = window.__chaei;
+  const w = window.__chaeyi;
   w.allowance.adjust(1000, '테스트');
   const before = w.allowance.balance();
   const r = w.allowance.payout(300, '문방구');
@@ -284,14 +284,14 @@ await page.locator('button:has-text("만들기")').click();
 
 console.log('\n[초1 화면]');
 await page.waitForSelector('.q');
-const placeSkill = await page.evaluate(() => window.__chaei.sess.placementSkill());
+const placeSkill = await page.evaluate(() => window.__chaeyi.sess.placementSkill());
 ok(placeSkill === 'addsub', `초1 진단은 곱셈구구가 아니다 → ${placeSkill}`);
 await page.locator('.icon-btn').click();          // 진단 건너뛰기
 await page.waitForSelector('.screen');
 ok(!(await page.locator('text=구구단 지도').count()), '초1에게 구구단 지도가 안 보인다');
 ok(await page.locator('text=받아올림 지도').isVisible(), '받아올림 지도가 대신 보인다');
 ok(!(await page.locator('.piggy').count()), '저금통을 끈 아이는 저금통 카드가 없다');
-const openSkills = await page.evaluate(() => window.__chaei.sess.openSkills());
+const openSkills = await page.evaluate(() => window.__chaeyi.sess.openSkills());
 ok(JSON.stringify(openSkills) === '["addsub"]', `초1 스킬 → ${openSkills}`);
 await shot('11-grade1-home', true);
 
@@ -310,7 +310,7 @@ ok(plainOk, '초1에게 두 자리 문제가 나왔다');
 await shot('12-grade1-question');
 
 console.log('\n[아이 전환]');
-await page.evaluate(() => window.__chaei.go('home'));
+await page.evaluate(() => window.__chaeyi.go('home'));
 await page.waitForSelector('.screen');
 ok(await page.locator('.avatar-swap').isVisible(), '아이가 둘이면 얼굴에 전환 표시가 뜬다');
 await page.locator('button.avatar').click();
@@ -324,7 +324,7 @@ ok(await page.locator('.piggy').isVisible(), '채이는 저금통이 그대로 �
 
 console.log('\n[진도가 섞이지 않는다]');
 const split = await page.evaluate(() => {
-  const { store, allowance } = window.__chaei;
+  const { store, allowance } = window.__chaeyi;
   const out = {};
   for (const p of store.profiles()) {
     store.setActiveProfile(p.id);
@@ -339,7 +339,7 @@ ok(split['민준'].won === null && split['채이'].won !== null,
 ok(split['민준'].grade === 1 && split['채이'].grade === 2, '학년이 각자 유지된다');
 
 console.log('\n[백업]');
-const exported = await page.evaluate(() => window.__chaei.store.exportJSON());
+const exported = await page.evaluate(() => window.__chaeyi.store.exportJSON());
 ok(exported.includes('mastery') && exported.includes('wallet') && exported.length > 500,
    '내보내기에 진도와 저금통이 함께 담긴다');
 ok(exported.includes('채이') && exported.includes('민준'), '백업 하나에 두 아이가 모두 담긴다');

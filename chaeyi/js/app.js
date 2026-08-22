@@ -58,7 +58,7 @@ function boot() {
 
 // 서비스워커: 오프라인에서도 열리도록. 태블릿은 와이파이가 자주 끊긴다.
 // 단일 파일 빌드에는 sw.js 가 없으므로 건너뛴다 (build-standalone.mjs 가 켜는 플래그).
-if (!window.__CHAEI_SINGLE_FILE__ && 'serviceWorker' in navigator) {
+if (!window.__CHAEYI_SINGLE_FILE__ && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(() => {});
   });
@@ -71,7 +71,7 @@ boot();
  * 개발·검증용 훅.
  *
  * 배포된 주소에서는 열지 않는다. 저금통은 실제 돈 약속이라
- * 개발자도구에서 window.__chaei.allowance.adjust(999999) 한 줄이면
+ * 개발자도구에서 window.__chaeyi.allowance.adjust(999999) 한 줄이면
  * 잔액을 마음대로 만들 수 있게 된다. 초2가 그럴 일은 없겠지만
  * 형이나 친구가 옆에 있을 수도 있고, 무엇보다 열어둘 이유가 없다.
  *
@@ -79,5 +79,5 @@ boot();
  */
 const isLocal = ['localhost', '127.0.0.1', '0.0.0.0', ''].includes(location.hostname);
 if (isLocal || new URLSearchParams(location.search).has('debug')) {
-  window.__chaei = { store, go, sess, allowance, difficulty };
+  window.__chaeyi = { store, go, sess, allowance, difficulty };
 }

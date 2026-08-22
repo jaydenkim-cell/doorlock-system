@@ -10,7 +10,7 @@ Duolingo의 하트·스트릭을 왜 버렸는지, 오답 선지를 왜 무작�
 
 ```bash
 python3 -m http.server 7777      # 저장소 루트에서
-# → http://localhost:7777/chaei/
+# → http://localhost:7777/chaeyi/
 ```
 
 태블릿에서 열고 홈 화면에 추가하면 앱처럼 쓸 수 있다 (오프라인 동작).
@@ -18,7 +18,7 @@ python3 -m http.server 7777      # 저장소 루트에서
 ## 잠금
 
 첫 실행에 부모 잠금 번호(숫자 4자리)를 반드시 정한다. 리포트·난이도·아이 추가와
-삭제·현금 지급이 그 뒤에 있다. 개발용 훅 `window.__chaei` 는 로컬과 `?debug=1`
+삭제·현금 지급이 그 뒤에 있다. 개발용 훅 `window.__chaeyi` 는 로컬과 `?debug=1`
 에서만 열린다 — 배포본에서 열려 있으면 콘솔 한 줄로 저금통을 조작할 수 있다.
 
 ## Vercel 배포
@@ -26,7 +26,7 @@ python3 -m http.server 7777      # 저장소 루트에서
 이 폴더만 배포된다. 저장소의 나머지(도어락 시스템)는 올라가지 않는다.
 
 1. Vercel → **Add New… → Project** → 이 저장소 선택
-2. **Root Directory** 를 `chaei` 로 지정 — 이게 핵심이다
+2. **Root Directory** 를 `chaeyi` 로 지정 — 이게 핵심이다
 3. Framework Preset `Other`, Build Command 비움, Output Directory 비움
 4. **Settings → Git → Production Branch** 를 배포할 브랜치로 지정
 
@@ -43,9 +43,9 @@ python3 -m http.server 7777      # 저장소 루트에서
 
 ```bash
 npm install esbuild playwright --no-save
-node chaei/build-standalone.mjs
-#   dist/chaei-standalone.html   완전한 문서. 아무 정적 호스팅에나 올리거나 파일로 전달
-#   dist/chaei-artifact.html     문서 골격 없는 본문만
+node chaeyi/build-standalone.mjs
+#   dist/chaeyi-standalone.html   완전한 문서. 아무 정적 호스팅에나 올리거나 파일로 전달
+#   dist/chaeyi-artifact.html     문서 골격 없는 본문만
 ```
 
 모듈을 그냥 이어 붙일 수는 없다. `multiply.js` 와 `addsub.js` 가 둘 다
@@ -57,19 +57,19 @@ node chaei/build-standalone.mjs
 ## 테스트
 
 ```bash
-node chaei/test/logic.test.mjs                    # 생성기·SRS·세션 엔진 (브라우저 불필요)
+node chaeyi/test/logic.test.mjs                    # 생성기·SRS·세션 엔진 (브라우저 불필요)
 
 # 주의: package.json 이 없어서 --no-save 로 하나씩 설치하면 앞서 깔린 게 지워진다.
 #      두 개를 한 번에 설치할 것.
 npm install esbuild playwright --no-save          # 브라우저 시나리오
-CHROMIUM=<크로미움 경로> node chaei/test/ui.test.mjs /tmp/shots
+CHROMIUM=<크로미움 경로> node chaeyi/test/ui.test.mjs /tmp/shots
 
 # 루트로 서빙되는 배포 환경과 동일하게 테스트하려면
-APP_URL=http://localhost:7788/ CHROMIUM=<경로> node chaei/test/ui.test.mjs /tmp/shots
+APP_URL=http://localhost:7788/ CHROMIUM=<경로> node chaeyi/test/ui.test.mjs /tmp/shots
 
 # 단일 파일 빌드 검증 (manifest·서비스워커·오프라인 3개는 해당 없어 건너뜀)
-BUNDLE=1 APP_URL=http://localhost:7799/chaei-standalone.html \
-  CHROMIUM=<경로> node chaei/test/ui.test.mjs /tmp/shots
+BUNDLE=1 APP_URL=http://localhost:7799/chaeyi-standalone.html \
+  CHROMIUM=<경로> node chaeyi/test/ui.test.mjs /tmp/shots
 ```
 
 ## 구조

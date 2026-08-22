@@ -3,7 +3,7 @@
  * 태블릿 와이파이는 자주 끊긴다. 앱이 안 열리는 경험이 한 번 있으면
  * 아이는 다시 누르지 않는다.
  */
-const CACHE = 'chaei-v5';
+const CACHE = 'chaeyi-v1';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './icon.svg',
   './css/app.css',

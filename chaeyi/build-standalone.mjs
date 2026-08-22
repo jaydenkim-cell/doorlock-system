@@ -7,9 +7,9 @@
  * 왜 그냥 이어 붙이면 안 되는가: multiply.js 와 addsub.js 가 둘 다
  * id / title / emoji 를 export 한다. 모듈 스코프를 유지하는 진짜 번들러가 필요하다.
  *
- *   node chaei/build-standalone.mjs
- *     dist/chaei-standalone.html   완전한 문서. 아무 정적 호스팅에나 올리거나 파일로 전달
- *     dist/chaei-artifact.html     문서 골격 없는 본문만. Artifact 게시용
+ *   node chaeyi/build-standalone.mjs
+ *     dist/chaeyi-standalone.html   완전한 문서. 아무 정적 호스팅에나 올리거나 파일로 전달
+ *     dist/chaeyi-artifact.html     문서 골격 없는 본문만. Artifact 게시용
  */
 
 import { build } from 'esbuild';
@@ -30,7 +30,7 @@ const bundled = await build({
   charset: 'utf8',
   write: false,
   // 단일 파일에는 sw.js 가 없다. 등록을 남겨두면 404 를 물고 콘솔만 더러워진다.
-  define: { 'window.__CHAEI_SINGLE_FILE__': 'true' },
+  define: { 'window.__CHAEYI_SINGLE_FILE__': 'true' },
 });
 const js = bundled.outputFiles[0].text;
 
@@ -46,11 +46,11 @@ ${css}
 
 // Artifact 용: 게시할 때 doctype/html/head/body 로 감싸주므로 본문만 넣는다
 await mkdir(DIST, { recursive: true });
-await writeFile(join(DIST, 'chaei-artifact.html'),
+await writeFile(join(DIST, 'chaeyi-artifact.html'),
   `${HEAD_BITS}\n${BODY}\n<script>\n${js}</script>\n`);
 
 // 범용: 어디에 올리든 그대로 열리는 완전한 문서
-await writeFile(join(DIST, 'chaei-standalone.html'),
+await writeFile(join(DIST, 'chaeyi-standalone.html'),
 `<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -72,5 +72,5 @@ ${js}</script>
 
 const kb = (s) => (Buffer.byteLength(s) / 1024).toFixed(0) + 'KB';
 console.log(`빌드 완료
-  dist/chaei-standalone.html   ${kb(js) } JS + ${kb(css)} CSS
-  dist/chaei-artifact.html`);
+  dist/chaeyi-standalone.html   ${kb(js) } JS + ${kb(css)} CSS
+  dist/chaeyi-artifact.html`);

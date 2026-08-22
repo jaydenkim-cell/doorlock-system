@@ -71,7 +71,7 @@
 | 12 | 채이를 공동 기획자로 | ✅ | 첫 실행에서 이름과 캐릭터를 직접 고른다 |
 | 13 | 세션 길이 상한 | ✅ | 기본 10문항, 부모 화면에서 6~12 조정 |
 | 14 | 프로필을 처음부터 배열로 | ✅ | 형제자매가 늘어도 데이터 이사 불필요 |
-| 15 | 레포 분리 | ⚠️ | 도어락 발주 시스템 레포의 `chaei/` 하위 폴더. 장기적으로는 별도 레포 권장 |
+| 15 | 레포 분리 | ⚠️ | 도어락 발주 시스템 레포의 `chaeyi/` 하위 폴더. 장기적으로는 별도 레포 권장 |
 
 추가로 반영한 것:
 - **외부 CDN 폰트 제거.** 아이 태블릿은 와이파이가 자주 끊긴다. CDN 폰트는 첫 화면을 늦추고
@@ -276,7 +276,7 @@
    부모 리포트 · 난이도 설정 · 아이 추가/삭제 · 현금 지급이 전부 이 뒤에 있다.
    **진짜 위험은 낯선 사람이 아니라 이 기기를 쓰는 아이다** — 잠금이 없으면
    아이가 난이도를 쉬움으로 바꾸거나 자기 저금통을 현금 처리할 수 있다.
-2. **개발용 훅(`window.__chaei`)을 배포본에서 닫았다.**
+2. **개발용 훅(`window.__chaeyi`)을 배포본에서 닫았다.**
    열려 있으면 개발자도구에서 `allowance.adjust(999999)` 한 줄로 잔액을 만들 수 있다.
    로컬(테스트)과 `?debug=1` 에서만 열린다.
 
@@ -388,14 +388,14 @@ wallet   { balance, lifetime, ledger[{at,kind,amount,note}] }  // 용돈 저금�
 ```bash
 # 로컬 실행
 python3 -m http.server 7777
-# → http://localhost:7777/chaei/
+# → http://localhost:7777/chaeyi/
 
 # 로직 테스트 (브라우저 없이, 36개)
-node chaei/test/logic.test.mjs
+node chaeyi/test/logic.test.mjs
 
 # 브라우저 테스트 (온보딩→세션→중단복구→결과→부모→PWA→오프라인)
 npm install playwright --no-save
-node chaei/test/ui.test.mjs /tmp/shots
+node chaeyi/test/ui.test.mjs /tmp/shots
 ```
 
 `test/ui.test.mjs`는 서버가 `localhost:7777`에 떠 있다고 가정한다.

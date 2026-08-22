@@ -10,7 +10,8 @@
  *    importJSON 을 기본 기능으로 넣는다. (부모 화면에서 백업)
  */
 
-const KEY = 'chaei.store';
+const KEY = 'chaeyi.store';
+const LEGACY_KEY = 'chaei.store';   // 이름을 바꾸기 전에 쓰던 키
 export const SCHEMA_VERSION = 3;
 
 export const DEFAULT_SETTINGS = {
@@ -91,7 +92,8 @@ let store = null;
 export function load() {
   if (store) return store;
   try {
-    const raw = localStorage.getItem(KEY);
+    // 이름을 바꾸기 전에 쌓인 기록이 있으면 그대로 이어받는다
+    const raw = localStorage.getItem(KEY) || localStorage.getItem(LEGACY_KEY);
     store = raw ? migrate(JSON.parse(raw)) : emptyStore();
   } catch (e) {
     console.warn('저장된 데이터를 읽지 못했습니다. 새로 시작합니다.', e);
