@@ -173,6 +173,67 @@ button:disabled{opacity:.35;cursor:default}
 }
 .choice:active{transform:translateY(2px);box-shadow:0 1px 0 var(--line2)}
 
+/* ── 문제 형태별 렌더 ─────────────────────────────── */
+/* 빈칸. 어디를 채워야 하는지가 한눈에 보여야 한다. */
+.expr .blank{
+  display:inline-block;min-width:.9em;
+  color:var(--grape);
+  border-bottom:5px solid var(--grape);
+  line-height:.92;
+}
+.expr span+span{margin-left:.18em}
+
+/* 뛰어세기: 7, 14, 21, ?, 35 */
+.seq{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center}
+.seq-n{
+  min-width:62px;padding:10px 8px;border-radius:16px;
+  background:var(--card2);border:2px solid var(--line);
+  font-size:clamp(24px,7vw,32px);font-weight:800;
+  font-variant-numeric:tabular-nums;
+}
+.seq-n.blank{background:var(--grape-l);border-color:var(--grape);color:var(--grape)}
+
+/* 묶어세기: 이모지 묶음 */
+.grp{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.grp-box{
+  display:flex;flex-wrap:wrap;gap:2px;justify-content:center;align-items:center;
+  max-width:112px;padding:7px 8px;border-radius:14px;
+  background:var(--card2);border:2px dashed var(--line2);
+}
+.grp-e{font-size:20px;line-height:1.1}
+
+/* O / X */
+.oxpad{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ox{
+  min-height:96px;border-radius:22px;font-size:44px;font-weight:800;
+  box-shadow:0 4px 0 var(--line2);transition:transform .05s,box-shadow .05s;
+}
+.ox:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line2)}
+.ox-o{background:var(--mint-l);color:var(--mint);box-shadow:0 4px 0 #bfe6d2}
+.ox-o:active{box-shadow:0 1px 0 #bfe6d2}
+.ox-x{background:var(--coral-l);color:var(--coral);box-shadow:0 4px 0 #f5cec4}
+.ox-x:active{box-shadow:0 1px 0 #f5cec4}
+
+/* ── 콤보 ─────────────────────────────────────────── */
+.combo{display:flex;align-items:center;gap:4px;flex:none;opacity:0;transition:opacity .2s}
+.combo.on{opacity:1}
+.combo b{font-size:14px;font-weight:800;color:var(--sun)}
+.combo span{font-size:17px}
+.combo.hot b{color:var(--coral)}
+.combo.hot span{animation:flicker .7s infinite alternate}
+@keyframes flicker{from{transform:scale(1)}to{transform:scale(1.22)}}
+
+/* ── 60초 랠리 ────────────────────────────────────── */
+.rally-hud{display:flex;align-items:center;gap:12px}
+.rally-time,.rally-score{display:flex;align-items:baseline;gap:3px;flex:none}
+.rally-time b,.rally-score b{font-size:26px;font-weight:800;font-variant-numeric:tabular-nums}
+.rally-time span,.rally-score span{font-size:12px;color:var(--ink3);font-weight:700}
+.rally-time b{color:var(--sky)}
+.rally-score b{color:var(--mint)}
+.rally-bar{flex:1;height:12px;border-radius:6px;background:var(--line);overflow:hidden}
+.rally-bar i{display:block;height:100%;width:100%;border-radius:6px;background:var(--sky);transition:width .1s linear}
+.rally-card .em{font-size:26px}
+
 /* 정답/오답 알림 */
 .flash{
   position:fixed;left:0;right:0;bottom:0;z-index:20;
@@ -201,6 +262,17 @@ button:disabled{opacity:.35;cursor:default}
 .chip{background:var(--grape-l);color:var(--grape-d);border-radius:12px;padding:6px 11px;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums}
 .chip.warn{background:var(--coral-l);color:#b8402a}
 .chip.fast{background:var(--sun-l);color:#a9701a}
+
+/* ── 용돈 저금통 ──────────────────────────────────── */
+.piggy-em{
+  width:52px;height:52px;border-radius:17px;background:var(--mint-l);
+  display:grid;place-items:center;font-size:28px;flex:none;
+}
+.piggy-amt{font-size:26px;font-weight:800;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.piggy-pct{font-size:14px;font-weight:800;color:var(--ink3);flex:none}
+.piggy.full{background:var(--sun-l)}
+.piggy.full .piggy-em{background:#fff}
+.piggy-row{display:flex;align-items:flex-start;gap:14px}
 
 /* ── 부모 화면 ────────────────────────────────────────── */
 .lockpad{max-width:280px;margin:40px auto;text-align:center}

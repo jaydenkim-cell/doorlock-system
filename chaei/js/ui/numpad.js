@@ -76,3 +76,22 @@ export function choices({ options, onSubmit }) {
   el.clear = () => {};
   return el;
 }
+
+/** 참·거짓 문제용 O / X 두 버튼 */
+export function oxpad({ onSubmit }) {
+  const el = document.createElement('div');
+  el.className = 'oxpad';
+  const mk = (label, value, cls) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ox ' + cls;
+    b.textContent = label;
+    b.setAttribute('aria-label', value ? '맞아요' : '틀려요');
+    b.addEventListener('click', () => { fx.tap(); onSubmit(value); });
+    return b;
+  };
+  el.append(mk('O', 1, 'ox-o'), mk('X', 0, 'ox-x'));
+  el.destroy = () => {};
+  el.clear = () => {};
+  return el;
+}

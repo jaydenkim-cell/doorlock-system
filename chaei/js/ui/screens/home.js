@@ -9,6 +9,8 @@ import { h } from '../dom.js';
 import * as store from '../../state.js';
 import * as srs from '../../srs.js';
 import * as sess from '../../session.js';
+import * as difficulty from '../../difficulty.js';
+import * as allowance from '../../allowance.js';
 
 const DAY_LABEL = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -93,6 +95,53 @@ function skillCard(skillId, go) {
   );
 }
 
+/** 저금통. 아이에게 별보다 셀 수 있는 보상이라 홈 위쪽에 크게 둔다. */
+function piggyCard() {
+  const c = allowance.config();
+  const bal = allowance.balance();
+  const pct = Math.round(allowance.progress() * 100);
+  const done = allowance.reachedGoal();
+
+  return h('div', { class: 'card piggy' + (done ? ' full' : '') },
+    h('div', { class: 'row' },
+      h('div', { class: 'piggy-em' }, '🐷'),
+      h('div', { style: { flex: '1' } },
+        h('div', { class: 'piggy-amt' }, allowance.won(bal)),
+        h('div', { class: 'muted' }, done
+          ? '목표를 채웠어요! 부모님께 보여주세요'
+          : `목표 ${allowance.won(c.goal)}까지 ${allowance.won(c.goal - bal)} 남았어요`),
+      ),
+      h('div', { class: 'piggy-pct' }, `${pct}%`),
+    ),
+    h('div', { class: 'bar', style: { marginTop: '10px' } },
+      h('i', { style: { width: `${pct}%`, background: done ? 'var(--sun)' : 'var(--mint)' } })),
+  );
+}
+
+function rallyCard(go) {
+  const best = sess.rallyBest('mul');
+  return h('button', { class: 'skill rally-card', onclick: () => go('rally', { skillId: 'mul' }) },
+    h('div', { class: 'em', style: { background: 'var(--sky-l)' } }, '⚡️'),
+    h('div', { style: { flex: '1' } },
+      h('div', { class: 'h2' }, '60초 랠리'),
+      h('div', { class: 'muted' }, best ? `최고 기록 ${best}개 — 넘어볼까?` : '60초 안에 몇 개 맞힐 수 있을까?'),
+    ),
+    h('div', { class: 'go' }, '›'),
+  );
+}
+
+function placementCard(go) {
+  return h('button', { class: 'skill', style: { background: 'var(--sun-l)' },
+    onclick: () => go('placement', { skillId: 'mul' }) },
+    h('div', { class: 'em', style: { background: '#fff' } }, '🔎'),
+    h('div', { style: { flex: '1' } },
+      h('div', { class: 'h2' }, '어디까지 아는지 볼까요?'),
+      h('div', { class: 'muted' }, '12문항만 풀면 딱 맞는 곳부터 시작해요'),
+    ),
+    h('div', { class: 'go' }, '›'),
+  );
+}
+
 export function home(go) {
   const p = store.activeProfile();
   const d = store.pdata();
@@ -109,7 +158,8 @@ export function home(go) {
       h('div', { class: 'avatar' }, p.avatar),
       h('div', {},
         h('div', { class: 'who' }, `${p.name} 어린이`),
-        h('div', { class: 'muted' }, `초등 ${p.grade}학년 · 별 ${d.sessions.length}개`),
+        h('div', { class: 'muted' },
+          `초등 ${p.grade}학년 · 별 ${d.sessions.length}개 · ${difficulty.preset().label}`),
       ),
       h('div', { class: 'spacer' }),
       h('button', { class: 'icon-btn', title: '부모님 화면', 'aria-label': '부모님 화면',
@@ -119,8 +169,11 @@ export function home(go) {
     h('button', { class: 'btn btn-block', onclick: () => go('session', { skillId: cta.skillId, groupId: cta.groupId }) },
       cta.label),
 
+    sess.placementDone() ? null : placementCard(go),
+    piggyCard(),
     weekCard(),
     mapCard(go),
+    rallyCard(go),
     skillCard('addsub', go),
 
     d.stickers.length

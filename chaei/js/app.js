@@ -3,11 +3,16 @@
 import { h } from './ui/dom.js';
 import * as store from './state.js';
 import * as fx from './feedback.js';
+import * as allowance from './allowance.js';
+import * as difficulty from './difficulty.js';
+import * as sess from './session.js';
 import { onboard } from './ui/screens/onboard.js';
 import { home } from './ui/screens/home.js';
 import { play } from './ui/screens/play.js';
 import { result } from './ui/screens/result.js';
 import { parent } from './ui/screens/parent.js';
+import { rally } from './ui/screens/rally.js';
+import { placement } from './ui/screens/placement.js';
 
 const root = document.getElementById('app');
 
@@ -17,12 +22,19 @@ const SCREENS = {
   session: (go, p) => play(go, p),
   result:  (go, p) => result(go, p),
   parent:  (go) => parent(go),
+  rally:     (go, p) => rally(go, p || {}),
+  placement: (go, p) => placement(go, p || {}),
 };
+
+let current = null;
 
 function go(name, params) {
   // 화면 전환 중에 열려 있던 정답/오답 알림은 정리한다
   document.querySelectorAll('.flash').forEach((e) => e.remove());
+  // 랠리처럼 타이머를 도는 화면은 떠날 때 정리해야 한다
+  if (current?.destroy) current.destroy();
   const view = SCREENS[name](go, params);
+  current = view;
   root.replaceChildren(view);
   window.scrollTo(0, 0);
   history.replaceState({ name }, '', '#' + name);
@@ -49,4 +61,4 @@ window.addEventListener('error', (e) => console.error('[채이앱]', e.message))
 boot();
 
 // 개발/검증용 훅 (Playwright 등에서 상태를 확인하기 위해)
-window.__chaei = { store, go };
+window.__chaei = { store, go, sess, allowance, difficulty };

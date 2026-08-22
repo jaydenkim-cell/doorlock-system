@@ -48,7 +48,8 @@ export function onboard(go) {
     h('button', { class: 'btn btn-block', onclick: () => {
       fx.unlock();
       store.createProfile({ name, grade: 2, avatar: face });
-      go('home');
+      // 곧바로 진단 판으로. 아는 아이에게 2×1부터 가르치지 않기 위해서다.
+      go('placement');
     } }, '시작하기'),
     h('div', { style: { height: '8px' } }),
   );

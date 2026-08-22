@@ -13,6 +13,8 @@ const store = await import(B + 'state.js');
 const srs   = await import(B + 'srs.js');
 const sess  = await import(B + 'session.js');
 const mul   = await import(B + 'generators/multiply.js');
+const diff  = await import(B + 'difficulty.js');
+const wal   = await import(B + 'allowance.js');
 const as    = await import(B + 'generators/addsub.js');
 
 let pass = 0, fail = 0;
@@ -205,6 +207,314 @@ t('받아올림 스킬도 같은 엔진에서 동작한다', () => {
   eq(s.queue.length, 10);
   ok(s.question.prompt.match(/\d+ [+−] \d+/), s.question.prompt);
   sess.abandon();
+});
+
+console.log('\n[문제 형태]');
+const ALL_VARIANTS = mul.VARIANTS.map((v) => v.id);
+t('형태 6종이 정의되어 있다', () => eq(ALL_VARIANTS.length, 6));
+t('형태가 바뀌어도 factKey 가 유지된다 (SRS가 안 깨진다)', () => {
+  for (const key of mul.allFacts()) for (const v of ALL_VARIANTS) {
+    if (!mul.canUse(v, key)) continue;
+    eq(mul.makeQuestion(key, 1, v).factKey, key, `${v} / ${key}`);
+  }
+});
+t('형태별 정답이 실제로 맞다', () => {
+  for (const key of mul.allFacts()) {
+    const { a, b } = mul.parseFact(key);
+    eq(mul.makeQuestion(key, 1, 'basic').answer, a * b, key);
+    eq(mul.makeQuestion(key, 1, 'missingB').answer, b, key);
+    eq(mul.makeQuestion(key, 1, 'missingA').answer, a, key);
+    if (mul.canUse('skip', key)) eq(mul.makeQuestion(key, 1, 'skip').answer, a * b, key);
+    if (mul.canUse('groups', key)) eq(mul.makeQuestion(key, 1, 'groups').answer, a * b, key);
+  }
+});
+t('뛰어세기 수열이 실제 배수이고 빈칸이 정확히 하나다', () => {
+  for (const key of mul.allFacts().filter((k) => mul.canUse('skip', k))) {
+    const { a, b } = mul.parseFact(key);
+    const q = mul.makeQuestion(key, 1, 'skip');
+    const nums = q.render.nums;
+    eq(nums.filter((n) => n === null).length, 1, key);
+    ok(nums.indexOf(null) >= 2, `${key}: 빈칸 앞에 항이 부족 (${nums})`);
+    // null 을 정답으로 채우면 완전한 등차수열이어야 한다
+    const filled = nums.map((n) => (n === null ? q.answer : n));
+    for (let i = 1; i < filled.length; i++) eq(filled[i] - filled[i - 1], a, `${key} ${filled}`);
+  }
+});
+t('참·거짓은 양쪽이 다 나오고 판정이 맞다', () => {
+  let sawTrue = false, sawFalse = false;
+  for (let i = 0; i < 200; i++) {
+    const q = mul.makeQuestion('7x8', 1, 'truefalse');
+    const shown = Number(q.render.tokens[4].t);
+    eq(q.answer, shown === 56 ? 1 : 0, `shown=${shown}`);
+    if (q.answer === 1) sawTrue = true; else sawFalse = true;
+  }
+  ok(sawTrue && sawFalse, '한쪽만 나옴');
+});
+t('묶어세기는 곱이 20 이하, 뛰어세기는 b가 3 이상일 때만', () => {
+  for (const key of mul.allFacts()) {
+    const { a, b } = mul.parseFact(key);
+    eq(mul.canUse('groups', key), a * b <= 20, key);
+    eq(mul.canUse('skip', key), b >= 3, key);
+  }
+});
+t('쓸 수 없는 형태를 요청하면 basic 으로 되돌아간다', () => {
+  eq(mul.makeQuestion('9x9', 1, 'groups').variant, 'basic'); // 81개는 못 그린다
+  eq(mul.makeQuestion('7x1', 1, 'skip').variant, 'basic');   // 앞에 항이 없다
+});
+t('모든 형태에 진단 문장이 붙는다', () => {
+  for (const v of ALL_VARIANTS) {
+    const q = mul.makeQuestion('7x8', 1, v);
+    const wrong = q.mode === 'ox' ? 1 - q.answer : q.answer + 1;
+    const msg = mul.diagnose('7x8', wrong, q.ctx);
+    ok(typeof msg === 'string' && msg.length > 0, `${v} 진단 없음`);
+  }
+});
+t('덧뺄셈도 같은 형태 체계를 따른다', () => {
+  for (const v of as.VARIANTS.map((x) => x.id)) {
+    const q = as.makeQuestion('7+8', 1, v);
+    eq(q.factKey, '7+8', v);
+    const expect = { basic: q.ctx.x + q.ctx.y, missingB: q.ctx.y, missingA: q.ctx.x };
+    if (v in expect) eq(q.answer, expect[v], v);
+  }
+});
+
+console.log('\n[난이도]');
+t('레벨 1에서는 기본 형태만, 레벨이 오르면 형태가 열린다', () => {
+  eq(diff.unlockedVariants(mul, 1).map((v) => v.id).sort(), ['basic', 'groups']);
+  ok(diff.unlockedVariants(mul, 3).length > diff.unlockedVariants(mul, 1).length);
+  eq(diff.unlockedVariants(mul, 5).length, 6);
+});
+t('잘하면 레벨이 오른다', () => {
+  diff.setPreset('auto');
+  store.pdata().levels = {};
+  let last = 0;
+  for (let i = 0; i < 12; i++) last = diff.record('mul', { correct: true, fast: true }).level;
+  ok(last > 1, `레벨이 안 올랐다 (${last})`);
+});
+t('많이 틀리면 레벨이 내려간다', () => {
+  const before = diff.levelOf('mul');
+  let after = before;
+  for (let i = 0; i < 12; i++) after = diff.record('mul', { correct: false, fast: false }).level;
+  ok(after < before, `${before} → ${after}`);
+});
+t('수동 프리셋이 레벨 범위를 가둔다', () => {
+  diff.setPreset('easy');
+  for (let i = 0; i < 30; i++) diff.record('mul', { correct: true, fast: true });
+  ok(diff.levelOf('mul') <= 2, `쉬움인데 레벨 ${diff.levelOf('mul')}`);
+  diff.setPreset('hard');
+  ok(diff.levelOf('mul') >= 4, `도전인데 레벨 ${diff.levelOf('mul')}`);
+  eq(store.settings().targetMs, 2500, '프리셋이 목표 시간을 안 바꿈');
+  diff.setPreset('auto');
+});
+t('표본이 적으면 레벨을 건드리지 않는다', () => {
+  store.pdata().levels = {};
+  const start = diff.levelOf('mul');
+  for (let i = 0; i < 5; i++) diff.record('mul', { correct: true, fast: true });
+  eq(diff.levelOf('mul'), start);
+});
+t('직전과 같은 형태는 피한다', () => {
+  for (let i = 0; i < 60; i++) {
+    ok(diff.pickVariant(mul, '7x8', 5, 'basic') !== 'basic', '연속으로 같은 형태가 나옴');
+  }
+});
+t('선택지가 하나뿐이면 그거라도 낸다', () => {
+  // 레벨 1 + 곱이 커서 groups 불가 → basic 뿐
+  eq(diff.pickVariant(mul, '9x9', 1, 'basic'), 'basic');
+});
+
+console.log('\n[출제 순서]');
+t('큐가 매번 다른 순서로 나온다 (1차 반복감의 직접 원인)', () => {
+  store.resetAll();
+  store.createProfile({ name: '순서', grade: 2, avatar: '🐧' });
+  const orders = new Set();
+  for (let i = 0; i < 6; i++) {
+    const s2 = sess.startOrResume('mul');
+    orders.add(s2.queue.join(','));
+    sess.abandon();
+  }
+  ok(orders.size > 1, '여섯 번 만들었는데 순서가 전부 같다');
+});
+t('셔플해도 문항 수와 중복 없음이 유지된다', () => {
+  for (let i = 0; i < 20; i++) {
+    const s2 = sess.startOrResume('mul');
+    eq(s2.queue.length, 10, '문항이 사라졌다');
+    eq(new Set(s2.queue).size, 10, '중복이 생겼다');
+    sess.abandon();
+  }
+});
+t('첫 판이 2단 행진이 아니다', () => {
+  const tables = new Set();
+  for (let i = 0; i < 8; i++) {
+    const s2 = sess.startOrResume('mul');
+    s2.queue.forEach((k) => tables.add(k.split('x')[0]));
+    sess.abandon();
+  }
+  ok(tables.size > 1, `한 단만 나온다: ${[...tables]}`);
+});
+
+console.log('\n[진단 판]');
+t('진단 결과가 mastery 를 채운다', () => {
+  store.resetAll();
+  store.createProfile({ name: '진단', grade: 2, avatar: '🦖' });
+  const qs = sess.placementQuestions('mul');
+  eq(qs.length, 12);
+  ok(qs.every((q) => q.mode === 'choice'), '진단은 전부 보기로 내야 함');
+
+  // 2단·5단은 빠르게 맞히고 나머지는 틀린 것으로 흉내낸다
+  const results = qs.map((q) => {
+    const table = q.factKey.split('x')[0];
+    const good = table === '2' || table === '5';
+    return { factKey: q.factKey, correct: good, ms: good ? 1500 : 6000 };
+  });
+  const r = sess.applyPlacement('mul', results);
+  ok(r.seeded > 0, '아무것도 안 채워짐');
+  ok(r.known.includes('2단') && r.known.includes('5단'), `아는 단: ${r.known}`);
+  eq(store.pdata().mastery['mul:2x4'].box, 2, '아는 단이 box 2 로 안 들어감');
+  ok(!store.pdata().mastery['mul:7x4'], '모르는 단을 건드림');
+  ok(sess.placementDone());
+});
+t('진단 뒤 첫 판에서 아는 단이 덜 나온다', () => {
+  const s2 = sess.startOrResume('mul');
+  const fromKnown = s2.queue.filter((k) => ['2', '5'].includes(k.split('x')[0])).length;
+  ok(fromKnown < 10, '아는 단으로만 채워짐');
+  sess.abandon();
+});
+t('진단을 건너뛰어도 다시 묻지 않는다', () => {
+  sess.resetPlacement();
+  ok(!sess.placementDone());
+  sess.applyPlacement('mul', []);
+  ok(sess.placementDone());
+});
+
+console.log('\n[60초 랠리]');
+t('틀려도 box 를 낮추지 않는다 (속도 게임에서 벌을 주지 않는다)', () => {
+  const m = store.mastery('mul', '2x4');
+  m.box = 4; m.dueAt = 99999999999;
+  const before = { box: m.box, dueAt: m.dueAt };
+  const q = sess.rallyQuestion('mul');
+  const forced = { ...q, factKey: '2x4', answer: 8 };
+  sess.rallyRecord('mul', forced, 999, 1200);      // 일부러 오답
+  eq(m.box, before.box, 'box 가 강등됨');
+  eq(m.dueAt, before.dueAt, '복습 시기가 당겨짐');
+  ok(m.seen > 0, '기록은 남아야 한다');
+});
+t('맞히면 응답시간은 기록된다', () => {
+  const m = store.mastery('mul', '2x5');
+  const q = { factKey: '2x5', answer: 10 };
+  sess.rallyRecord('mul', q, 10, 900);
+  ok(m.avgMs > 0, '응답시간이 기록되지 않음');
+  eq(store.pdata().bestMs['2x5'], 900);
+});
+t('최고 기록이 갱신되고 유지된다', () => {
+  eq(sess.rallyFinish('mul', 14).isBest, true);
+  eq(sess.rallyBest('mul'), 14);
+  eq(sess.rallyFinish('mul', 9).isBest, false);
+  eq(sess.rallyBest('mul'), 14, '낮은 점수가 최고 기록을 덮어씀');
+});
+
+console.log('\n[콤보]');
+t('연속 정답이 쌓이고 틀리면 0으로 돌아간다', () => {
+  store.resetAll();
+  store.createProfile({ name: '콤보', grade: 2, avatar: '🐰' });
+  sess.startOrResume('mul');
+  let sawMilestone = 0;
+  for (let n = 0; n < 3; n++) {
+    const r = sess.submit(sess.active().question.answer);
+    if (r.milestone) sawMilestone = r.milestone;
+    eq(r.streak, n + 1);
+  }
+  eq(sawMilestone, 3, '3연속 마일스톤이 안 뜸');
+  const bad = sess.submit(sess.active().question.answer + 1);
+  eq(bad.streak, 0, '틀렸는데 콤보가 안 끊김');
+  sess.abandon();
+});
+
+console.log('\n[용돈 저금통]');
+t('한 판 완주하면 적립된다', () => {
+  store.resetAll();
+  store.createProfile({ name: '용돈', grade: 2, avatar: '🐷' });
+  eq(wal.balance(), 0);
+  const got = wal.awardForSession({ newStickers: [] });
+  eq(got.length, 1);
+  eq(wal.balance(), wal.config().perSession);
+});
+t('하루 상한을 넘으면 더 쌓이지 않는다 (쉬운 판 반복 파밍 방지)', () => {
+  const cap = wal.config().dailySessionCap;
+  for (let i = 1; i < cap; i++) wal.awardForSession({ newStickers: [] });
+  const atCap = wal.balance();
+  eq(wal.countToday('session'), cap);
+  eq(wal.awardForSession({ newStickers: [] }).length, 0, '상한을 넘겨 적립됨');
+  eq(wal.balance(), atCap);
+});
+t('단을 마스터하면 상한과 무관하게 보너스가 붙는다', () => {
+  const before = wal.balance();
+  const got = wal.awardForSession({ newStickers: ['3단'] });
+  eq(got.length, 1);
+  eq(got[0].kind, 'mastery');
+  eq(wal.balance(), before + wal.config().masteryBonus);
+});
+t('주간 목표 보너스는 그 주에 한 번만', () => {
+  const before = wal.balance();
+  wal.awardForSession({ newStickers: [] }, { weeklyGoalMet: true });
+  const once = wal.balance();
+  eq(once, before + wal.config().weeklyBonus);
+  wal.awardForSession({ newStickers: [] }, { weeklyGoalMet: true });
+  eq(wal.balance(), once, '주간 보너스가 두 번 지급됨');
+});
+t('랠리 보너스도 하루 한 번만', () => {
+  const before = wal.balance();
+  ok(wal.awardForRally());
+  eq(wal.balance(), before + wal.config().rallyBonus);
+  eq(wal.awardForRally(), null, '랠리 보너스가 두 번 지급됨');
+});
+t('잠금 번호 없이는 현금화할 수 없다', () => {
+  store.updateSettings({ parentPin: '' });
+  eq(wal.payout(10).reason, 'PIN_REQUIRED');
+});
+t('잔액보다 많이 줄 수 없고, 이상한 금액은 거부한다', () => {
+  store.updateSettings({ parentPin: '1234' });
+  eq(wal.payout(wal.balance() + 1).reason, 'INSUFFICIENT');
+  eq(wal.payout(0).reason, 'BAD_AMOUNT');
+  eq(wal.payout('abc').reason, 'BAD_AMOUNT');
+});
+t('현금화하면 잔액이 줄고 내역이 남는다', () => {
+  const before = wal.balance();
+  const r = wal.payout(50, '문방구');
+  ok(r.ok);
+  eq(wal.balance(), before - 50);
+  const last = wal.ledger()[0];
+  eq(last.kind, 'payout');
+  eq(last.amount, -50);
+  eq(last.note, '문방구');
+});
+t('현금화해도 누적 금액은 줄지 않는다', () => {
+  const life = wal.lifetime();
+  wal.payout(10);
+  eq(wal.lifetime(), life, '지급했다고 누적이 깎임');
+});
+t('잔액은 0 아래로 내려가지 않는다', () => {
+  wal.adjust(-999999);
+  eq(wal.balance(), 0);
+});
+t('설정을 바꾸면 목표까지 걸리는 기간이 달라진다', () => {
+  wal.setConfig({ perSession: 10, dailySessionCap: 3, goal: 5000 });
+  const slow = wal.weeksToGoal();
+  wal.setConfig({ perSession: 200 });
+  const fast = wal.weeksToGoal();
+  ok(slow > fast, `10원(${slow}주) 이 200원(${fast}주) 보다 빨라야 하는데 아님`);
+  ok(slow > 12, '10원·하루3판이면 5,000원은 한참 걸려야 정상');
+  wal.setConfig({ ...wal.DEFAULTS });
+});
+t('세션을 끝내면 요약에 적립 내역이 담긴다', () => {
+  store.resetAll();
+  store.createProfile({ name: '연결', grade: 2, avatar: '🐥' });
+  sess.startOrResume('mul');
+  let guard = 0;
+  while (sess.active()?.question && guard++ < 60) sess.submit(sess.active().question.answer);
+  const sum = sess.finish();
+  ok(Array.isArray(sum.earned), '요약에 earned 가 없다');
+  ok(sum.earned.length >= 1, '완주했는데 적립이 없다');
+  eq(sum.balance, wal.balance());
 });
 
 console.log('\n[백업]');

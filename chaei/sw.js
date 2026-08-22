@@ -3,15 +3,17 @@
  * 태블릿 와이파이는 자주 끊긴다. 앱이 안 열리는 경험이 한 번 있으면
  * 아이는 다시 누르지 않는다.
  */
-const CACHE = 'chaei-v1';
+const CACHE = 'chaei-v3';
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './icon.svg',
   './css/app.css',
   './js/app.js', './js/state.js', './js/srs.js', './js/session.js', './js/feedback.js', './js/ko.js',
+  './js/difficulty.js', './js/allowance.js',
   './js/generators/multiply.js', './js/generators/addsub.js',
   './js/ui/dom.js', './js/ui/numpad.js',
   './js/ui/screens/onboard.js', './js/ui/screens/home.js',
   './js/ui/screens/play.js', './js/ui/screens/result.js', './js/ui/screens/parent.js',
+  './js/ui/screens/rally.js', './js/ui/screens/placement.js',
   './data/curriculum.json',
 ];
 

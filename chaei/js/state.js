@@ -11,12 +11,15 @@
  */
 
 const KEY = 'chaei.store';
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 3;
 
 export const DEFAULT_SETTINGS = {
   weeklyGoalDays: 4,   // 스트릭 0 리셋 대신 "주 4일" 목표
   sessionLength: 10,   // 초2 집중력 기준 5~7분
   targetMs: 3000,      // 곱셈구구는 3초 안에 자동으로 나오는 것이 목표
+                       // (난이도 프리셋이 이 값을 함께 바꾼다 — difficulty.js)
+  difficulty: 'auto',  // auto | easy | normal | hard
+  allowance: null,     // 용돈 설정. null 이면 allowance.js 의 기본값
   maxNewPerSession: 3, // 한 세션에 새 항목은 최대 3개
   sound: true,
   haptics: true,
@@ -25,7 +28,26 @@ export const DEFAULT_SETTINGS = {
 
 /** 버전별 마이그레이션. key = 올라갈 버전 번호 */
 const MIGRATIONS = {
-  // 2: (store) => { ...; return store; },
+  // 난이도 레벨·랠리 기록·진단 여부가 생겼다. 기존 기록은 그대로 두고 칸만 만든다.
+  2: (s) => {
+    for (const d of Object.values(s.data || {})) {
+      if (!d.levels) d.levels = {};
+      if (!d.rally) d.rally = {};
+      if (d.placementDone === undefined) {
+        // 이미 몇 판 해본 아이라면 진단을 다시 시키지 않는다
+        d.placementDone = (d.sessions || []).length > 0;
+      }
+      if (d.settings && !d.settings.difficulty) d.settings.difficulty = 'auto';
+    }
+    return s;
+  },
+  // 용돈 저금통이 생겼다. 기존 아이는 0원부터 시작한다.
+  3: (s) => {
+    for (const d of Object.values(s.data || {})) {
+      if (!d.wallet) d.wallet = { balance: 0, lifetime: 0, ledger: [] };
+    }
+    return s;
+  },
 };
 
 function emptyProfileData() {
@@ -35,6 +57,10 @@ function emptyProfileData() {
     activeSession: null,// 진행 중 세션 (문항 단위로 저장 → 중단 복구)
     stickers: [],       // 마스터 보상
     bestMs: {},         // factKey -> 개인 최고 응답시간
+    levels: {},         // skillId -> { level, recent[] }  난이도 자동 조정
+    rally: {},          // skillId -> { best, last, at }   60초 랠리 기록
+    placementDone: false,
+    wallet: { balance: 0, lifetime: 0, ledger: [] }, // 용돈 저금통
     settings: { ...DEFAULT_SETTINGS },
   };
 }
@@ -121,6 +147,9 @@ export function pdata() {
   const d = s.data[s.activeProfileId];
   // 설정에 새 키가 추가된 경우를 대비해 기본값을 채워 넣는다.
   d.settings = { ...DEFAULT_SETTINGS, ...d.settings };
+  if (!d.levels) d.levels = {};
+  if (!d.rally) d.rally = {};
+  if (!d.wallet) d.wallet = { balance: 0, lifetime: 0, ledger: [] };
   return d;
 }
 

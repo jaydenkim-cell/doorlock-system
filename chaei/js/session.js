@@ -10,6 +10,8 @@
 
 import * as store from './state.js';
 import * as srs from './srs.js';
+import * as difficulty from './difficulty.js';
+import * as allowance from './allowance.js';
 import * as multiply from './generators/multiply.js';
 import * as addsub from './generators/addsub.js';
 
@@ -40,13 +42,16 @@ function buildQueue(skillId, groupId) {
 
   const due = [];
   const seen = [];
-  const fresh = [];
+  const freshSet = new Set();
   for (const key of all) {
     const m = recs.get(key);
-    if (!m || !m.box) { fresh.push(key); continue; }
+    if (!m || !m.box) { freshSet.add(key); continue; }
     if (srs.isDue(m, now)) due.push([key, m]);
     else seen.push([key, m]);
   }
+  // 새로 배울 것은 allFacts() 순서(2단→3단→…)가 아니라 학습 순서로 꺼낸다.
+  // 그 순서를 그대로 쓰면 아이가 매 판 같은 단만 행진하게 된다.
+  const fresh = (gen.newFactOrder ? gen.newFactOrder() : all).filter((k) => freshSet.has(k));
 
   due.sort((x, y) => x[1].dueAt - y[1].dueAt);
 
@@ -81,7 +86,42 @@ function buildQueue(skillId, groupId) {
   if (queue.length < s.sessionLength) {
     for (const k of fresh) { if (queue.length >= s.sessionLength) break; if (!queue.includes(k)) queue.push(k); }
   }
-  return queue.slice(0, s.sessionLength);
+  return arrange(queue.slice(0, s.sessionLength), freshSet);
+}
+
+/**
+ * 순서를 섞는다. 1차에서 반복감의 직접 원인이 이 셔플의 부재였다.
+ * 다만 완전 무작위로 두지는 않는다 — 처음 배우는 항목은 앞쪽 70% 안에 오게 한다.
+ * 아이가 지친 뒤에 새로운 걸 가르치면 안 된다.
+ */
+function arrange(queue, freshSet) {
+  const shuffled = shuffle(queue);
+  const early = shuffled.filter((k) => freshSet.has(k));
+  const late = shuffled.filter((k) => !freshSet.has(k));
+  // 전부 새 항목이거나 전부 복습이면 섞을 것이 없다 (첫날이 이 경우다)
+  if (!early.length || !late.length) return shuffled;
+
+  const n = shuffled.length;
+  // 새 항목이 앞 70% 보다 많으면 그만큼 구간을 넓힌다. 안 그러면 자리가 모자라 항목이 사라진다.
+  const cutoff = Math.max(early.length, Math.ceil(n * 0.7));
+  const slots = shuffle(Array.from({ length: cutoff }, (_, i) => i))
+    .slice(0, early.length)
+    .sort((x, y) => x - y);
+
+  const out = new Array(n).fill(null);
+  slots.forEach((slot, i) => { out[slot] = early[i]; });
+  let li = 0;
+  for (let i = 0; i < n; i++) if (out[i] === null) out[i] = late[li++];
+  return out;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 function boxOf(skillId, factKey) {
@@ -93,7 +133,12 @@ function nextQuestion(sess) {
   const key = sess.queue[sess.index] ?? sess.retryQueue[sess.index - sess.queue.length];
   if (!key) return null;
   const gen = SKILLS[sess.skillId];
-  return gen.makeQuestion(key, boxOf(sess.skillId, key));
+  const level = difficulty.levelOf(sess.skillId);
+  // 직전 문항과 같은 형태는 피한다. 연속 두 번이면 다양해진 느낌이 사라진다.
+  const variant = difficulty.pickVariant(gen, key, level, sess.lastVariant);
+  const q = gen.makeQuestion(key, boxOf(sess.skillId, key), variant);
+  sess.lastVariant = q.variant;
+  return q;
 }
 
 /** 진행 중인 세션이 있으면 그대로 이어서, 없으면 새로 만든다 */
@@ -113,6 +158,9 @@ export function startOrResume(skillId, groupId = null) {
     index: 0,
     question: null,
     questionStartedAt: 0,
+    streak: 0,        // 연속 정답 (콤보)
+    bestStreak: 0,
+    lastVariant: null,
   };
   sess.question = nextQuestion(sess);
   sess.questionStartedAt = Date.now();
@@ -157,7 +205,16 @@ export function submit(given) {
   const m = store.mastery(sess.skillId, q.factKey);
   const outcome = srs.applyResult(m, { correct, ms, given: Number(given), reason }, s.targetMs, d.bestMs);
 
-  sess.items.push({ factKey: q.factKey, given: Number(given), correct, ms, at: Date.now() });
+  sess.items.push({ factKey: q.factKey, given: Number(given), correct, ms,
+                    variant: q.variant, at: Date.now() });
+
+  // 콤보. 3·5·10 에서 반응을 키운다.
+  sess.streak = correct ? sess.streak + 1 : 0;
+  sess.bestStreak = Math.max(sess.bestStreak, sess.streak);
+  const milestone = correct && [3, 5, 10, 15, 20].includes(sess.streak) ? sess.streak : 0;
+
+  // 난이도 레벨은 최근 성적을 보고 스스로 오르내린다
+  const lv = difficulty.record(sess.skillId, { correct, fast: srs.isFast(ms, s.targetMs) });
 
   // 틀린 문제는 하트를 깎는 대신 이 판이 끝날 때 한 번 더 낸다.
   const inRetry = sess.index >= sess.queue.length;
@@ -171,7 +228,9 @@ export function submit(given) {
   const done = !sess.question;
   store.save();
 
-  return { correct, answer: q.answer, reason, ms, ...outcome, done };
+  return { correct, answer: q.answer, reason, ms, ...outcome, done,
+           variant: q.variant, streak: sess.streak, milestone,
+           level: lv.level, levelChanged: lv.changed };
 }
 
 /** 세션을 마감하고 결과 요약을 돌려준다 */
@@ -204,6 +263,10 @@ export function finish() {
     fast: [...new Set(faster)],
     mastered: masteredNow,
     wrong: main.filter((i) => !i.correct).map((i) => i.factKey),
+    newStickers: [],
+    bestStreak: sess.bestStreak,
+    variants: [...new Set(sess.items.map((i) => i.variant).filter(Boolean))],
+    level: difficulty.levelOf(sess.skillId),
     startedAt: sess.startedAt,
     completedAt: sess.completedAt,
   };
@@ -215,6 +278,13 @@ export function finish() {
   // 새로 마스터한 단이 있으면 스티커를 준다
   awardStickers(d, sess.skillId, summary);
   store.save();
+
+  // 용돈 적립은 세션이 확정된 뒤에. 주간 목표는 이번 판을 포함해 계산한다.
+  const goalDays = store.settings().weeklyGoalDays;
+  summary.earned = allowance.awardForSession(summary, {
+    weeklyGoalMet: weekStamps().filter(Boolean).length >= goalDays,
+  });
+  summary.balance = allowance.balance();
   return summary;
 }
 
@@ -229,7 +299,7 @@ function awardStickers(d, skillId, summary) {
     const tag = `${skillId}:${g.id}`;
     if (all && !d.stickers.some((x) => x.tag === tag)) {
       d.stickers.push({ tag, label: g.label, at: Date.now() });
-      summary.newSticker = g.label;
+      summary.newStickers.push(g.label);
     }
   }
 }
@@ -254,4 +324,122 @@ export function weekStamps() {
     if (idx >= 0 && idx < 7) days[idx] = true;
   }
   return days;
+}
+
+
+// ── 60초 랠리 ────────────────────────────────────────────────────────
+// 곱셈구구의 목표는 "맞히기"가 아니라 "자동으로 나오기"다. 속도 게임은 그 목표와
+// 정확히 맞는다. 다만 **틀려도 box 를 강등하지 않는다** — 하트를 없앤 것과 같은
+// 이유로, 속도 게임에서 벌을 주면 아이는 다시 안 누른다.
+
+export const RALLY_SECONDS = 60;
+
+export function rallyQuestion(skillId, prevVariant) {
+  const gen = SKILLS[skillId];
+  const d = store.pdata();
+  // 처음 보는 문제로 속도 게임을 시키면 안 된다. 만나 본 것 위주로 낸다.
+  const seen = gen.allFacts().filter((k) => (d.mastery[`${skillId}:${k}`]?.box ?? 0) > 0);
+  const pool = seen.length >= 8 ? seen : gen.allFacts();
+  const key = pool[Math.floor(Math.random() * pool.length)];
+  const level = difficulty.levelOf(skillId);
+  const variant = difficulty.pickVariant(gen, key, level, prevVariant);
+  return gen.makeQuestion(key, 1, variant); // box 1 → 보기 없이 직접 입력
+}
+
+export function rallyRecord(skillId, q, given, ms) {
+  const correct = Number(given) === q.answer;
+  const m = store.mastery(skillId, q.factKey);
+  m.seen += 1;
+  if (correct) {
+    m.correct += 1;
+    m.avgMs = m.avgMs ? Math.round(m.avgMs * 0.8 + ms * 0.2) : ms;
+    const d = store.pdata();
+    const prev = d.bestMs[q.factKey];
+    if (!prev || ms < prev) d.bestMs[q.factKey] = ms;
+  }
+  // box 와 dueAt 은 건드리지 않는다
+  store.save();
+  return correct;
+}
+
+export function rallyFinish(skillId, score) {
+  const d = store.pdata();
+  if (!d.rally) d.rally = {};
+  const prev = d.rally[skillId]?.best || 0;
+  const isBest = score > prev;
+  d.rally[skillId] = { best: Math.max(prev, score), last: score, at: Date.now() };
+  store.save();
+  const earned = isBest ? allowance.awardForRally() : null;
+  return { best: d.rally[skillId].best, prev, isBest, earned };
+}
+
+export function rallyBest(skillId) {
+  return store.pdata().rally?.[skillId]?.best || 0;
+}
+
+// ── 첫 판 진단 ───────────────────────────────────────────────────────
+// 아는 아이에게 2×1부터 가르치는 지겨움을 없애는 것이 목적이다.
+// 한 문항으로 그 단 전체를 추론하므로 정확하진 않다. 보수적으로 채우고
+// 나머지는 간격 반복이 몇 판 안에 바로잡는다.
+
+const PLACEMENT_FAST_MS = 4000;
+
+export function placementQuestions(skillId = 'mul') {
+  const gen = SKILLS[skillId];
+  return gen.placementFacts().map((k) => gen.makeQuestion(k, 0, 'basic'));
+}
+
+/**
+ * @param {Array<{factKey:string, correct:boolean, ms:number}>} results
+ * @returns {{seeded:number, known:string[], weak:string[]}}
+ */
+export function applyPlacement(skillId, results) {
+  const gen = SKILLS[skillId];
+  const byGroup = new Map();
+  for (const g of gen.groups()) byGroup.set(g.id, { group: g, hits: [] });
+  for (const r of results) {
+    for (const { group, hits } of byGroup.values()) {
+      if (group.facts.includes(r.factKey)) hits.push(r);
+    }
+  }
+
+  const now = Date.now();
+  const known = [];
+  const weak = [];
+  let seeded = 0;
+
+  for (const { group, hits } of byGroup.values()) {
+    if (!hits.length) continue;
+    const allRight = hits.every((h) => h.correct);
+    const allFast = hits.every((h) => h.ms <= PLACEMENT_FAST_MS);
+
+    let box = 0;
+    if (allRight && allFast) box = 2;
+    else if (hits.some((h) => h.correct)) box = 1;
+
+    if (box === 0) { weak.push(group.label); continue; }
+    known.push(group.label);
+
+    for (const key of group.facts) {
+      const m = store.mastery(skillId, key);
+      if (m.seen) continue;                 // 이미 풀어 본 것은 건드리지 않는다
+      m.box = box;
+      m.dueAt = srs.dueAtFor(box, now);
+      seeded += 1;
+    }
+  }
+
+  const d = store.pdata();
+  d.placementDone = true;
+  store.save();
+  return { seeded, known, weak };
+}
+
+export function placementDone() {
+  return !!store.pdata().placementDone;
+}
+
+export function resetPlacement() {
+  store.pdata().placementDone = false;
+  store.save();
 }

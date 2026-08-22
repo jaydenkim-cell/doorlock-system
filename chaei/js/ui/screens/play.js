@@ -6,14 +6,40 @@
  *
  * 정답은 짧게 축하하고 바로 넘어간다. 오답일 때만 아이가 직접 눌러서 넘어가게
  * 해서, 정답을 한 번은 보고 지나가도록 만든다.
+ *
+ * 문제를 어떻게 그릴지는 생성기가 내려주는 q.render 서술자가 정한다.
+ * (1차에는 `${q.prompt} = ?` 를 하드코딩해서 72문항이 전부 같은 틀이었다)
  */
 
 import { h } from '../dom.js';
 import * as store from '../../state.js';
 import * as sess from '../../session.js';
 import * as fx from '../../feedback.js';
-import { numpad, choices } from '../numpad.js';
+import { numpad, choices, oxpad } from '../numpad.js';
 import { iyeyo } from '../../ko.js';
+
+/** q.render 를 보고 문제 본문을 그린다 */
+export function renderBody(render) {
+  if (!render) return h('div', { class: 'expr' }, '?');
+
+  if (render.type === 'sequence') {
+    return h('div', { class: 'seq' },
+      render.nums.map((n) => h('div', { class: 'seq-n' + (n === null ? ' blank' : '') },
+        n === null ? '?' : String(n))));
+  }
+
+  if (render.type === 'groups') {
+    return h('div', { class: 'grp' },
+      Array.from({ length: render.times }, () =>
+        h('div', { class: 'grp-box' },
+          Array.from({ length: render.per }, () =>
+            h('span', { class: 'grp-e' }, render.emoji)))));
+  }
+
+  // expr — 참·거짓도 같은 식으로 그리되 끝에 물음표를 붙이지 않는다
+  return h('div', { class: 'expr' },
+    render.tokens.map((tk) => h('span', { class: tk.blank ? 'blank' : '' }, tk.t)));
+}
 
 export function play(go, { skillId, groupId = null }) {
   const gen = sess.skill(skillId);
@@ -25,16 +51,29 @@ export function play(go, { skillId, groupId = null }) {
   const qBox = h('div', { class: 'q' });
   const inputSlot = h('div', {});
   const title = h('div', { class: 'h2' });
+  const combo = h('div', { class: 'combo' });
 
   const root = h('div', { class: 'screen sess' },
     h('div', { class: 'topbar' },
       h('button', { class: 'icon-btn', 'aria-label': '나가기', onclick: () => go('home') }, '✕'),
       h('div', {}, title, h('div', { class: 'muted' }, groupId ? '이 단만 연습해요' : '오늘의 문제')),
+      h('div', { class: 'spacer' }),
+      combo,
     ),
     pips,
     qBox,
     inputSlot,
   );
+
+  function renderCombo() {
+    combo.replaceChildren();
+    combo.className = 'combo';
+    if (s.streak >= 2) {
+      combo.classList.add('on');
+      if (s.streak >= 5) combo.classList.add('hot');
+      combo.append(h('span', {}, s.streak >= 5 ? '🔥' : '✨'), h('b', {}, `${s.streak}연속`));
+    }
+  }
 
   function renderPips() {
     const p = sess.progress(s);
@@ -56,18 +95,20 @@ export function play(go, { skillId, groupId = null }) {
     title.textContent = `${gen.title}${groupId ? ' · ' + gen.groups().find((g) => g.id === groupId).label : ''}`;
     qBox.replaceChildren(
       h('div', {},
-        h('div', { class: 'expr' }, `${q.prompt} = ?`),
-        q.mode === 'choice' ? h('div', { class: 'hint' }, q.hint) : null,
+        renderBody(q.render),
+        q.hint ? h('div', { class: 'hint' }, q.hint) : null,
       ),
     );
 
     if (input?.destroy) input.destroy();
-    input = q.mode === 'choice'
-      ? choices({ options: q.choices, onSubmit: answer })
-      : numpad({ onSubmit: answer, maxLen: 3 });
+    if (q.mode === 'choice') input = choices({ options: q.choices, onSubmit: answer });
+    else if (q.mode === 'ox') input = oxpad({ onSubmit: answer });
+    else input = numpad({ onSubmit: answer, maxLen: 3 });
     inputSlot.replaceChildren(input);
+
     locked = false;
     renderPips();
+    renderCombo();
   }
 
   function answer(given) {
@@ -76,18 +117,20 @@ export function play(go, { skillId, groupId = null }) {
     const r = sess.submit(given);
     s = sess.active() || s;
     renderPips();
+    renderCombo();
 
     if (r.correct) {
       qBox.classList.add('pop');
       setTimeout(() => qBox.classList.remove('pop'), 300);
-      if (r.newBest) fx.zap(); else fx.correct();
-      showFlash(r, () => advance(r));
+      if (r.milestone) fx.fanfare();
+      else if (r.newBest) fx.zap();
+      else fx.correct();
     } else {
       qBox.classList.add('shake');
       setTimeout(() => qBox.classList.remove('shake'), 340);
       fx.wrong();
-      showFlash(r, () => advance(r));
     }
+    showFlash(r, () => advance(r));
   }
 
   function advance(r) {
@@ -106,22 +149,33 @@ export function play(go, { skillId, groupId = null }) {
     const close = () => { el.remove(); next(); };
 
     if (r.correct) {
-      const praise = r.newBest ? '최고 기록! ⚡️' : r.mastered ? '완전히 외웠어요! ⭐️' : '정답이에요!';
+      const praise = r.milestone ? `${r.milestone}연속 정답! 🔥`
+        : r.newBest ? '최고 기록! ⚡️'
+        : r.mastered ? '완전히 외웠어요! ⭐️'
+        : '정답이에요!';
       el.append(
         h('div', { class: 'fl-title' }, '🎉 ' + praise),
         h('div', { class: 'fl-body' }, `${(r.ms / 1000).toFixed(1)}초 걸렸어요`),
+        r.levelChanged > 0
+          ? h('div', { class: 'muted', style: { marginTop: '4px' } }, '조금 더 어려운 문제가 나올 거예요')
+          : null,
       );
       // 정답은 바로 넘어간다. 리듬이 끊기면 재미가 사라진다.
-      setTimeout(close, 850);
+      setTimeout(close, r.milestone ? 1200 : 850);
     } else {
       el.append(
         h('div', { class: 'fl-title' }, '괜찮아요, 다시 해봐요'),
-        h('div', { class: 'fl-body' }, `정답은 ${r.answer}${iyeyo(r.answer)}`),
+        h('div', { class: 'fl-body' }, answerLine(r)),
         r.reason ? h('div', { class: 'muted', style: { marginTop: '4px' } }, r.reason) : null,
         h('button', { class: 'btn btn-block', onclick: close }, '알겠어요'),
       );
     }
     document.body.append(el);
+  }
+
+  function answerLine(r) {
+    if (r.variant === 'truefalse') return r.answer === 1 ? '맞는 식이었어요 (O)' : '틀린 식이었어요 (X)';
+    return `정답은 ${r.answer}${iyeyo(r.answer)}`;
   }
 
   // 중간에 껐다 켠 경우: 저장된 문제를 그대로 이어서 낸다

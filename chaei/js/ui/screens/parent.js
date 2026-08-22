@@ -13,6 +13,8 @@ import { h, toast, fmtSec } from '../dom.js';
 import * as store from '../../state.js';
 import * as srs from '../../srs.js';
 import * as sess from '../../session.js';
+import * as difficulty from '../../difficulty.js';
+import * as allowance from '../../allowance.js';
 
 export function parent(go) {
   const pin = store.settings().parentPin;
@@ -77,6 +79,8 @@ function dashboard(go) {
       h('div', { class: 'box' }, h('b', {}, avgMs ? fmtSec(avgMs) : '–'), h('span', {}, `평균 (목표 ${fmtSec(s.targetMs)})`)),
     ),
 
+    walletCard(go),
+    levelCard(),
     weakCard(),
     trendCard(d),
     speedCard(s),
@@ -84,15 +88,127 @@ function dashboard(go) {
     h('div', { class: 'card' },
       h('h3', {}, '⚙️ 설정'),
       numRow('한 판 문항 수', s.sessionLength, [6, 8, 10, 12], (v) => store.updateSettings({ sessionLength: v })),
-      numRow('목표 응답 시간(초)', s.targetMs / 1000, [2, 3, 4, 5], (v) => store.updateSettings({ targetMs: v * 1000 })),
+      presetRow(s),
       numRow('주간 목표(일)', s.weeklyGoalDays, [3, 4, 5, 6], (v) => store.updateSettings({ weeklyGoalDays: v })),
       toggleRow('소리', s.sound, (v) => store.updateSettings({ sound: v })),
       toggleRow('진동', s.haptics, (v) => store.updateSettings({ haptics: v })),
       pinRow(s),
+      placementRow(),
     ),
 
     backupCard(),
     h('div', { style: { height: '8px' } }),
+  );
+}
+
+/**
+ * 용돈 저금통 — 잔액, 적립 내역, 현금 지급.
+ *
+ * 여기 적힌 잔액은 실제 돈 약속이다. 그래서 지급에는 잠금 번호를 반드시 요구하고,
+ * 지급 내역을 남겨서 나중에 "언제 얼마 줬더라"가 서로 확인 가능하게 한다.
+ */
+function walletCard(go) {
+  const c = allowance.config();
+  const bal = allowance.balance();
+  const weeks = allowance.weeksToGoal();
+
+  const card = h('div', { class: 'card' });
+
+  const doPayout = () => {
+    if (!store.settings().parentPin) {
+      toast('먼저 잠금 번호를 설정해 주세요');
+      return;
+    }
+    const raw = prompt(`얼마를 현금으로 줄까요? (잔액 ${allowance.won(bal)})`, String(bal));
+    if (raw === null) return;
+    const memo = prompt('메모 (선택)', '') || '';
+    const r = allowance.payout(raw.replace(/[^\d]/g, ''), memo);
+    if (!r.ok) {
+      toast({ PIN_REQUIRED: '잠금 번호를 먼저 설정하세요',
+              BAD_AMOUNT: '금액을 확인해 주세요',
+              INSUFFICIENT: '잔액보다 많아요' }[r.reason] || '지급하지 못했어요');
+      return;
+    }
+    toast('지급 기록을 남겼어요');
+    go('parent');
+  };
+
+  card.append(
+    h('h3', {}, '🐷 용돈 저금통'),
+    h('div', { class: 'row', style: { marginBottom: '10px' } },
+      h('b', { style: { fontSize: '30px', fontVariantNumeric: 'tabular-nums' } }, allowance.won(bal)),
+      h('div', { class: 'spacer' }),
+      h('button', { class: 'btn btn-sm btn-ghost', onclick: doPayout,
+                    disabled: bal <= 0 }, '현금으로 주기'),
+    ),
+    h('div', { class: 'bar' },
+      h('i', { style: { width: `${Math.round(allowance.progress() * 100)}%`, background: 'var(--mint)' } })),
+    h('div', { class: 'muted', style: { marginTop: '8px' } },
+      `목표 ${allowance.won(c.goal)} · 지금까지 모두 ${allowance.won(allowance.lifetime())} 모았어요`),
+  );
+
+  // 사용자가 정한 금액을 말없이 바꾸지 않는 대신, 속도를 눈에 보이게 한다.
+  if (Number.isFinite(weeks) && bal < c.goal) {
+    const slow = weeks > 12;
+    card.append(h('div', { class: 'note', style: slow ? { background: 'var(--sun-l)' } : {} },
+      `지금 설정(한 판 ${allowance.won(c.perSession)} · 하루 ${c.dailySessionCap}판)이면 ` +
+      `목표까지 약 ${weeks}주 걸려요.` +
+      (slow ? ' 초2에게 반년은 너무 멉니다. 한 판 금액을 올리거나 목표를 낮추는 쪽을 권해요.' : '')));
+  }
+
+  card.append(
+    numRow('한 판 금액(원)', c.perSession, [10, 50, 100, 200], (v) => allowance.setConfig({ perSession: v })),
+    numRow('하루 적립 판수', c.dailySessionCap, [2, 3, 5, 10], (v) => allowance.setConfig({ dailySessionCap: v })),
+    numRow('목표 금액(원)', c.goal, [1000, 3000, 5000, 10000], (v) => allowance.setConfig({ goal: v })),
+  );
+
+  const led = allowance.ledger().slice(0, 8);
+  if (led.length) {
+    const table = h('table', { class: 'wk', style: { marginTop: '10px' } });
+    for (const e of led) {
+      const d = new Date(e.at);
+      table.append(h('tr', {},
+        h('td', { style: { width: '58px', fontWeight: '600' } }, `${d.getMonth() + 1}/${d.getDate()}`),
+        h('td', {}, e.note || allowance.kindLabel(e.kind)),
+        h('td', { style: { color: e.amount < 0 ? 'var(--coral)' : 'var(--mint)', fontWeight: '800' } },
+          `${e.amount > 0 ? '+' : ''}${allowance.won(e.amount)}`),
+      ));
+    }
+    card.append(h('h3', { style: { marginTop: '14px' } }, '내역'), table);
+  }
+
+  card.append(h('div', { class: 'note', style: { marginTop: '12px' } },
+    '잔액은 이 브라우저 안에만 있습니다. 실제 돈 약속이니 아래 백업을 가끔 받아 두세요.'));
+  return card;
+}
+
+/**
+ * 지금 난이도가 어디쯤인지.
+ * 부모가 "너무 어려워해요" 할 때 무엇을 건드려야 하는지 보이게 한다.
+ */
+function levelCard() {
+  const p = difficulty.preset();
+  const rows = [];
+  for (const skillId of ['mul', 'addsub']) {
+    const gen = sess.skill(skillId);
+    const lv = difficulty.levelOf(skillId);
+    const open = difficulty.unlockedVariants(gen, lv).length;
+    rows.push(h('tr', {},
+      h('td', {}, gen.title),
+      h('td', {}, `레벨 ${lv} · 문제 형태 ${open}종`),
+      h('td', {}, '●'.repeat(lv) + '○'.repeat(difficulty.MAX_LEVEL - lv)),
+    ));
+  }
+  const best = sess.rallyBest('mul');
+
+  return h('div', { class: 'card' },
+    h('h3', {}, '🎚 지금 난이도'),
+    h('table', { class: 'wk' }, rows),
+    h('div', { class: 'note', style: { marginTop: '12px' } },
+      `설정 "${p.label}" — ${p.note}. 레벨이 오르면 역방향(7 × ? = 56), 뛰어세기, ` +
+      '참·거짓 같은 형태가 차례로 열립니다. 아래 설정에서 범위를 고정할 수 있어요.'),
+    best ? h('div', { class: 'muted', style: { marginTop: '10px' } },
+      `⚡️ 60초 랠리 최고 기록 ${best}개`) : null,
   );
 }
 
@@ -173,6 +289,38 @@ function speedCard(s) {
     h('div', { class: 'muted', style: { marginTop: '8px' } },
       `마스터 기준: 복습 간격 7일 이상까지 살아남고, 평균 ${fmtSec(s.targetMs)} 안에 답하는 문항`),
   );
+}
+
+function presetRow(s) {
+  const row = h('div', { class: 'row row-wrap', style: { padding: '10px 0', borderTop: '1px solid var(--line)' } },
+    h('div', { style: { flex: '1 0 100%', fontWeight: '700', fontSize: '15px', marginBottom: '2px' } },
+      '난이도', h('span', { class: 'muted' }, ` · ${difficulty.preset().note}`)));
+  for (const key of difficulty.PRESET_KEYS) {
+    const p = difficulty.PRESETS[key];
+    const on = s.difficulty === key;
+    row.append(h('button', {
+      class: 'btn btn-sm' + (on ? '' : ' btn-ghost'),
+      style: on ? { background: 'var(--grape)', color: '#fff', boxShadow: '0 3px 0 var(--grape-d)' } : {},
+      onclick: (e) => {
+        difficulty.setPreset(key);
+        toast(`난이도: ${p.label}`);
+        rerenderRow(e.target);
+      },
+    }, p.label));
+  }
+  return row;
+}
+
+function placementRow() {
+  const btn = h('button', { class: 'btn btn-sm btn-ghost', onclick: () => {
+    sess.resetPlacement();
+    toast('홈에서 다시 볼 수 있어요');
+  } }, '다시 하기');
+  return h('div', { class: 'row', style: { padding: '10px 0', borderTop: '1px solid var(--line)' } },
+    h('div', { style: { flex: '1', fontWeight: '700', fontSize: '15px' } },
+      '실력 진단',
+      h('div', { class: 'muted' }, sess.placementDone() ? '완료함' : '아직 안 함')),
+    btn);
 }
 
 function numRow(label, value, options, onPick) {
