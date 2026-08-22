@@ -31,21 +31,45 @@ python3 -m http.server 7777      # 저장소 루트에서
 배포된 주소를 태블릿에서 열고 `홈 화면에 추가` 하면 앱처럼 쓸 수 있다
 (아이패드는 Safari 공유 버튼, 안드로이드는 Chrome ⋮ 메뉴).
 
+## 단일 파일로 묶기
+
+링크 하나로 건네거나 파일로 전달할 때 쓴다.
+
+```bash
+npm install esbuild playwright --no-save
+node chaei/build-standalone.mjs
+#   dist/chaei-standalone.html   완전한 문서. 아무 정적 호스팅에나 올리거나 파일로 전달
+#   dist/chaei-artifact.html     문서 골격 없는 본문만
+```
+
+모듈을 그냥 이어 붙일 수는 없다. `multiply.js` 와 `addsub.js` 가 둘 다
+`id` / `title` / `emoji` 를 export 하기 때문에 모듈 스코프를 지키는 번들러가 필요하다.
+
+단일 파일에는 `sw.js` 가 없으므로 서비스워커 등록이 빠진다(오프라인 미지원).
+제대로 쓰려면 Vercel 배포 쪽을 쓴다.
+
 ## 테스트
 
 ```bash
 node chaei/test/logic.test.mjs                    # 생성기·SRS·세션 엔진 (브라우저 불필요)
 
-npm install playwright --no-save                  # 브라우저 시나리오
+# 주의: package.json 이 없어서 --no-save 로 하나씩 설치하면 앞서 깔린 게 지워진다.
+#      두 개를 한 번에 설치할 것.
+npm install esbuild playwright --no-save          # 브라우저 시나리오
 CHROMIUM=<크로미움 경로> node chaei/test/ui.test.mjs /tmp/shots
 
 # 루트로 서빙되는 배포 환경과 동일하게 테스트하려면
 APP_URL=http://localhost:7788/ CHROMIUM=<경로> node chaei/test/ui.test.mjs /tmp/shots
+
+# 단일 파일 빌드 검증 (manifest·서비스워커·오프라인 3개는 해당 없어 건너뜀)
+BUNDLE=1 APP_URL=http://localhost:7799/chaei-standalone.html \
+  CHROMIUM=<경로> node chaei/test/ui.test.mjs /tmp/shots
 ```
 
 ## 구조
 
 ```
+build-standalone.mjs  단일 HTML 빌드 (esbuild)
 vercel.json           배포 헤더 (서비스워커 no-cache)
 index.html            앱 셸
 sw.js                 오프라인 캐시

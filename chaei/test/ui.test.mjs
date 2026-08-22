@@ -2,6 +2,10 @@
  * 브라우저 시나리오 테스트
  *   python3 -m http.server 7777  로 서버를 띄운 뒤
  *   CHROMIUM=<크로미움경로> node chaei/test/ui.test.mjs /tmp/shots
+ *
+ * 단일 파일 빌드(dist/chaei-standalone.html)를 검증할 때는 BUNDLE=1 을 준다.
+ * manifest·서비스워커·오프라인 3개는 단일 파일에 해당 없는 항목이라 건너뛴다.
+ * 나머지 시나리오는 그대로 돌아야 한다 — 번들이 원본과 다르게 동작하면 안 되므로.
  */
 import { chromium } from 'playwright';
 const SHOT = process.argv[2] || '/tmp/chaei-shots';
@@ -105,20 +109,27 @@ console.log('\n[백업]');
 const exported = await page.evaluate(() => window.__chaei.store.exportJSON());
 ok(exported.includes('mastery') && exported.length > 500, '내보내기에 진도가 담긴다');
 
-console.log('\n[PWA]');
-const mani = await page.evaluate(async () => {
-  const r = await fetch('./manifest.webmanifest'); return r.ok ? (await r.json()).name : null;
-});
-ok(mani === '채이 수학', 'manifest 를 읽는다 → ' + mani);
-const sw = await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => !!r));
-ok(sw, '서비스워커가 등록된다');
+const BUNDLE = !!process.env.BUNDLE;
+if (BUNDLE) {
+  console.log('\n[PWA] 단일 파일 빌드라 건너뜀 (manifest·서비스워커·오프라인)');
+  ok(!(await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => !!r))),
+     '단일 파일에서는 서비스워커를 등록하지 않는다');
+} else {
+  console.log('\n[PWA]');
+  const mani = await page.evaluate(async () => {
+    const r = await fetch('./manifest.webmanifest'); return r.ok ? (await r.json()).name : null;
+  });
+  ok(mani === '채이 수학', 'manifest 를 읽는다 → ' + mani);
+  const sw = await page.evaluate(() => navigator.serviceWorker.getRegistration().then((r) => !!r));
+  ok(sw, '서비스워커가 등록된다');
 
-// 오프라인에서도 열리는가
-await page.context().setOffline(true);
-await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
-await page.waitForTimeout(600);
-ok(await page.locator('.map, .screen').first().isVisible(), '네트워크를 끊어도 앱이 열린다');
-await page.context().setOffline(false);
+  // 오프라인에서도 열리는가
+  await page.context().setOffline(true);
+  await page.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
+  await page.waitForTimeout(600);
+  ok(await page.locator('.map, .screen').first().isVisible(), '네트워크를 끊어도 앱이 열린다');
+  await page.context().setOffline(false);
+}
 
 console.log('\n[콘솔 오류]');
 const real = errs.filter((e) => !/favicon|manifest.*404/i.test(e));
