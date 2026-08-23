@@ -49,7 +49,8 @@ export function lock(go, { next = 'home' } = {}) {
     store.updateSettings({ parentPin: first });
     fx.correct();
     toast('잠금을 켰어요');
-    go(next);
+    // 방금 두 번 눌러 정한 사람에게 세 번째로 또 묻지 않는다
+    go(next, { unlocked: true });
   };
 
   for (const k of ['1','2','3','4','5','6','7','8','9','del','0','']) {
