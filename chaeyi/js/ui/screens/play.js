@@ -15,8 +15,10 @@ import { h } from '../dom.js';
 import * as store from '../../state.js';
 import * as sess from '../../session.js';
 import * as fx from '../../feedback.js';
-import { numpad, choices, oxpad } from '../numpad.js';
+import { numpad, choices, oxpad, fracpad, pairpad } from '../numpad.js';
 import { iyeyo } from '../../ko.js';
+import * as answer from '../../answer.js';
+import * as theme from '../../theme.js';
 
 /** q.render 를 보고 문제 본문을 그린다 */
 export function renderBody(render) {
@@ -36,9 +38,37 @@ export function renderBody(render) {
             h('span', { class: 'grp-e' }, render.emoji)))));
   }
 
+  // 문장제
+  if (render.type === 'text') {
+    return h('div', { class: 'wordq' }, render.text);
+  }
+
+  // 연립방정식처럼 식이 여러 줄인 경우
+  if (render.type === 'lines') {
+    return h('div', { class: 'lines' },
+      render.lines.map((l) => h('div', { class: 'line' }, l)),
+      render.tail ? h('div', { class: 'line tail' }, render.tail) : null,
+      render.blank ? h('div', { class: 'line blank' }, render.blank) : null);
+  }
+
   // expr — 참·거짓도 같은 식으로 그리되 끝에 물음표를 붙이지 않는다
   return h('div', { class: 'expr' },
-    render.tokens.map((tk) => h('span', { class: tk.blank ? 'blank' : '' }, tk.t)));
+    render.tokens.map((tk) => (tk.frac
+      ? h('span', { class: 'fr' + (tk.blank ? ' blank' : '') },
+          h('span', { class: 'fr-n' }, String(tk.num)),
+          h('span', { class: 'fr-d' }, String(tk.den)))
+      : h('span', { class: tk.blank ? 'blank' : '' }, tk.t))));
+}
+
+/** 답 타입에 맞는 입력 위젯을 고른다 */
+export function makeInput(q, onSubmit) {
+  const kind = answer.inputKind(q.answer, q.mode);
+  if (kind === 'choice') return choices({ options: q.choices, onSubmit });
+  if (kind === 'ox') return oxpad({ onSubmit });
+  if (kind === 'frac') return fracpad({ onSubmit });
+  if (kind === 'pair') return pairpad({ onSubmit });
+  const opt = answer.padOptions(q.answer);
+  return numpad({ onSubmit, maxLen: opt.maxLen, negative: opt.negative, decimal: opt.decimal });
 }
 
 export function play(go, { skillId, groupId = null }) {
@@ -101,9 +131,7 @@ export function play(go, { skillId, groupId = null }) {
     );
 
     if (input?.destroy) input.destroy();
-    if (q.mode === 'choice') input = choices({ options: q.choices, onSubmit: answer });
-    else if (q.mode === 'ox') input = oxpad({ onSubmit: answer });
-    else input = numpad({ onSubmit: answer, maxLen: 3 });
+    input = makeInput(q, submitAnswer);
     inputSlot.replaceChildren(input);
 
     locked = false;
@@ -111,7 +139,7 @@ export function play(go, { skillId, groupId = null }) {
     renderCombo();
   }
 
-  function answer(given) {
+  function submitAnswer(given) {
     if (locked) return;
     locked = true;
     const r = sess.submit(given);
@@ -149,10 +177,10 @@ export function play(go, { skillId, groupId = null }) {
     const close = () => { el.remove(); next(); };
 
     if (r.correct) {
-      const praise = r.milestone ? `${r.milestone}연속 정답! 🔥`
-        : r.newBest ? '최고 기록! ⚡️'
-        : r.mastered ? '완전히 외웠어요! ⭐️'
-        : '정답이에요!';
+      const praise = r.milestone ? theme.copy('combo')(r.milestone)
+        : r.newBest ? theme.copy('newBest')
+        : r.mastered ? theme.copy('mastered')
+        : theme.copy('correct');
       el.append(
         h('div', { class: 'fl-title' }, '🎉 ' + praise),
         h('div', { class: 'fl-body' }, `${(r.ms / 1000).toFixed(1)}초 걸렸어요`),
@@ -164,18 +192,22 @@ export function play(go, { skillId, groupId = null }) {
       setTimeout(close, r.milestone ? 1200 : 850);
     } else {
       el.append(
-        h('div', { class: 'fl-title' }, '괜찮아요, 다시 해봐요'),
+        h('div', { class: 'fl-title' },
+          r.note === 'notReduced' ? '거의 다 왔어요' : theme.copy('wrongTitle')),
         h('div', { class: 'fl-body' }, answerLine(r)),
         r.reason ? h('div', { class: 'muted', style: { marginTop: '4px' } }, r.reason) : null,
-        h('button', { class: 'btn btn-block', onclick: close }, '알겠어요'),
+        h('button', { class: 'btn btn-block', onclick: close }, theme.copy('wrongOk')),
       );
     }
     document.body.append(el);
   }
 
   function answerLine(r) {
-    if (r.variant === 'truefalse') return r.answer === 1 ? '맞는 식이었어요 (O)' : '틀린 식이었어요 (X)';
-    return `정답은 ${r.answer}${iyeyo(r.answer)}`;
+    const a = answer.normalize(r.answer);
+    if (a?.type === 'ox') return a.value === 1 ? '맞는 식이었어요 (O)' : '틀린 식이었어요 (X)';
+    const text = r.answerText || answer.format(r.answer);
+    // 숫자 하나일 때만 조사를 붙인다. 분수·좌표·수식에는 어색하다.
+    return a?.type === 'int' ? `정답은 ${text}${iyeyo(a.value)}` : `정답: ${text}`;
   }
 
   // 중간에 껐다 켠 경우: 저장된 문제를 그대로 이어서 낸다

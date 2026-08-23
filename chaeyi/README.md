@@ -85,11 +85,14 @@ js/
   srs.js              Leitner 간격 반복
   difficulty.js       자동 난이도 레벨 + 부모 프리셋
   allowance.js        용돈 저금통 (적립·지급·내역, 아이별 on/off)
-  grades.js           학년별 차이 (초1~3: 열리는 스킬·문제 자릿수·기본 난이도)
+  grades.js           학년별 차이 (초1~중3: 열리는 스킬·문제 자릿수·톤·기본 난이도)
+  answer.js           답 타입(int·frac·dec·pair·text)과 판정, 약분 진단
+  theme.js            화면 톤 3단계(kid·tween·teen)와 문구 테이블
   session.js          한 판 진행 · 문항 선택 · 중단 복구
   feedback.js         소리·진동 (WebAudio 합성, 외부 파일 없음)
   ko.js               한국어 조사 처리
-  generators/         문항 생성기 (곱셈구구 / 받아올림·받아내림)
+  generators/         문항 생성기 10종 — 곱셈구구·받아올림 / 나눗셈·분수·소수·약수배수
+                      / 정수·일차방정식·연립방정식·인수분해
   ui/screens/         온보딩 · 잠금 · 누구야 · 진단 · 홈 · 세션 · 결과 · 랠리 · 부모
 data/curriculum.json  2022 개정 교육과정 매핑
 docs/PLAN.md          기획서
@@ -103,6 +106,7 @@ docs/PLAN.md          기획서
 id, title, emoji
 allFacts()              학습 항목 키 목록
 groups()                홈 화면에 묶어 보여줄 단위
+targetMs                이 과목의 목표 응답 시간 (곱셈구구 3초 ~ 연립방정식 60초)
 VARIANTS                [{ id, minLevel, weight }] 문제 형태 목록
 canUse(variantId, key)  이 형태를 이 문항에 쓸 수 있는가
 newFactOrder()          처음 배울 때의 순서 (allFacts 순서와 별개)

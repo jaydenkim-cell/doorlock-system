@@ -14,11 +14,20 @@ import * as grades from '../../grades.js';
 import * as difficulty from '../../difficulty.js';
 import * as allowance from '../../allowance.js';
 import * as fx from '../../feedback.js';
+import * as theme from '../../theme.js';
 
-const FACES = ['🦊', '🐰', '🐱', '🐼', '🦄', '🐧', '🐣', '🐨', '🦖', '🐬', '🌸', '⭐️'];
+const FACES_KID = ['🦊', '🐰', '🐱', '🐼', '🦄', '🐧', '🐣', '🐨', '🦖', '🐬', '🌸', '⭐️'];
+const FACES_TWEEN = ['🦊', '🐼', '🐧', '🦖', '🐬', '⚡️', '🎧', '🎮', '🏀', '⚽️', '🎨', '🚀'];
+const FACES_TEEN = ['◆', '●', '▲', '★', '✦', '⬢', 'A', 'B', 'J', 'K', 'M', 'S'];
+
+function facesFor(grade) {
+  const t = grades.of(grade).tone;
+  return t === 'teen' ? FACES_TEEN : t === 'tween' ? FACES_TWEEN : FACES_KID;
+}
 
 export function onboard(go, { first = true } = {}) {
-  let face = FACES[Math.floor(Math.random() * FACES.length)];
+  let faces = facesFor(2);
+  let face = faces[Math.floor(Math.random() * faces.length)];
   let name = first ? '채이' : '';
   let grade = 2;
   let piggy = true;
@@ -35,7 +44,7 @@ export function onboard(go, { first = true } = {}) {
 
   const grid = h('div', { class: 'map', style: { gridTemplateColumns: 'repeat(4,1fr)' } });
   const paintFaces = () => {
-    grid.replaceChildren(...FACES.map((f) => h('button', {
+    grid.replaceChildren(...faces.map((f) => h('button', {
       class: 'tile',
       style: f === face ? { boxShadow: '0 0 0 3px var(--grape)' } : {},
       onclick: () => { face = f; fx.tap(); paintFaces(); },
@@ -44,18 +53,31 @@ export function onboard(go, { first = true } = {}) {
   };
   paintFaces();
 
-  const gradeRow = h('div', { class: 'row', style: { gap: '8px' } });
+  const gradeRow = h('div', {});
   const gradeNote = h('div', { class: 'muted', style: { marginTop: '8px' } });
   const paintGrades = () => {
-    gradeRow.replaceChildren(...grades.GRADE_KEYS.map((g) => h('button', {
-      class: 'btn' + (g === grade ? '' : ' btn-ghost'),
-      style: { flex: '1', minHeight: '54px', fontSize: '17px' },
-      onclick: () => { grade = g; fx.tap(); paintGrades(); },
-    }, grades.GRADES[g].label)));
+    // 1~9를 한 줄에 늘어놓으면 버튼이 너무 작아진다. 초등/중등으로 묶는다.
+    gradeRow.replaceChildren(...grades.GRADE_BANDS.map((band) =>
+      h('div', { style: { marginBottom: '8px' } },
+        h('div', { class: 'muted', style: { fontSize: '13px', marginBottom: '5px' } }, band.label),
+        h('div', { class: 'grade-row' }, band.keys.map((g) => h('button', {
+          class: 'btn btn-sm' + (g === grade ? '' : ' btn-ghost'),
+          style: { flex: '1', minHeight: '48px', fontSize: '16px',
+                   ...(g === grade ? { background: 'var(--grape)', color: '#fff',
+                                       boxShadow: '0 3px 0 var(--grape-d)' } : {}) },
+          onclick: () => {
+            grade = g; fx.tap();
+            const next = facesFor(g);
+            if (next !== faces) { faces = next; face = faces[0]; paintFaces(); }
+            piggyIcon.textContent = theme.copy('walletEmoji', g);
+            paintGrades();
+          },
+        }, grades.GRADES[g].label))))));
     gradeNote.textContent = grades.of(grade).note;
   };
   paintGrades();
 
+  const piggyIcon = h('div', { class: 'piggy-em' }, '🐷');
   const piggyBtn = h('button', { class: 'btn btn-sm' }, '켤게요');
   const paintPiggy = () => {
     piggyBtn.textContent = piggy ? '켤게요' : '안 쓸래요';
@@ -78,11 +100,11 @@ export function onboard(go, { first = true } = {}) {
       gradeRow,
       gradeNote,
       h('div', { class: 'muted', style: { marginTop: '8px', fontSize: '13px' } },
-        '지금은 1~3학년 내용만 있어요 (곱셈구구·받아올림·받아내림)'),
+        '초1~중3 내용이 들어 있어요. 고1 이상은 아직 없습니다'),
     ),
 
     h('div', { class: 'card row' },
-      h('div', { class: 'piggy-em' }, '🐷'),
+      piggyIcon,
       h('div', { style: { flex: '1' } },
         h('div', { class: 'h2' }, '용돈 저금통'),
         h('div', { class: 'muted' }, '한 판 끝낼 때마다 돈이 쌓여요')),

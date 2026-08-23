@@ -17,6 +17,7 @@ export const id = 'addsub';
 export const title = '받아올림·받아내림';
 export const emoji = '➕';
 export const mapTitle = '받아올림 지도';
+export const targetMs = 5000;            // 자리올림을 따져야 해서 곱셈구구보다 여유
 
 /** 곱셈구구와 같은 형태 체계. minLevel 에서 열리고 weight 만큼 자주 나온다. */
 export const VARIANTS = [

@@ -24,6 +24,42 @@
   --tap:64px;
 }
 
+/* ── 학년별 톤 ─────────────────────────────────────────
+   초1~3(kid)이 기본. 초4~6(tween)과 중1~3(teen)은 토큰만 갈아끼운다.
+   🐷 저금통과 🍓 묶어세기는 초2에게 딱 맞지만 중2가 열면 바로 닫는다. */
+:root[data-tone="tween"]{
+  --bg:#f4f4f2; --card:#ffffff; --card2:#f8f8f6; --bg2:#ececeb;
+  --line:#e6e6e3; --line2:#d2d2ce;
+  --ink:#1f2124; --ink2:#4c5057; --ink3:#8d9299;
+  --grape:#5b5bd6; --grape-l:#ececfb; --grape-d:#4646ad;
+  --sun:#b07d2a; --sun-l:#f7f2e7;
+  --sky:#3a7fc4; --sky-l:#eaf1f9;
+  --r:16px; --r-lg:20px;
+}
+:root[data-tone="teen"]{
+  --bg:#eef1f5; --card:#ffffff; --card2:#f6f8fa; --bg2:#e3e8ee;
+  --line:#dfe4ea; --line2:#c6ced8;
+  --ink:#141a21; --ink2:#41505f; --ink3:#7c8996;
+  --grape:#2f6fb5; --grape-l:#e6eff8; --grape-d:#24567f;
+  --mint:#1a7f5a; --mint-l:#e4f3ec;
+  --coral:#c2453a; --coral-l:#fbeceb;
+  /* 과목 아이콘 배경도 함께 낮춘다. 파스텔만 남으면 톤이 섞여 보인다 */
+  --sun:#a8792b; --sun-l:#f3efe6;
+  --sky:#2f6fb5; --sky-l:#e6eff8;
+  --purple:#5a5f8a; --purple-l:#eceef5;
+  --r:12px; --r-lg:14px;
+}
+/* 나이가 올라가면 글씨는 작아지고 여백은 좁아진다 */
+:root[data-tone="tween"] body{font-size:16px}
+:root[data-tone="teen"] body{font-size:15.5px}
+:root[data-tone="teen"] .btn{font-size:17px}
+:root[data-tone="teen"] .piggy-em,
+:root[data-tone="teen"] .who-face{font-size:22px}
+/* 중학생 화면에서 저금통·얼굴 칸의 파스텔 배경은 유치해 보인다 */
+:root[data-tone="teen"] .piggy-em{background:var(--bg2)}
+:root[data-tone="teen"] .avatar,
+:root[data-tone="teen"] .who-face{background:var(--bg2)}
+
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{
@@ -213,6 +249,48 @@ button:disabled{opacity:.35;cursor:default}
 .ox-o:active{box-shadow:0 1px 0 #bfe6d2}
 .ox-x{background:var(--coral-l);color:var(--coral);box-shadow:0 4px 0 #f5cec4}
 .ox-x:active{box-shadow:0 1px 0 #f5cec4}
+
+/* ── 분수 · 여러 줄 식 · 문장제 ────────────────────── */
+.fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;
+    line-height:1;margin:0 .12em}
+.fr-n{padding:0 .18em}
+.fr-d{padding:0 .18em;border-top:4px solid currentColor;margin-top:2px}
+.fr.blank{color:var(--grape)}
+.expr .fr{font-size:.78em}
+
+.lines{display:flex;flex-direction:column;gap:8px;align-items:center}
+.lines .line{
+  font-size:clamp(20px,5.6vw,28px);font-weight:800;letter-spacing:-.5px;
+  font-variant-numeric:tabular-nums;
+}
+.lines .line.tail{margin-top:6px;color:var(--grape)}
+.lines .line.blank{font-size:17px;color:var(--ink3);font-weight:700}
+
+.wordq{
+  font-size:clamp(17px,4.6vw,21px);font-weight:700;line-height:1.55;
+  text-align:center;word-break:keep-all;max-width:22em;
+}
+
+/* 두 칸 입력 (분수 · 좌표) */
+.twoslot{display:flex;align-items:center;justify-content:center;gap:6px;
+         min-height:76px;margin-bottom:2px}
+.twoslot.frac{flex-direction:column;gap:2px}
+.slot{
+  min-width:74px;min-height:52px;padding:4px 12px;border-radius:14px;
+  background:var(--card);box-shadow:0 2px 0 var(--line2);
+  font-size:28px;font-weight:800;font-variant-numeric:tabular-nums;
+}
+.slot.on{box-shadow:0 0 0 3px var(--grape)}
+.slot.is-empty{color:var(--line2)}
+.slot-bar{width:96px;height:4px;border-radius:2px;background:var(--ink)}
+.slot-fix{font-size:26px;font-weight:800;color:var(--ink3)}
+
+.grade-row{display:flex;gap:6px;flex-wrap:wrap}
+.grade-row .btn{flex:1 1 28%}
+.grade-sel{
+  min-height:44px;border-radius:14px;padding:0 10px;font-size:15px;font-weight:700;
+  border:2px solid var(--line2);background:var(--card);color:var(--ink);
+}
 
 /* ── 콤보 ─────────────────────────────────────────── */
 .combo{display:flex;align-items:center;gap:4px;flex:none;opacity:0;transition:opacity .2s}

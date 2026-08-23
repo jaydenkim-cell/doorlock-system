@@ -23,13 +23,15 @@ const WINDOW = 12;
 const MIN_SAMPLE = 8;
 
 export const PRESETS = {
-  auto:   { label: '자동', levelMin: 1, levelMax: 5, targetMs: 3000,
+  // targetMs 는 기본(곱셈구구) 기준값, speed 는 스킬별 목표 시간에 곱하는 배수다.
+  // 일차방정식의 목표가 30초인데 프리셋이 절대값 3초를 강요하면 아무도 마스터가 안 된다.
+  auto:   { label: '자동', levelMin: 1, levelMax: 5, targetMs: 3000, speed: 1.0,
             note: '아이 성적에 따라 스스로 오르내려요' },
-  easy:   { label: '쉬움', levelMin: 1, levelMax: 2, targetMs: 5000,
+  easy:   { label: '쉬움', levelMin: 1, levelMax: 2, targetMs: 5000, speed: 1.6,
             note: '기본 형태 위주, 시간도 넉넉하게' },
-  normal: { label: '보통', levelMin: 2, levelMax: 3, targetMs: 3000,
+  normal: { label: '보통', levelMin: 2, levelMax: 3, targetMs: 3000, speed: 1.0,
             note: '뛰어세기·역방향까지' },
-  hard:   { label: '도전', levelMin: 4, levelMax: 5, targetMs: 2500,
+  hard:   { label: '도전', levelMin: 4, levelMax: 5, targetMs: 2500, speed: 0.8,
             note: '모든 형태, 직접 입력 위주' },
 };
 

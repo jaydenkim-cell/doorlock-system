@@ -78,7 +78,7 @@ function dashboard(go) {
     h('div', { class: 'stat' },
       h('div', { class: 'box' }, h('b', {}, `${days}일`), h('span', {}, `학습 (목표 ${s.weeklyGoalDays}일)`)),
       h('div', { class: 'box' }, h('b', {}, `${acc}%`), h('span', {}, `정답률 (${items.length}문항)`)),
-      h('div', { class: 'box' }, h('b', {}, avgMs ? fmtSec(avgMs) : '–'), h('span', {}, `평균 (목표 ${fmtSec(s.targetMs)})`)),
+      h('div', { class: 'box' }, h('b', {}, avgMs ? fmtSec(avgMs) : '–'), h('span', {}, '평균 응답')),
     ),
 
     kidsCard(go),
@@ -86,7 +86,7 @@ function dashboard(go) {
     levelCard(),
     weakCard(),
     trendCard(d),
-    speedCard(s),
+    speedCard(),
 
     h('div', { class: 'card' },
       h('h3', {}, '⚙️ 설정'),
@@ -126,21 +126,26 @@ function kidsCard(go) {
       ),
     );
 
-    // 학년 바꾸기
-    for (const g of grades.GRADE_KEYS) {
-      row.append(h('button', {
-        class: 'btn btn-sm' + (p.grade === g ? '' : ' btn-ghost'),
-        style: p.grade === g ? { background: 'var(--grape)', color: '#fff', boxShadow: '0 3px 0 var(--grape-d)' } : {},
-        onclick: () => {
-          const was = store.activeProfile()?.id;
-          store.setActiveProfile(p.id);
-          store.updateProfile({ grade: g });
-          if (was && was !== p.id) store.setActiveProfile(was);
-          toast(`${p.name} · ${grades.GRADES[g].label}`);
-          go('parent');
-        },
-      }, String(g)));
+    // 학년 바꾸기 — 1~9 를 한 줄에 늘어놓으면 버튼이 너무 작아 접어 넣는다
+    const setGrade = (g) => {
+      const was = store.activeProfile()?.id;
+      store.setActiveProfile(p.id);
+      store.updateProfile({ grade: g });
+      if (was && was !== p.id) store.setActiveProfile(was);
+      toast(`${p.name} · ${grades.GRADES[g].label}`);
+      go('parent');
+    };
+    const sel = h('select', { class: 'grade-sel', 'aria-label': `${p.name} 학년`,
+      onchange: (e) => setGrade(Number(e.target.value)) });
+    for (const band of grades.GRADE_BANDS) {
+      const grp = h('optgroup', { label: band.label });
+      for (const g of band.keys) {
+        grp.append(h('option', { value: String(g), ...(p.grade === g ? { selected: 'selected' } : {}) },
+          grades.GRADES[g].label));
+      }
+      sel.append(grp);
     }
+    row.append(sel);
 
     row.append(h('button', { class: 'btn btn-sm btn-ghost', onclick: () => removeKid(p) }, '삭제'));
     return row;
@@ -174,8 +179,9 @@ function kidsCard(go) {
           '홈 화면 왼쪽 위 얼굴을 눌러도 바꿀 수 있어요.')
       : null,
     h('div', { class: 'muted', style: { marginTop: '8px', fontSize: '13px' } },
-      '숫자는 학년이에요. 1학년은 곱셈구구를 잠그고 받아올림을 한 자리로 냅니다. ' +
-      '지금은 1~3학년 내용만 있어요.'),
+      '학년이 무엇을 낼지 정합니다. 초1은 곱셈구구를 잠그고 받아올림을 한 자리로, ' +
+      '초4부터는 나눗셈·분수·소수, 중1부터는 정수·방정식이 열려요. ' +
+      '초4 이상은 화면 톤도 차분하게 바뀝니다.'),
   );
   return card;
 }
@@ -283,6 +289,17 @@ function walletCard(go) {
   return card;
 }
 
+/** 생성기마다 factKey 모양이 달라서 예쁘게 못 쓰는 것은 키를 그대로 보여준다 */
+function factLabel(gen, key) {
+  try {
+    const f = gen.parseFact(key);
+    if (f && f.a !== undefined && f.b !== undefined && !f.kind) {
+      return f.op ? `${f.a} ${f.op} ${f.b}` : `${f.a} × ${f.b}`;
+    }
+  } catch { /* 키 모양이 다른 생성기 */ }
+  return key;
+}
+
 /**
  * 지금 난이도가 어디쯤인지.
  * 부모가 "너무 어려워해요" 할 때 무엇을 건드려야 하는지 보이게 한다.
@@ -290,24 +307,27 @@ function walletCard(go) {
 function levelCard() {
   const p = difficulty.preset();
   const rows = [];
-  for (const skillId of ['mul', 'addsub']) {
+  // 이 아이 학년에서 열려 있는 스킬만 보여준다
+  for (const skillId of sess.openSkills()) {
     const gen = sess.skill(skillId);
     const lv = difficulty.levelOf(skillId);
     const open = difficulty.unlockedVariants(gen, lv).length;
     rows.push(h('tr', {},
       h('td', {}, gen.title),
-      h('td', {}, `레벨 ${lv} · 문제 형태 ${open}종`),
+      h('td', {}, `레벨 ${lv} · 형태 ${open}종 · 목표 ${fmtSec(sess.skillTargetMs(skillId))}`),
       h('td', {}, '●'.repeat(lv) + '○'.repeat(difficulty.MAX_LEVEL - lv)),
     ));
   }
-  const best = sess.rallyBest('mul');
+  const mainSkill = sess.openSkills()[0] || 'mul';
+  const best = sess.rallyBest(mainSkill);
 
   return h('div', { class: 'card' },
     h('h3', {}, '🎚 지금 난이도'),
     h('table', { class: 'wk' }, rows),
     h('div', { class: 'note', style: { marginTop: '12px' } },
-      `설정 "${p.label}" — ${p.note}. 레벨이 오르면 역방향(7 × ? = 56), 뛰어세기, ` +
-      '참·거짓 같은 형태가 차례로 열립니다. 아래 설정에서 범위를 고정할 수 있어요.'),
+      `설정 "${p.label}" — ${p.note}. 레벨이 오르면 역방향·뛰어세기·참거짓 같은 형태가 ` +
+      '차례로 열립니다. 목표 시간은 과목마다 다릅니다 — 곱셈구구는 3초 자동화가 목표지만 ' +
+      '일차방정식은 30초에 푸는 게 정상이라, 하나의 기준으로 재지 않습니다.'),
     best ? h('div', { class: 'muted', style: { marginTop: '10px' } },
       `⚡️ 60초 랠리 최고 기록 ${best}개`) : null,
   );
@@ -315,16 +335,16 @@ function levelCard() {
 
 /** 무엇을 무엇과 헷갈리는가 — 이 앱의 핵심 산출물 */
 function weakCard() {
-  const s = store.settings();
   const rows = [];
-  for (const skillId of ['mul', 'addsub']) {
+  for (const skillId of sess.openSkills()) {
     const gen = sess.skill(skillId);
+    const target = sess.skillTargetMs(skillId);
     for (const m of store.masteryList(skillId)) {
       if (!m.seen) continue;
       const acc = m.correct / m.seen;
-      const slow = m.avgMs > s.targetMs;
+      const slow = m.avgMs > target;
       if (acc >= 0.8 && !slow) continue;
-      rows.push({ m, gen, acc, score: (1 - acc) * 2 + (slow ? m.avgMs / s.targetMs - 1 : 0) });
+      rows.push({ m, gen, acc, target, score: (1 - acc) * 2 + (slow ? m.avgMs / target - 1 : 0) });
     }
   }
   rows.sort((a, b) => b.score - a.score);
@@ -336,13 +356,12 @@ function weakCard() {
   }
 
   const table = h('table', { class: 'wk' });
-  for (const { m, gen, acc } of rows.slice(0, 8)) {
-    const f = gen.parseFact(m.factKey);
-    const face = f.op ? `${f.a} ${f.op} ${f.b}` : `${f.a} × ${f.b}`;
+  for (const { m, gen, acc, target } of rows.slice(0, 8)) {
+    const face = factLabel(gen, m.factKey);
     const reason = m.wrongLog[0]?.reason;
     table.append(h('tr', {},
       h('td', {}, face),
-      h('td', {}, reason || (m.avgMs > s.targetMs ? '맞히지만 아직 느림 (세는 중)' : '가끔 틀림')),
+      h('td', {}, reason || (m.avgMs > target ? '맞히지만 아직 느림 (세는 중)' : '가끔 틀림')),
       h('td', {}, `${Math.round(acc * 100)}% · ${m.avgMs ? fmtSec(m.avgMs) : '–'}`),
     ));
   }
@@ -359,36 +378,38 @@ function weakCard() {
 function trendCard(d) {
   const last = d.sessions.slice(-12);
   if (last.length < 2) return null;
-  const s = store.settings();
+  const target = sess.skillTargetMs(sess.openSkills()[0] || 'mul');
   const vals = last.map((x) => x.summary?.avgMs || 0).filter(Boolean);
-  const max = Math.max(...vals, s.targetMs);
+  const max = Math.max(...vals, target);
 
   return h('div', { class: 'card' },
     h('h3', {}, '⏱ 평균 응답 시간 추이'),
     h('div', { class: 'trend' },
       vals.map((v) => h('i', {
-        class: v > s.targetMs ? 'slow' : '',
+        class: v > target ? 'slow' : '',
         style: { height: `${Math.max(4, (v / max) * 100)}%` },
         title: fmtSec(v),
       }))),
     h('div', { class: 'muted', style: { marginTop: '8px' } },
-      `막대가 낮아질수록 좋아요. 주황색은 목표(${fmtSec(s.targetMs)})보다 느린 판입니다.`),
+      `막대가 낮아질수록 좋아요. 주황색은 목표(${fmtSec(target)})보다 느린 판입니다.`),
   );
 }
 
-function speedCard(s) {
-  const gen = sess.skill('mul');
-  const mastered = store.masteryList('mul').filter((m) => srs.isMastered(m, s.targetMs)).length;
+function speedCard() {
+  const skillId = sess.openSkills()[0] || 'mul';
+  const gen = sess.skill(skillId);
+  const target = sess.skillTargetMs(skillId);
+  const mastered = store.masteryList(skillId).filter((m) => srs.isMastered(m, target)).length;
   const total = gen.allFacts().length;
   return h('div', { class: 'card' },
-    h('h3', {}, '📚 곱셈구구 진도'),
+    h('h3', {}, `📚 ${gen.title} 진도`),
     h('div', { class: 'row' },
       h('b', { style: { fontSize: '26px' } }, `${mastered}`),
       h('div', { class: 'muted' }, `/ ${total}문항 마스터`),
     ),
     h('div', { class: 'bar' }, h('i', { style: { width: `${Math.round((mastered / total) * 100)}%` } })),
     h('div', { class: 'muted', style: { marginTop: '8px' } },
-      `마스터 기준: 복습 간격 7일 이상까지 살아남고, 평균 ${fmtSec(s.targetMs)} 안에 답하는 문항`),
+      `마스터 기준: 복습 간격 7일 이상까지 살아남고, 평균 ${fmtSec(target)} 안에 답하는 문항`),
   );
 }
 

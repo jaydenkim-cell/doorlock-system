@@ -3,6 +3,7 @@
 import { h } from '../dom.js';
 import * as sess from '../../session.js';
 import * as allowance from '../../allowance.js';
+import * as theme from '../../theme.js';
 
 export function result(go, summary) {
   if (!summary) { go('home'); return h('div'); }
@@ -18,14 +19,14 @@ export function result(go, summary) {
     ),
 
     h('div', { class: 'stat' },
-      h('div', { class: 'box' }, h('b', {}, '⭐️ 1'), h('span', {}, '별')),
+      h('div', { class: 'box' }, h('b', {}, '+1'), h('span', {}, theme.copy('star'))),
       h('div', { class: 'box' }, h('b', {}, (summary.avgMs / 1000).toFixed(1) + '초'), h('span', {}, '평균 시간')),
       h('div', { class: 'box' }, h('b', {}, String(summary.fast.length)), h('span', {}, '빠르게 맞힘')),
     ),
 
     (summary.newStickers || []).length
       ? h('div', { class: 'card', style: { background: 'var(--sun-l)' } },
-          h('div', { class: 'h2' }, `🏅 ${summary.newStickers.join(', ')} 스티커를 받았어요!`),
+          h('div', { class: 'h2' }, `🏅 ${summary.newStickers.join(', ')} ${theme.copy('sticker')}`),
           h('div', { class: 'muted' }, '이 단은 완전히 외웠어요'))
       : null,
 
@@ -50,8 +51,9 @@ export function result(go, summary) {
       : null,
 
     h('div', { class: 'spacer' }),
-    h('button', { class: 'btn btn-block', onclick: () => go('home') }, '홈으로'),
-    h('button', { class: 'btn btn-block btn-ghost', onclick: () => go('session', { skillId: summary.skillId }) }, '한 판 더!'),
+    h('button', { class: 'btn btn-block', onclick: () => go('home') }, theme.copy('home')),
+    h('button', { class: 'btn btn-block btn-ghost',
+      onclick: () => go('session', { skillId: summary.skillId }) }, theme.copy('again')),
     h('div', { style: { height: '8px' } }),
   );
 }
@@ -66,7 +68,7 @@ function earnCard(summary) {
   if (!got.length) {
     // 하루 상한에 걸렸을 때. 못 받은 게 아니라 오늘 몫을 다 받았다고 말한다.
     return h('div', { class: 'card piggy-row' },
-      h('div', { class: 'piggy-em' }, '🐷'),
+      h('div', { class: 'piggy-em' }, theme.copy('walletEmoji')),
       h('div', { style: { flex: '1' } },
         h('div', { class: 'h2' }, allowance.won(allowance.balance())),
         h('div', { class: 'muted' }, `오늘 저금은 다 했어요 (하루 ${c.dailySessionCap}판까지)`)),
@@ -74,7 +76,7 @@ function earnCard(summary) {
   }
 
   return h('div', { class: 'card piggy-row', style: { background: 'var(--mint-l)' } },
-    h('div', { class: 'piggy-em' }, '🐷'),
+    h('div', { class: 'piggy-em' }, theme.copy('walletEmoji')),
     h('div', { style: { flex: '1' } },
       h('div', { class: 'h2' }, `+${allowance.won(total)} 저금했어요!`),
       h('div', { class: 'chips', style: { marginTop: '6px' } },
@@ -88,7 +90,17 @@ function earnCard(summary) {
   );
 }
 
+/**
+ * 결과 화면에 문항을 어떻게 적을지.
+ * 생성기마다 factKey 모양이 달라서(7x8 / add:2,3 / ax+b=c) 일률적으로 못 쓴다.
+ * 곱셈·덧뺄셈만 예쁘게 풀어 쓰고 나머지는 키를 그대로 보여준다.
+ */
 function label(gen, key) {
-  const f = gen.parseFact(key);
-  return f.op ? `${f.a} ${f.op} ${f.b}` : `${f.a} × ${f.b}`;
+  try {
+    const f = gen.parseFact(key);
+    if (f && f.a !== undefined && f.b !== undefined && !f.kind) {
+      return f.op ? `${f.a} ${f.op} ${f.b}` : `${f.a} × ${f.b}`;
+    }
+  } catch { /* 키 모양이 다른 생성기 */ }
+  return key;
 }
