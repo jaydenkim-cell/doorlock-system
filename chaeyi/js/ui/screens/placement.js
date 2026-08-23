@@ -103,8 +103,14 @@ export function placement(go, { skillId } = {}) {
     go('home');
   }
 
-  // 진단 문항이 없는 스킬이면 그냥 넘어간다
-  if (!questions.length) { skip(); return root; }
+  // 진단 문항이 없는 스킬이면 그냥 넘어간다.
+  // 그리는 도중에 go() 를 부르면 바깥 라우터가 덮어써 빈 화면이 되므로,
+  // 상태만 정리하고 홈을 다음 프레임에 띄운다.
+  if (!questions.length) {
+    sess.applyPlacement(skillId, []);
+    setTimeout(() => go('home'), 0);
+    return root;
+  }
 
   render();
   return root;

@@ -6,7 +6,8 @@ import * as allowance from '../../allowance.js';
 import * as theme from '../../theme.js';
 
 export function result(go, summary) {
-  if (!summary) { go('home'); return h('div'); }
+  // 그리는 도중의 go() 는 바깥 라우터에 덮인다. 다음 프레임으로 미룬다.
+  if (!summary) { setTimeout(() => go('home'), 0); return h('div', { class: 'screen' }); }
   const gen = sess.skill(summary.skillId);
   const all = summary.correct === summary.total;
   const face = all ? '🏆' : summary.correct >= summary.total * 0.7 ? '🎉' : '💪';

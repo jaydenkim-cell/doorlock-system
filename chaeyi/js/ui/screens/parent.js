@@ -16,11 +16,19 @@ import * as sess from '../../session.js';
 import * as difficulty from '../../difficulty.js';
 import * as allowance from '../../allowance.js';
 import * as grades from '../../grades.js';
+import { lock } from './lock.js';
 
-export function parent(go) {
+export function parent(go, { unlocked = false } = {}) {
+  // 잠금을 방금 설정하고 넘어온 경우. 라우터가 넘겨주는 값이라 아이가 만들 수 없다.
+  if (unlocked) return dashboard(go);
+
   const pin = store.settings().parentPin;
   // 잠금이 없으면 대시보드를 그냥 열지 않는다. 이 뒤에 저금통 현금 지급이 있다.
-  if (!pin) { go('lock', { next: 'parent' }); return h('div', { class: 'screen' }); }
+  //
+  // 여기서 go('lock') 을 부르면 안 된다. 화면을 그리는 도중에 라우터를 다시 부르면
+  // 잠금 화면을 그린 뒤 바깥 go() 가 이 함수의 반환값으로 덮어써 버려서 빈 화면이 된다.
+  // 라우팅하지 말고 잠금 화면을 그대로 조립해서 돌려준다.
+  if (!pin) return lock(go, { next: 'parent' });
 
   const root = h('div', { class: 'screen' });
   let entry = '';

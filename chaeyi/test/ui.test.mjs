@@ -31,23 +31,57 @@ const shot = async (name, full = false) => {
 
 const current = () => page.evaluate(() => window.__chaeyi.store.pdata().activeSession?.question || null);
 
-/** 현재 문항에 답한다. wrong=true 면 일부러 틀린다. */
+/** 숫자패드에 값을 찍는다 (음수·소수 포함) */
+async function punchNumber(v) {
+  const str = String(v);
+  if (str.startsWith('-')) await page.locator('.pad-key[aria-label="부호"]').click();
+  for (const ch of str.replace('-', '')) {
+    await page.locator(`.pad-key[aria-label="${ch === '.' ? '.' : ch}"]`).click();
+  }
+}
+
+/**
+ * 현재 문항에 답한다. wrong=true 면 일부러 틀린다.
+ * 답이 숫자 하나이던 시절과 달리 이제 타입이 있다 (int·frac·dec·pair·text·ox).
+ */
 async function answerCurrent({ wrong = false } = {}) {
   const q = await current();
   if (!q) return null;
+  // 예전 생성기는 숫자를 그대로 넘긴다 — answer.normalize 와 같은 규칙
+  const a = typeof q.answer === 'object' && q.answer !== null
+    ? q.answer : { type: 'int', value: q.answer };
+
+  // 무엇으로 답하는지는 답 타입이 아니라 화면에 뜬 입력 위젯(q.mode)이 정한다.
+  // 예전 생성기는 O/X 답도 숫자로 주기 때문에 타입으로 갈라면 어긋난다.
   if (q.mode === 'ox') {
-    const want = wrong ? 1 - q.answer : q.answer;
+    const v = a.type === 'ox' ? a.value : Number(q.answer);
+    const want = wrong ? 1 - v : v;
     await page.locator(want === 1 ? '.ox-o' : '.ox-x').click();
-  } else if (q.mode === 'choice') {
-    const want = wrong
-      ? q.choices.find((c) => c !== q.answer)
-      : q.answer;
-    await page.locator('.choice', { hasText: new RegExp(`^${want}$`) }).first().click();
-  } else {
-    const want = wrong ? q.answer + 1 : q.answer;
-    for (const ch of String(want)) await page.locator(`.pad-key[aria-label="${ch}"]`).click();
-    await page.locator('.pad-ok').click();
+    return q;
   }
+  if (q.mode === 'choice') {
+    const right = a.type === 'text' ? a.value : a.value;
+    const want = wrong ? q.choices.find((c) => c !== right) : right;
+    await page.locator('.choice', { hasText: new RegExp(`^${String(want)
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }).first().click();
+    return q;
+  }
+  if (a.type === 'frac') {
+    await punchNumber(wrong ? a.num + 1 : a.num);
+    await page.locator('.slot[aria-label="분모"]').click();
+    await punchNumber(a.den);
+    await page.locator('.pad-ok').click();
+    return q;
+  }
+  if (a.type === 'pair') {
+    await punchNumber(wrong ? a.a + 1 : a.a);
+    await page.locator('.slot[aria-label="y 값"]').click();
+    await punchNumber(a.b);
+    await page.locator('.pad-ok').click();
+    return q;
+  }
+  await punchNumber(wrong ? a.value + 1 : a.value);
+  await page.locator('.pad-ok').click();
   return q;
 }
 
@@ -270,6 +304,29 @@ const paid = await page.evaluate(() => {
 ok(paid.ok && paid.after === paid.before - 300, `현금화하면 잔액이 준다 (${paid.before} → ${paid.after})`);
 ok(paid.last.kind === 'payout' && paid.last.note === '문방구', '지급 내역이 남는다');
 
+console.log('\n[잠금 없는 기존 프로필 — 회귀]');
+// 잠금 필수화 이전에 만들어진 프로필은 parentPin 이 비어 있다.
+// 그 상태로 부모 화면에 들어가면 빈 화면이 나오던 버그가 있었다.
+await page.evaluate(() => {
+  const w = window.__chaeyi;
+  w.store.updateSettings({ parentPin: '' });
+  w.go('home');
+});
+await page.waitForSelector('.map');
+await page.locator('button[title="부모님 화면"]').click();
+await page.waitForTimeout(400);
+const lockShown = await page.locator('text=부모님 잠금 번호').count();
+const bodyText = (await page.locator('#app').textContent()).trim();
+ok(lockShown > 0, `잠금 없는 프로필도 부모 화면에서 잠금 설정이 뜬다 (빈 화면 아님)`);
+ok(bodyText.length > 20, `화면이 비어 있지 않다 (${bodyText.length}자)`);
+await shot('17-lock-setup');
+// 잠금을 새로 걸고 들어가 본다
+await punch('1234');
+await page.waitForSelector('text=한 번 더');
+await punch('1234');
+await page.waitForSelector('.parent');
+ok(await page.locator('text=학습 리포트').isVisible(), '잠금을 걸면 곧바로 리포트로 들어간다');
+
 console.log('\n[둘째 아이 추가]');
 await page.locator('button:has-text("+ 아이 추가")').click();
 await page.waitForSelector('text=친구를 추가해요');
@@ -357,11 +414,7 @@ for (let i = 0; i < 12; i++) {
   const q = await current();
   if (!q) break;
   if (q.answer?.value < 0 && q.mode === 'input') {
-    await page.locator('.pad-key[aria-label="부호"]').click();
-    for (const ch of String(Math.abs(q.answer.value))) {
-      await page.locator(`.pad-key[aria-label="${ch}"]`).click();
-    }
-    await page.locator('.pad-ok').click();
+    await answerCurrent();
     await page.waitForSelector('.flash.ok', { timeout: 3000 });
     ok(true, `음수 답 ${q.answer.value} 을 입력해 정답 처리됐다`);
     negDone = true;

@@ -210,10 +210,12 @@ export function play(go, { skillId, groupId = null }) {
     return a?.type === 'int' ? `정답은 ${text}${iyeyo(a.value)}` : `정답: ${text}`;
   }
 
-  // 중간에 껐다 켠 경우: 저장된 문제를 그대로 이어서 낸다
+  // 중간에 껐다 켠 경우: 저장된 문제를 그대로 이어서 낸다.
+  // 마지막 문항까지 답한 채로 꺼졌다면 곧장 결과로 보낸다 — 다만 그리는 도중에
+  // go() 를 부르면 바깥 라우터가 이 함수의 반환값으로 덮어써 빈 화면이 된다.
   if (!s.question) {
     const summary = sess.finish();
-    if (summary) { go('result', summary); return root; }
+    if (summary) { setTimeout(() => go('result', summary), 0); return root; }
   }
   renderQuestion();
   return root;
