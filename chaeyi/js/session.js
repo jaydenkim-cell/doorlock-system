@@ -13,10 +13,35 @@ import * as srs from './srs.js';
 import * as difficulty from './difficulty.js';
 import * as allowance from './allowance.js';
 import * as grades from './grades.js';
+import * as answer from './answer.js';
 import * as multiply from './generators/multiply.js';
 import * as addsub from './generators/addsub.js';
+import * as divide from './generators/divide.js';
+import * as fraction from './generators/fraction.js';
+import * as decimalGen from './generators/decimal.js';
+import * as factors from './generators/factors.js';
+import * as integers from './generators/integers.js';
+import * as linear from './generators/linear.js';
+import * as simul from './generators/simul.js';
+import * as quadratic from './generators/quadratic.js';
 
-export const SKILLS = { [multiply.id]: multiply, [addsub.id]: addsub };
+export const SKILLS = Object.fromEntries(
+  [multiply, addsub, divide, fraction, decimalGen, factors,
+   integers, linear, simul, quadratic].map((g) => [g.id, g]),
+);
+
+/**
+ * 이 스킬의 목표 응답 시간.
+ *
+ * 곱셈구구는 3초 자동화가 목표지만 일차방정식은 30초에 푸는 게 정상이다.
+ * 하나의 targetMs 로 둘 다 재면 중학 내용은 영원히 마스터가 안 된다.
+ * 생성기가 자기 기준을 갖고, 난이도 프리셋은 배수로만 작용한다.
+ */
+export function skillTargetMs(skillId) {
+  const gen = SKILLS[skillId];
+  const base = gen?.targetMs || store.settings().targetMs || 3000;
+  return Math.round(base * (difficulty.preset().speed ?? 1));
+}
 
 export function skill(skillId) { return SKILLS[skillId]; }
 
@@ -62,12 +87,13 @@ function buildQueue(skillId, groupId) {
   due.sort((x, y) => x[1].dueAt - y[1].dueAt);
 
   // 약한 항목: 정답률이 낮거나 아직 느린 것
+  const target = skillTargetMs(skillId);
   const weakness = ([, m]) => {
     const acc = m.seen ? m.correct / m.seen : 0;
-    const slow = m.avgMs > s.targetMs ? m.avgMs / s.targetMs : 1;
+    const slow = m.avgMs > target ? m.avgMs / target : 1;
     return (1 - acc) * 2 + (slow - 1);
   };
-  const weak = seen.filter(([, m]) => (m.seen && m.correct / m.seen < 0.7) || m.avgMs > s.targetMs)
+  const weak = seen.filter(([, m]) => (m.seen && m.correct / m.seen < 0.7) || m.avgMs > target)
                    .sort((x, y) => weakness(y) - weakness(x));
 
   const queue = [];
@@ -206,13 +232,19 @@ export function submit(given) {
   const s = store.settings();
 
   const ms = Math.max(200, Date.now() - sess.questionStartedAt);
-  const correct = Number(given) === q.answer;
-  const reason = correct ? null : gen.diagnose(q.factKey, Number(given), q.ctx);
+  const target = skillTargetMs(sess.skillId);
+  const verdict = answer.check(given, q.answer);
+  const correct = verdict.correct;
+  // 분수 값은 맞는데 약분을 안 한 경우는 따로 짚어준다
+  const reason = correct ? null
+    : verdict.note === 'notReduced' ? '계산은 맞았어요. 약분만 하면 돼요'
+    : gen.diagnose(q.factKey, typeof given === 'object' ? given : Number(given), q.ctx);
+  const shown = answer.formatGiven(given, q.answer);
 
   const m = store.mastery(sess.skillId, q.factKey);
-  const outcome = srs.applyResult(m, { correct, ms, given: Number(given), reason }, s.targetMs, d.bestMs);
+  const outcome = srs.applyResult(m, { correct, ms, given: shown, reason }, target, d.bestMs);
 
-  sess.items.push({ factKey: q.factKey, given: Number(given), correct, ms,
+  sess.items.push({ factKey: q.factKey, given: shown, correct, ms,
                     variant: q.variant, at: Date.now() });
 
   // 콤보. 3·5·10 에서 반응을 키운다.
@@ -221,7 +253,7 @@ export function submit(given) {
   const milestone = correct && [3, 5, 10, 15, 20].includes(sess.streak) ? sess.streak : 0;
 
   // 난이도 레벨은 최근 성적을 보고 스스로 오르내린다
-  const lv = difficulty.record(sess.skillId, { correct, fast: srs.isFast(ms, s.targetMs) });
+  const lv = difficulty.record(sess.skillId, { correct, fast: srs.isFast(ms, target) });
 
   // 틀린 문제는 하트를 깎는 대신 이 판이 끝날 때 한 번 더 낸다.
   const inRetry = sess.index >= sess.queue.length;
@@ -235,7 +267,8 @@ export function submit(given) {
   const done = !sess.question;
   store.save();
 
-  return { correct, answer: q.answer, reason, ms, ...outcome, done,
+  return { correct, answer: q.answer, answerText: answer.format(q.answer),
+           reason, note: verdict.note, ms, ...outcome, done,
            variant: q.variant, streak: sess.streak, milestone,
            level: lv.level, levelChanged: lv.changed };
 }
@@ -251,14 +284,15 @@ export function finish() {
   const main = sess.items.slice(0, sess.queue.length);
   const correctCount = main.filter((i) => i.correct).length;
 
+  const target = skillTargetMs(sess.skillId);
   const masteredNow = [];
   for (const key of new Set(sess.items.map((i) => i.factKey))) {
     const m = store.mastery(sess.skillId, key);
-    if (srs.isMastered(m, s.targetMs)) masteredNow.push(key);
+    if (srs.isMastered(m, target)) masteredNow.push(key);
   }
 
   const faster = sess.items
-    .filter((i) => i.correct && i.ms <= s.targetMs)
+    .filter((i) => i.correct && i.ms <= target)
     .map((i) => i.factKey);
 
   const summary = {
@@ -299,9 +333,10 @@ function awardStickers(d, skillId, summary) {
   const gen = SKILLS[skillId];
   const s = store.settings();
   for (const g of gen.groups()) {
+    const target = skillTargetMs(skillId);
     const all = g.facts.every((k) => {
       const m = d.mastery[`${skillId}:${k}`];
-      return m && srs.isMastered(m, s.targetMs);
+      return m && srs.isMastered(m, target);
     });
     const tag = `${skillId}:${g.id}`;
     if (all && !d.stickers.some((x) => x.tag === tag)) {
@@ -354,7 +389,7 @@ export function rallyQuestion(skillId, prevVariant) {
 }
 
 export function rallyRecord(skillId, q, given, ms) {
-  const correct = Number(given) === q.answer;
+  const correct = answer.check(given, q.answer).correct;
   const m = store.mastery(skillId, q.factKey);
   m.seen += 1;
   if (correct) {

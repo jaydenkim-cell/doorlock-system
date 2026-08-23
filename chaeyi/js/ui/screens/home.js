@@ -15,11 +15,14 @@ import * as sess from '../../session.js';
 import * as difficulty from '../../difficulty.js';
 import * as allowance from '../../allowance.js';
 import * as grades from '../../grades.js';
+import * as theme from '../../theme.js';
 
 const DAY_LABEL = ['월', '화', '수', '목', '금', '토', '일'];
 
-function groupRatio(skillId, facts, targetMs) {
+/** 숙련도는 스킬마다 기준 시간이 다르다 (곱셈구구 3초 / 일차방정식 30초) */
+function groupRatio(skillId, facts) {
   const d = store.pdata();
+  const targetMs = sess.skillTargetMs(skillId);
   let sum = 0;
   for (const k of facts) sum += srs.masteryRatio(d.mastery[`${skillId}:${k}`], targetMs);
   return facts.length ? sum / facts.length : 0;
@@ -58,7 +61,7 @@ function piggyCard() {
 
   return h('div', { class: 'card piggy' + (done ? ' full' : '') },
     h('div', { class: 'row' },
-      h('div', { class: 'piggy-em' }, '🐷'),
+      h('div', { class: 'piggy-em' }, theme.copy('walletEmoji')),
       h('div', { style: { flex: '1' } },
         h('div', { class: 'piggy-amt' }, allowance.won(bal)),
         h('div', { class: 'muted' }, done
@@ -75,11 +78,10 @@ function piggyCard() {
 /** 진도 지도. 곱셈구구는 8칸(2~9단), 받아올림은 2칸으로 같은 UI를 쓴다. */
 function mapCard(go, skillId) {
   const gen = sess.skill(skillId);
-  const targetMs = store.settings().targetMs;
   const list = gen.groups();
 
   const tiles = list.map((g) => {
-    const r = groupRatio(skillId, g.facts, targetMs);
+    const r = groupRatio(skillId, g.facts);
     const due = sess.dueCount(skillId, g.id);
     const done = r >= 0.95;
     return h('button', {
@@ -109,8 +111,7 @@ function mapCard(go, skillId) {
 
 function skillCard(skillId, go) {
   const gen = sess.skill(skillId);
-  const targetMs = store.settings().targetMs;
-  const r = groupRatio(skillId, gen.allFacts(), targetMs);
+  const r = groupRatio(skillId, gen.allFacts());
   const due = sess.dueCount(skillId);
 
   return h('button', { class: 'skill', onclick: () => go('session', { skillId }) },
@@ -142,7 +143,7 @@ function placementCard(go) {
     onclick: () => go('placement') },
     h('div', { class: 'em', style: { background: '#fff' } }, '🔎'),
     h('div', { style: { flex: '1' } },
-      h('div', { class: 'h2' }, '어디까지 아는지 볼까요?'),
+      h('div', { class: 'h2' }, theme.copy('placementTitle')),
       h('div', { class: 'muted' }, '12문항만 풀면 딱 맞는 곳부터 시작해요'),
     ),
     h('div', { class: 'go' }, '›'),
@@ -161,8 +162,8 @@ export function home(go) {
   const resume = d.activeSession;
   const totalDue = open.reduce((sum, id) => sum + sess.dueCount(id), 0);
   const cta = resume
-    ? { label: '이어서 하기 ▶︎', skillId: resume.skillId, groupId: resume.groupId ?? null }
-    : { label: totalDue > 0 ? `오늘의 공부 시작 (${totalDue}개 복습)` : '오늘의 공부 시작',
+    ? { label: theme.copy('resume'), skillId: resume.skillId, groupId: resume.groupId ?? null }
+    : { label: totalDue > 0 ? `${theme.copy('todayStart')} (${totalDue}개 복습)` : theme.copy('todayStart'),
         skillId: main, groupId: null };
 
   return h('div', { class: 'screen' },
@@ -174,9 +175,9 @@ export function home(go) {
             p.avatar, h('span', { class: 'avatar-swap' }, '⇄'))
         : h('div', { class: 'avatar' }, p.avatar),
       h('div', {},
-        h('div', { class: 'who-name' }, `${p.name} 어린이`),
+        h('div', { class: 'who-name' }, `${p.name}${theme.copy('kidSuffix')}`),
         h('div', { class: 'muted' },
-          `${g.label} · 별 ${d.sessions.length}개 · ${difficulty.preset().label}`),
+          `${g.label} · ${theme.copy('star')} ${d.sessions.length} · ${difficulty.preset().label}`),
       ),
       h('div', { class: 'spacer' }),
       h('button', { class: 'icon-btn', title: '부모님 화면', 'aria-label': '부모님 화면',
@@ -196,7 +197,7 @@ export function home(go) {
 
     d.stickers.length
       ? h('div', { class: 'card' },
-          h('div', { class: 'h2', style: { marginBottom: '10px' } }, '🏅 모은 스티커'),
+          h('div', { class: 'h2', style: { marginBottom: '10px' } }, theme.copy('stickerBoard')),
           h('div', { class: 'chips' }, d.stickers.map((s) => h('div', { class: 'chip' }, s.label))))
       : null,
 

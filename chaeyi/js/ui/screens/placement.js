@@ -11,8 +11,9 @@
 import { h } from '../dom.js';
 import * as sess from '../../session.js';
 import * as fx from '../../feedback.js';
-import { choices } from '../numpad.js';
-import { renderBody } from './play.js';
+import { renderBody, makeInput } from './play.js';
+import * as theme from '../../theme.js';
+import * as A from '../../answer.js';
 
 export function placement(go, { skillId } = {}) {
   skillId = skillId || sess.placementSkill();   // 초1은 곱셈구구를 아직 안 배웠다
@@ -30,8 +31,8 @@ export function placement(go, { skillId } = {}) {
     h('div', { class: 'topbar' },
       h('button', { class: 'icon-btn', 'aria-label': '건너뛰기', onclick: skip }, '✕'),
       h('div', {},
-        h('div', { class: 'h2' }, '어디까지 아는지 볼까요?'),
-        h('div', { class: 'muted' }, '점수가 아니에요. 모르면 아무거나 눌러도 돼요')),
+        h('div', { class: 'h2' }, theme.copy('placementTitle')),
+        h('div', { class: 'muted' }, theme.copy('placementHint'))),
     ),
     pips,
     qBox,
@@ -52,7 +53,7 @@ export function placement(go, { skillId } = {}) {
     const q = questions[i];
     qBox.replaceChildren(h('div', {}, renderBody(q.render)));
     if (input?.destroy) input.destroy();
-    input = choices({ options: q.choices, onSubmit: answer });
+    input = makeInput(q, answer);
     inputSlot.replaceChildren(input);
     askedAt = Date.now();
     renderPips();
@@ -61,7 +62,7 @@ export function placement(go, { skillId } = {}) {
   function answer(given) {
     const q = questions[i];
     const ms = Math.max(200, Date.now() - askedAt);
-    const correct = Number(given) === q.answer;
+    const correct = A.check(given, q.answer).correct;
     results.push({ factKey: q.factKey, correct, ms });
     // 진단 중에는 정오답 피드백을 주지 않는다. 틀린 게 계속 보이면 아이가 위축된다.
     fx.tap();

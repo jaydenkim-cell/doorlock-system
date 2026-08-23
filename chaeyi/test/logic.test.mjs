@@ -16,6 +16,8 @@ const mul   = await import(B + 'generators/multiply.js');
 const diff  = await import(B + 'difficulty.js');
 const wal   = await import(B + 'allowance.js');
 const gr    = await import(B + 'grades.js');
+const A     = await import(B + 'answer.js');
+const th    = await import(B + 'theme.js');
 const as    = await import(B + 'generators/addsub.js');
 
 let pass = 0, fail = 0;
@@ -144,7 +146,8 @@ t('오답이면 이 판 끝에 재출제 목록에 들어간다', () => {
   ok(sess.active().retryQueue.includes(key), '재출제 목록에 없음');
   const m = store.mastery('mul', key);
   eq(m.box, 1, '오답인데 box가 1이 아님');
-  eq(m.lastWrong, wrongVal, '아이가 적은 오답이 기록되지 않음');
+  // 분수·좌표도 담아야 해서 오답은 사람이 읽는 문자열로 저장한다
+  eq(m.lastWrong, String(wrongVal), '아이가 적은 오답이 기록되지 않음');
   ok(m.wrongLog.length === 1 && m.wrongLog[0].reason, '오답 유형이 기록되지 않음');
 });
 t('중단 후 재개하면 같은 문제가 나온다', () => {
@@ -632,9 +635,15 @@ t('학년을 바꾸면 열리는 스킬도 바뀐다', () => {
   store.updateProfile({ grade: 2 });
   eq(sess.openSkills().length, 2);
 });
+t('학년 1~9 가 모두 정의돼 있다', () => {
+  eq(gr.GRADE_KEYS.length, 9);
+  eq(gr.of(6).label, '초6');
+  eq(gr.of(7).label, '중1');
+  eq(gr.of(9).label, '중3');
+});
 t('없는 학년은 2학년 기준으로 떨어진다', () => {
-  eq(gr.of(9).label, gr.GRADES[2].label);
-  eq(gr.of(undefined).label, '2학년');
+  eq(gr.of(99).label, '초2');
+  eq(gr.of(undefined).label, '초2');
 });
 
 console.log('\n[저금통 켜고 끄기]');
@@ -666,6 +675,294 @@ t('기본값은 켜짐 (기존 아이 동작이 안 바뀐다)', () => {
   store.resetAll();
   store.createProfile({ name: '기본', grade: 2, avatar: '⭐️' });
   ok(wal.enabled());
+});
+
+console.log('\n[답 형식]');
+t('숫자 하나를 넘기던 기존 방식이 그대로 동작한다 (하위호환)', () => {
+  eq(A.check(7, 7).correct, true);
+  eq(A.check(8, 7).correct, false);
+  eq(A.normalize(7), { type: 'int', value: 7 });
+});
+t('음수·소수·좌표를 받는다', () => {
+  ok(A.check(-7, { type: 'int', value: -7 }).correct);
+  ok(!A.check(7, { type: 'int', value: -7 }).correct);
+  ok(A.check(3.14, { type: 'dec', value: 3.14, places: 2 }).correct);
+  ok(!A.check(3.15, { type: 'dec', value: 3.14, places: 2 }).correct);
+  ok(A.check({ a: 3, b: -2 }, { type: 'pair', a: 3, b: -2 }).correct);
+  ok(!A.check({ a: -2, b: 3 }, { type: 'pair', a: 3, b: -2 }).correct);
+});
+t('소수 비교가 부동소수점에 흔들리지 않는다', () => {
+  ok(A.check(0.3, { type: 'dec', value: 0.1 + 0.2, places: 1 }).correct);
+});
+t('분수는 값과 기약 여부를 모두 본다', () => {
+  const ans = { type: 'frac', num: 3, den: 4, requireReduced: true };
+  eq(A.check({ num: 3, den: 4 }, ans), { correct: true, note: null });
+  eq(A.check({ num: 6, den: 8 }, ans), { correct: false, note: 'notReduced' });
+  eq(A.check({ num: 2, den: 3 }, ans), { correct: false, note: null });
+  eq(A.check({ num: 1, den: 0 }, ans), { correct: false, note: null });
+});
+t('약분을 안 한 답에는 전용 안내가 나간다', () => {
+  store.resetAll();
+  store.createProfile({ name: '분수', grade: 5, avatar: '🦊' });
+  sess.startOrResume('fraction');
+  let guard = 0, saw = false;
+  while (sess.active()?.question && guard++ < 30) {
+    const q = sess.active().question;
+    if (q.answer?.type === 'frac' && q.answer.den > 1) {
+      const r = sess.submit({ num: q.answer.num * 2, den: q.answer.den * 2 });
+      eq(r.note, 'notReduced');
+      ok(/약분/.test(r.reason), r.reason);
+      saw = true;
+      break;
+    }
+    sess.submit(q.answer?.value ?? q.answer);
+  }
+  ok(saw, '분수 문항을 못 만났다');
+  sess.abandon();
+});
+t('수식 답은 문자열로 판정한다 (파서 없이 보기로)', () => {
+  ok(A.check('(x + 2)(x + 3)', { type: 'text', value: '(x + 2)(x + 3)' }).correct);
+  ok(!A.check('(x − 2)(x + 3)', { type: 'text', value: '(x + 2)(x + 3)' }).correct);
+});
+t('입력 위젯이 답 타입에 맞게 골라진다', () => {
+  eq(A.inputKind({ type: 'frac' }, 'input'), 'frac');
+  eq(A.inputKind({ type: 'pair' }, 'input'), 'pair');
+  eq(A.inputKind({ type: 'int' }, 'input'), 'num');
+  eq(A.inputKind({ type: 'text' }, 'choice'), 'choice');
+  eq(A.padOptions({ type: 'int', allowNegative: true }).negative, true);
+  eq(A.padOptions({ type: 'dec' }).decimal, true);
+  eq(A.padOptions({ type: 'int' }).negative, false);
+});
+
+console.log('\n[스킬별 목표 시간]');
+t('과목마다 목표가 다르다', () => {
+  store.resetAll();
+  store.createProfile({ name: '시간', grade: 7, avatar: '🐧' });
+  diff.setPreset('auto');
+  eq(sess.skillTargetMs('mul'), 3000);
+  eq(sess.skillTargetMs('linear'), 30000);
+  ok(sess.skillTargetMs('simul') > sess.skillTargetMs('linear'));
+});
+t('프리셋은 배수로만 작용한다 (절대값을 강요하지 않는다)', () => {
+  diff.setPreset('hard');
+  eq(sess.skillTargetMs('mul'), 2400);
+  eq(sess.skillTargetMs('linear'), 24000);
+  diff.setPreset('easy');
+  eq(sess.skillTargetMs('linear'), 48000);
+  diff.setPreset('auto');
+});
+t('일차방정식을 20초에 풀면 마스터로 인정된다', () => {
+  const m = { box: 4, avgMs: 20000 };
+  ok(srs.isMastered(m, sess.skillTargetMs('linear')), '30초 기준인데 탈락함');
+  ok(!srs.isMastered(m, sess.skillTargetMs('mul')), '곱셈구구 3초 기준으로도 통과해버림');
+});
+
+console.log('\n[새 생성기 8개]');
+const NEW = ['divide', 'fraction', 'decimal', 'factors', 'integers', 'linear', 'simul', 'quadratic'];
+t('전부 등록돼 있고 계약을 지킨다', () => {
+  for (const id of NEW) {
+    const g = sess.skill(id);
+    ok(g, `${id} 미등록`);
+    for (const fn of ['allFacts', 'groups', 'newFactOrder', 'placementFacts',
+                      'canUse', 'makeQuestion', 'diagnose', 'parseFact']) {
+      ok(typeof g[fn] === 'function', `${id}.${fn} 없음`);
+    }
+    ok(g.targetMs > 0, `${id}.targetMs 없음`);
+    ok(g.VARIANTS?.length > 0, `${id}.VARIANTS 없음`);
+    ok(g.allFacts().length > 0, `${id} 문항 키 없음`);
+  }
+});
+t('모든 형태가 factKey 를 보존한다 (SRS가 안 깨진다)', () => {
+  for (const id of NEW) {
+    const g = sess.skill(id);
+    for (const key of g.allFacts()) {
+      for (const v of g.VARIANTS.map((x) => x.id)) {
+        if (!g.canUse(v, key)) continue;
+        eq(g.makeQuestion(key, 1, v).factKey, key, `${id} / ${v} / ${key}`);
+      }
+    }
+  }
+});
+t('모든 문항이 답과 입력 방식을 갖춘다', () => {
+  for (const id of NEW) {
+    const g = sess.skill(id);
+    for (const key of g.allFacts()) {
+      for (let i = 0; i < 12; i++) {
+        const q = g.makeQuestion(key, 1, 'basic');
+        ok(q.answer != null, `${id}/${key} 답 없음`);
+        ok(['input', 'choice', 'ox'].includes(q.mode), `${id}/${key} mode=${q.mode}`);
+        if (q.mode === 'choice') {
+          eq(q.choices.length, 4, `${id}/${key} 보기 수`);
+          ok(A.check(q.choices.find((c) => A.check(c, q.answer).correct), q.answer).correct,
+             `${id}/${key} 보기에 정답이 없음`);
+        }
+        ok(q.render && (q.render.tokens || q.render.lines || q.render.text),
+           `${id}/${key} 렌더 없음`);
+      }
+    }
+  }
+});
+t('나눗셈의 나머지가 나누는 수보다 작다', () => {
+  const g = sess.skill('divide');
+  for (const key of g.allFacts()) {
+    if (!g.canUse('remainder', key)) continue;
+    for (let i = 0; i < 20; i++) {
+      const q = g.makeQuestion(key, 1, 'remainder');
+      const { a } = g.parseFact(key);
+      ok(q.ctx.rem > 0 && q.ctx.rem < a, `${key} 나머지 ${q.ctx.rem}`);
+      eq(q.ctx.total, a * q.ctx.q + q.ctx.rem, key);
+    }
+  }
+});
+t('분수 답은 늘 기약분수이고 뺄셈 결과가 음수가 아니다', () => {
+  const g = sess.skill('fraction');
+  for (const key of g.allFacts()) {
+    for (let i = 0; i < 20; i++) {
+      const q = g.makeQuestion(key, 1, 'basic');
+      if (q.answer.type !== 'frac') continue;
+      ok(q.answer.num >= 0, `${key} 음수 ${q.answer.num}/${q.answer.den}`);
+      eq(A.reduce(q.answer.num, q.answer.den), { num: q.answer.num, den: q.answer.den }, key);
+    }
+  }
+});
+t('소수 나눗셈은 딱 떨어진다', () => {
+  const g = sess.skill('decimal');
+  for (const key of g.allFacts().filter((k) => k.startsWith('div'))) {
+    for (let i = 0; i < 20; i++) {
+      const q = g.makeQuestion(key, 1, 'basic');
+      ok(Math.abs(q.ctx.x / q.ctx.y - q.answer.value) < 1e-9, `${key} ${q.ctx.x}÷${q.ctx.y}`);
+    }
+  }
+});
+t('약수·배수 답이 실제로 최대공약수·최소공배수다', () => {
+  const g = sess.skill('factors');
+  for (const key of g.allFacts()) {
+    const { kind, a, b } = g.parseFact(key);
+    if (kind === 'gcd') eq(g.answerOf(key), A.gcd(a, b), key);
+    if (kind === 'lcm') eq(g.answerOf(key), (a * b) / A.gcd(a, b), key);
+    if (kind === 'reduce') ok(A.gcd(a, b) > 1, `${key} 약분할 게 없음`);
+  }
+});
+t('정수 문항의 부호가 키와 일치하고 나눗셈이 딱 떨어진다', () => {
+  const g = sess.skill('integers');
+  for (const key of g.allFacts()) {
+    const { op, s1, s2 } = g.parseFact(key);
+    for (let i = 0; i < 20; i++) {
+      const q = g.makeQuestion(key, 1, 'basic');
+      eq(q.ctx.a < 0, s1 === 'n', `${key} 첫 수 부호`);
+      eq(q.ctx.b < 0, s2 === 'n', `${key} 둘째 수 부호`);
+      if (op === 'div') ok(Number.isInteger(q.ctx.value), `${key} 나눗셈이 안 떨어짐`);
+    }
+  }
+});
+t('일차방정식의 해가 실제로 식을 만족한다', () => {
+  const g = sess.skill('linear');
+  for (const key of g.allFacts()) {
+    for (let i = 0; i < 25; i++) {
+      const q = g.makeQuestion(key, 1, 'basic');
+      ok(Number.isInteger(q.answer.value), `${key} 해가 정수가 아님: ${q.answer.value}`);
+    }
+  }
+});
+t('연립방정식 해가 두 식을 모두 만족한다', () => {
+  const g = sess.skill('simul');
+  for (const key of g.allFacts()) {
+    for (let i = 0; i < 25; i++) {
+      const q = g.makeQuestion(key, 1, 'basic');
+      eq(q.answer.type, 'pair', key);
+      ok(Number.isInteger(q.answer.a) && Number.isInteger(q.answer.b), `${key} 해가 정수가 아님`);
+    }
+  }
+});
+t('인수분해는 보기 4개이고 정답이 정확히 하나다', () => {
+  const g = sess.skill('quadratic');
+  for (const key of g.allFacts().filter((k) => k.startsWith('fac'))) {
+    for (let i = 0; i < 20; i++) {
+      const q = g.makeQuestion(key, 1, 'basic');
+      eq(q.mode, 'choice', key);
+      eq(q.choices.length, 4, key);
+      eq(q.choices.filter((c) => c === q.answer.value).length, 1, `${key} 정답 개수`);
+    }
+  }
+});
+t('이차방정식은 더 작은 근을 묻고 그 근이 실제 해다', () => {
+  const g = sess.skill('quadratic');
+  for (let i = 0; i < 40; i++) {
+    const q = g.makeQuestion('solve', 1, 'basic');
+    eq(q.answer.value, Math.min(...q.ctx.roots));
+    for (const r of q.ctx.roots) {
+      const { p: pp, q: qq } = q.ctx;
+      eq((r + pp) * (r + qq), 0, `근 ${r} 이 식을 만족하지 않음`);
+    }
+  }
+});
+t('모든 오답에 진단 문장이 붙는다', () => {
+  for (const id of NEW) {
+    const g = sess.skill(id);
+    for (const key of g.allFacts()) {
+      const q = g.makeQuestion(key, 1, 'basic');
+      const a = A.normalize(q.answer);
+      let wrong;
+      if (a.type === 'frac') wrong = { num: a.num + 1, den: a.den };
+      else if (a.type === 'pair') wrong = { a: a.a + 1, b: a.b };
+      else if (a.type === 'text') wrong = 'nope';
+      else if (a.type === 'ox') wrong = 1 - a.value;
+      else wrong = a.value + 1;
+      const msg = g.diagnose(key, wrong, q.ctx);
+      ok(typeof msg === 'string' && msg.length > 0, `${id}/${key} 진단 없음`);
+    }
+  }
+});
+
+console.log('\n[학년별 톤]');
+t('학년마다 톤이 다르다', () => {
+  eq(th.tone(2), 'kid');
+  eq(th.tone(5), 'tween');
+  eq(th.tone(8), 'teen');
+});
+t('톤에 따라 문구가 바뀐다', () => {
+  eq(th.copy('wrongTitle', 2), '괜찮아요, 다시 해봐요');
+  eq(th.copy('wrongTitle', 8), '오답');
+  eq(th.copy('star', 2), '별');
+  eq(th.copy('star', 8), 'XP');
+  ok(th.copy('walletEmoji', 2) === '🐷' && th.copy('walletEmoji', 8) !== '🐷');
+});
+t('묶어세기 그림은 초1~3 에서만 쓴다', () => {
+  eq(th.copy('useGroups', 2), true);
+  eq(th.copy('useGroups', 5), false);
+  eq(th.copy('useGroups', 8), false);
+});
+t('중학생은 한 판이 더 짧다', () => {
+  eq(gr.sessionLength(2), 10);
+  eq(gr.sessionLength(8), 8);
+});
+t('학년마다 열리는 스킬이 다르다', () => {
+  store.resetAll();
+  const kid = store.createProfile({ name: '초1', grade: 1, avatar: '🐣' });
+  eq(sess.openSkills(), ['addsub']);
+  store.updateProfile({ grade: 5 });
+  ok(sess.openSkills().includes('fraction') && !sess.openSkills().includes('mul'));
+  store.updateProfile({ grade: 8 });
+  ok(sess.openSkills().includes('simul'));
+  ok(!sess.openSkills().includes('addsub'), '중2에게 받아올림이 열림');
+});
+t('중학생 프로필도 세션이 정상으로 돈다', () => {
+  store.resetAll();
+  store.createProfile({ name: '중1', grade: 7, avatar: '🐬' });
+  const s2 = sess.startOrResume('linear');
+  ok(s2.queue.length > 0);
+  let guard = 0;
+  while (sess.active()?.question && guard++ < 40) {
+    const q = sess.active().question;
+    const a = A.normalize(q.answer);
+    const give = a.type === 'pair' ? { a: a.a, b: a.b }
+      : a.type === 'frac' ? { num: a.num, den: a.den }
+      : a.type === 'text' ? a.value : a.value;
+    const r = sess.submit(give);
+    ok(r.correct, `정답을 냈는데 오답 처리됨: ${JSON.stringify(q.answer)}`);
+  }
+  const sum = sess.finish();
+  ok(sum.correct === sum.total, `${sum.correct}/${sum.total}`);
 });
 
 console.log('\n[백업]');

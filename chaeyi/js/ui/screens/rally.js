@@ -12,8 +12,8 @@ import { h } from '../dom.js';
 import * as sess from '../../session.js';
 import * as fx from '../../feedback.js';
 import * as allowance from '../../allowance.js';
-import { numpad, choices, oxpad } from '../numpad.js';
-import { renderBody } from './play.js';
+import { renderBody, makeInput } from './play.js';
+import * as theme from '../../theme.js';
 
 export function rally(go, { skillId = 'mul' } = {}) {
   const gen = sess.skill(skillId);
@@ -66,9 +66,7 @@ export function rally(go, { skillId = 'mul' } = {}) {
 
     qBox.replaceChildren(h('div', {}, renderBody(q.render)));
     if (input?.destroy) input.destroy();
-    if (q.mode === 'choice') input = choices({ options: q.choices, onSubmit: answer });
-    else if (q.mode === 'ox') input = oxpad({ onSubmit: answer });
-    else input = numpad({ onSubmit: answer, maxLen: 3 });
+    input = makeInput(q, answer);
     inputSlot.replaceChildren(input);
   }
 
@@ -143,8 +141,8 @@ export function rally(go, { skillId = 'mul' } = {}) {
   // 시작 전 안내. 갑자기 타이머가 돌면 아이가 첫 몇 초를 놓친다.
   qBox.replaceChildren(h('div', { style: { textAlign: 'center' } },
     h('div', { style: { fontSize: '46px' } }, '⚡️'),
-    h('div', { class: 'h1', style: { marginTop: '8px' } }, '60초 안에 몇 개?'),
-    h('div', { class: 'muted' }, '틀려도 별은 안 없어져요. 마음껏 해봐요!'),
+    h('div', { class: 'h1', style: { marginTop: '8px' } }, theme.copy('rallyIntro')),
+    h('div', { class: 'muted' }, theme.copy('rallyNote')),
   ));
   inputSlot.replaceChildren(
     h('button', { class: 'btn btn-block', onclick: () => { reset(); start(); } }, '시작!'),

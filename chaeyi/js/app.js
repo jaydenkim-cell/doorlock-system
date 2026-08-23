@@ -5,6 +5,7 @@ import * as store from './state.js';
 import * as fx from './feedback.js';
 import * as allowance from './allowance.js';
 import * as difficulty from './difficulty.js';
+import * as theme from './theme.js';
 import * as sess from './session.js';
 import { onboard } from './ui/screens/onboard.js';
 import { home } from './ui/screens/home.js';
@@ -38,6 +39,8 @@ function go(name, params) {
   document.querySelectorAll('.flash').forEach((e) => e.remove());
   // 랠리처럼 타이머를 도는 화면은 떠날 때 정리해야 한다
   if (current?.destroy) current.destroy();
+  // 학년에 따라 색·문구 톤이 바뀐다 (초1~3 kid / 초4~6 tween / 중1~3 teen)
+  theme.apply(root, store.activeProfile()?.grade);
   const view = SCREENS[name](go, params);
   current = view;
   root.replaceChildren(view);

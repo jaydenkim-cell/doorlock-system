@@ -275,7 +275,7 @@ await page.locator('button:has-text("+ 아이 추가")').click();
 await page.waitForSelector('text=친구를 추가해요');
 ok(await page.locator('text=몇 학년이에요?').isVisible(), '학년을 고를 수 있다');
 await page.locator('input[aria-label="이름"]').fill('민준');
-await page.locator('.card:has-text("몇 학년이에요?") button:has-text("1학년")').click();
+await page.locator('.card:has-text("몇 학년이에요?") button:text-is("초1")').click();
 await page.locator('.card:has-text("용돈 저금통") button').click();   // 저금통 끄기
 ok((await page.locator('.card:has-text("용돈 저금통") button').textContent()).includes('안 쓸래요'),
    '저금통을 꺼둘 수 있다');
@@ -322,6 +322,108 @@ await page.waitForSelector('.map');
 ok(await page.locator('text=구구단 지도').isVisible(), '채이로 돌아오면 구구단 지도가 보인다');
 ok(await page.locator('.piggy').isVisible(), '채이는 저금통이 그대로 있다');
 
+console.log('\n[중학생 프로필]');
+await page.evaluate(() => window.__chaeyi.go('parent'));
+await page.waitForSelector('text=비밀번호를 눌러주세요').catch(() => {});
+if (await page.locator('text=비밀번호를 눌러주세요').count()) {
+  for (const c of '1234') await page.locator(`.pad-key:text-is("${c}")`).click();
+}
+await page.waitForSelector('.parent');
+await page.locator('button:has-text("+ 아이 추가")').click();
+await page.waitForSelector('text=친구를 추가해요');
+await page.locator('input[aria-label="이름"]').fill('지호');
+await page.locator('.card:has-text("몇 학년이에요?") button:text-is("중1")').click();
+await page.locator('button:has-text("만들기")').click();
+await page.waitForSelector('.q');
+await page.locator('.icon-btn').click();               // 진단 건너뛰기
+await page.waitForSelector('.screen');
+
+const tone = await page.evaluate(() => document.documentElement.getAttribute('data-tone'));
+ok(tone === 'teen', `중1은 teen 톤이어야 한다 → ${tone}`);
+ok(!(await page.locator('text=구구단 지도').count()), '중1에게 구구단 지도가 안 보인다');
+const teenSkills = await page.evaluate(() => window.__chaeyi.sess.openSkills());
+ok(teenSkills.includes('integers') && teenSkills.includes('linear'),
+   `중1 스킬 → ${teenSkills}`);
+const teenTarget = await page.evaluate(() => window.__chaeyi.sess.skillTargetMs('linear'));
+ok(teenTarget >= 24000, `일차방정식 목표가 넉넉하다 → ${teenTarget}ms`);
+await shot('14-teen-home', true);
+
+console.log('\n[음수 입력]');
+await page.evaluate(() => window.__chaeyi.go('session', { skillId: 'integers' }));
+await page.waitForSelector('.q');
+ok(await page.locator('.pad-key[aria-label="부호"]').count() > 0, '± 키가 나온다');
+let negDone = false;
+for (let i = 0; i < 12; i++) {
+  const q = await current();
+  if (!q) break;
+  if (q.answer?.value < 0 && q.mode === 'input') {
+    await page.locator('.pad-key[aria-label="부호"]').click();
+    for (const ch of String(Math.abs(q.answer.value))) {
+      await page.locator(`.pad-key[aria-label="${ch}"]`).click();
+    }
+    await page.locator('.pad-ok').click();
+    await page.waitForSelector('.flash.ok', { timeout: 3000 });
+    ok(true, `음수 답 ${q.answer.value} 을 입력해 정답 처리됐다`);
+    negDone = true;
+    await shot('15-negative');
+    break;
+  }
+  await answerCurrent();
+  await clearFlash();
+}
+ok(negDone, negDone ? '음수 답을 실제로 입력해 봤다' : '음수 답이 나오는 문항을 만나지 못했다');
+await page.evaluate(() => window.__chaeyi.go('home'));
+await page.waitForSelector('.screen');
+
+console.log('\n[분수 입력]');
+await page.evaluate(() => {
+  const w = window.__chaeyi;
+  w.store.updateProfile({ grade: 5 });
+  w.store.pdata().activeSession = null;
+  w.store.save();
+  w.go('session', { skillId: 'fraction' });
+});
+await page.waitForSelector('.q');
+let fracDone = false;
+for (let i = 0; i < 12; i++) {
+  const q = await current();
+  if (!q) break;
+  if (q.answer?.type === 'frac') {
+    ok(await page.locator('.twoslot.frac').count() > 0, '분수 입력칸(분자·분모)이 나온다');
+    for (const ch of String(q.answer.num)) await page.locator(`.pad-key[aria-label="${ch}"]`).click();
+    await page.locator('.slot[aria-label="분모"]').click();
+    for (const ch of String(q.answer.den)) await page.locator(`.pad-key[aria-label="${ch}"]`).click();
+    await shot('16-fraction');
+    await page.locator('.pad-ok').click();
+    await page.waitForSelector('.flash.ok', { timeout: 3000 });
+    ok(true, `${q.answer.num}/${q.answer.den} 을 두 칸에 넣어 정답 처리됐다`);
+    fracDone = true;
+    break;
+  }
+  await answerCurrent();
+  await clearFlash();
+}
+ok(fracDone, fracDone ? '분수 답을 실제로 입력해 봤다' : '분수 문항을 만나지 못했다');
+await page.evaluate(() => {
+  const w = window.__chaeyi;
+  w.store.updateProfile({ grade: 7 });
+  w.store.pdata().activeSession = null;
+  w.store.save();
+  w.go('home');
+});
+await page.waitForSelector('.screen');
+
+console.log('\n[초2는 그대로다 (회귀)]');
+await page.evaluate(() => window.__chaeyi.go('who'));
+await page.waitForSelector('.who-list');
+await page.locator('.who-card:has-text("채이")').click();
+await page.waitForSelector('.map');
+const kidTone = await page.evaluate(() => document.documentElement.getAttribute('data-tone'));
+ok(kidTone === 'kid', `초2는 kid 톤 → ${kidTone}`);
+ok(await page.locator('text=구구단 지도').isVisible(), '구구단 지도가 그대로 보인다');
+ok(await page.locator('.piggy').isVisible(), '저금통이 그대로 있다');
+ok((await page.locator('.piggy-em').first().textContent()).includes('🐷'), '초2는 🐷 그대로');
+
 console.log('\n[진도가 섞이지 않는다]');
 const split = await page.evaluate(() => {
   const { store, allowance } = window.__chaeyi;
@@ -333,7 +435,7 @@ const split = await page.evaluate(() => {
   }
   return out;
 });
-ok(Object.keys(split).length === 2, '두 아이가 각자 기록을 갖는다');
+ok(Object.keys(split).length === 3, `세 아이가 각자 기록을 갖는다 → ${Object.keys(split)}`);
 ok(split['민준'].won === null && split['채이'].won !== null,
    `저금통이 아이별로 분리된다 → ${JSON.stringify(split)}`);
 ok(split['민준'].grade === 1 && split['채이'].grade === 2, '학년이 각자 유지된다');
@@ -342,7 +444,8 @@ console.log('\n[백업]');
 const exported = await page.evaluate(() => window.__chaeyi.store.exportJSON());
 ok(exported.includes('mastery') && exported.includes('wallet') && exported.length > 500,
    '내보내기에 진도와 저금통이 함께 담긴다');
-ok(exported.includes('채이') && exported.includes('민준'), '백업 하나에 두 아이가 모두 담긴다');
+ok(exported.includes('채이') && exported.includes('민준') && exported.includes('지호'),
+   '백업 하나에 세 아이가 모두 담긴다');
 
 if (BUNDLE) {
   console.log('\n[PWA] 단일 파일 빌드라 건너뜀 (manifest·서비스워커·오프라인)');
