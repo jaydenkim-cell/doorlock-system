@@ -9,10 +9,11 @@
  * 자동으로 나오는가 — 를 놓친다. 그래서 응답 시간을 나란히 놓는다.
  */
 
-import { h, toast, fmtSec } from '../dom.js';
+import { h, toast, fmtSec, kids } from '../dom.js';
 import * as store from '../../state.js';
 import * as srs from '../../srs.js';
 import * as sess from '../../session.js';
+import * as ops from '../../ops.js';
 import * as difficulty from '../../difficulty.js';
 import * as allowance from '../../allowance.js';
 import * as grades from '../../grades.js';
@@ -90,6 +91,7 @@ function dashboard(go) {
     ),
 
     kidsCard(go),
+    opsCard(),
     walletCard(go),
     levelCard(),
     weakCard(),
@@ -176,7 +178,7 @@ function kidsCard(go) {
     go(next ? 'parent' : 'onboard');
   }
 
-  card.append(
+  card.append(...kids(
     h('h3', {}, `👧 아이 (${list.length}명)`),
     ...rows,
     h('button', { class: 'btn btn-sm btn-ghost', style: { marginTop: '10px' },
@@ -190,7 +192,7 @@ function kidsCard(go) {
       '학년이 무엇을 낼지 정합니다. 초1은 곱셈구구를 잠그고 받아올림을 한 자리로, ' +
       '초4부터는 나눗셈·분수·소수, 중1부터는 정수·방정식이 열려요. ' +
       '초4 이상은 화면 톤도 차분하게 바뀝니다.'),
-  );
+  ));
   return card;
 }
 
@@ -306,6 +308,73 @@ function factLabel(gen, key) {
     }
   } catch { /* 키 모양이 다른 생성기 */ }
   return key;
+}
+
+/**
+ * 어떤 연산을 낼지.
+ *
+ * 기본은 학년을 따른다 (초2 = 더하기·빼기·곱하기). 여기서 켜고 끌 수 있게 한 것은
+ * 두 경우 때문이다.
+ *  - 아이가 한 연산을 특히 어려워해서 당분간 그것만 집중시키고 싶을 때
+ *  - 학년보다 앞서 나가는 아이에게 다음 연산을 미리 열어 주고 싶을 때
+ *
+ * 학년에 없는 연산을 켜면 그 생성기도 함께 열린다 (초2에 나눗셈을 켜면 divide).
+ * 다만 나눗셈은 곱셈구구를 어느 정도 외운 뒤라야 의미가 있어서, 그 점은 적어 둔다.
+ */
+function opsCard() {
+  const card = h('div', { class: 'card' });
+
+  function draw() {
+    const on = sess.openOps();
+    const unlocked = ops.unlocked();
+    const rows = ops.OPS.map((op) => {
+      const live = on.includes(op.id);
+      const byGrade = unlocked.includes(op.id);
+      const btn = h('button', {
+        class: 'btn btn-sm' + (live ? '' : ' btn-ghost'),
+        style: live ? { background: `var(--${op.color})`, color: '#fff' } : {},
+        onclick: () => {
+          const next = live ? on.filter((x) => x !== op.id) : [...on, op.id];
+          if (!next.length) { toast('연산을 하나는 켜 두어야 해요'); return; }
+          ops.setEnabled(next);
+          toast(`${op.label} ${live ? '껐어요' : '켰어요'}`);
+          draw();
+        },
+      }, live ? '켜짐' : '꺼짐');
+
+      return h('div', { class: 'row', style: { padding: '10px 0', borderTop: '1px solid var(--line)' } },
+        h('div', { style: { flex: '1', fontWeight: '700', fontSize: '15px' } },
+          `${op.sign} ${op.label}`,
+          h('div', { class: 'muted' }, byGrade
+            ? `${sess.opFacts(op.id).length}문항 · 숙련도 ${Math.round(sess.opRatio(op.id) * 100)}%`
+            : live ? `${p.grade <= 2 && op.id === 'div' ? '곱셈구구를 외운 뒤가 좋아요 · ' : ''}학년보다 앞서 여는 중`
+                   : ops.whenLearned(op.id))),
+        btn);
+    });
+
+    card.replaceChildren(...kids(
+      h('h3', {}, '➗ 어떤 연산을 낼까'),
+      h('div', { class: 'note' },
+        ops.isDefault()
+          ? '지금은 학년(' + grades.of().label + ') 기준으로 자동 선택돼 있어요. "오늘의 공부"는 켜진 연산을 섞어서 냅니다.'
+          : '직접 고른 상태예요. 학년 기준으로 되돌리려면 아래 버튼을 누르세요.'),
+      ...rows,
+      ops.isDefault() ? null
+        : h('div', { class: 'row', style: { padding: '10px 0', borderTop: '1px solid var(--line)' } },
+            h('div', { style: { flex: '1' }, class: 'muted' }, `학년 기준: ${gradeOpsText()}`),
+            h('button', { class: 'btn btn-sm btn-ghost', onclick: () => {
+              ops.setEnabled(null); toast('학년 기준으로 되돌렸어요'); draw();
+            } }, '되돌리기')),
+    ));
+  }
+
+  const p = store.activeProfile();
+  draw();
+  return card;
+}
+
+function gradeOpsText() {
+  return ops.unlocked().map((id) => ops.opInfo(id).sign).join(' ') || '없음';
 }
 
 /**

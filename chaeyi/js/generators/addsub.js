@@ -19,6 +19,12 @@ export const emoji = '➕';
 export const mapTitle = '받아올림 지도';
 export const targetMs = 5000;            // 자리올림을 따져야 해서 곱셈구구보다 여유
 
+/**
+ * 이 문항이 네 연산(＋ − × ÷) 중 무엇인가. 홈의 연산 분류와 섞어내기 세션이
+ * 이 값으로 문항을 모은다. 네 연산으로 안 갈리는 단원은 null 을 돌려준다.
+ */
+export function opOf(key) { return String(key).includes('+') ? 'add' : 'sub'; }
+
 /** 곱셈구구와 같은 형태 체계. minLevel 에서 열리고 weight 만큼 자주 나온다. */
 export const VARIANTS = [
   { id: 'basic',     minLevel: 1, weight: 6 },  // 37 + 48 = ?

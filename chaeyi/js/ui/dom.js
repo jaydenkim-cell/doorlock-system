@@ -16,6 +16,16 @@ export function h(tag, attrs = {}, ...kids) {
   return el;
 }
 
+/**
+ * append() / replaceChildren() 에 넘길 자식 목록을 걸러 준다.
+ *
+ * h() 는 null 인 자식을 건너뛰지만 DOM 의 append 는 그걸 "null" 이라는
+ * **글자로 그려 버린다**. 조건부 자식(`cond ? h(...) : null`)을 그대로 넘기면
+ * 화면에 null 이 찍힌다 — 부모 화면에서 실제로 그러고 있었다.
+ */
+export const kids = (...list) =>
+  list.flat().filter((k) => k !== null && k !== undefined && k !== false);
+
 export function toast(msg, ms = 1800) {
   const t = h('div', { class: 'toast' }, msg);
   document.body.append(t);

@@ -146,6 +146,23 @@ button:disabled{opacity:.35;cursor:default}
 .tile.done .lab::after{content:'⭐';position:absolute;top:-14px;right:-18px;font-size:15px}
 .tile-inner{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:12px}
 
+/* ── 연산 네 칸 (＋ − × ÷) ────────────────────────────
+   6차에서 넣었다. 아이가 갖고 있는 분류는 스킬이 아니라 연산 네 가지다. */
+.map.ops{grid-template-columns:repeat(4,1fr)}
+.tile.op{min-height:96px}
+.tile.op .tile-inner{padding-top:9px;gap:1px}
+.op-sign{position:relative;font-size:27px;font-weight:800;line-height:1.05}
+.tile.op .lab{font-size:14px}
+.tile.op .sub{font-size:10px;line-height:1.25}
+/* 아직 학년에서 안 배우는 연산. 감추지 않고 언제 배우는지 적어 둔다. */
+.tile.locked{opacity:.45;cursor:default}
+.tile.locked:active{transform:none}
+.tile.locked .op-sign{color:var(--ink3)!important}
+
+/* "오늘의 공부"가 무엇을 섞어 내는지 버튼 바로 밑에 한 줄 */
+.cta-note{text-align:center;color:var(--ink2);font-size:13px;font-weight:700;
+          margin:-4px 0 2px;letter-spacing:.04em}
+
 .badge{
   position:absolute;top:4px;right:4px;min-width:19px;height:19px;padding:0 5px;
   border-radius:10px;background:var(--coral);color:#fff;font-size:11px;font-weight:800;
@@ -406,3 +423,5 @@ textarea.io{width:100%;height:110px;border:1px solid var(--line2);border-radius:
 
 @media (min-width:520px){ .map{grid-template-columns:repeat(4,1fr)} }
 @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
+
+@media (max-width:359px){ .map.ops{grid-template-columns:repeat(2,1fr)} }

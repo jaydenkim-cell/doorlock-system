@@ -22,6 +22,12 @@ export const emoji = '✖️';
 export const mapTitle = '구구단 지도';   // 아이가 쓰는 말로
 export const targetMs = 3000;            // 곱셈구구의 목표는 3초 안에 자동으로 나오는 것
 
+/**
+ * 이 문항이 네 연산(＋ − × ÷) 중 무엇인가. 홈의 연산 분류와 섞어내기 세션이
+ * 이 값으로 문항을 모은다. 네 연산으로 안 갈리는 단원은 null 을 돌려준다.
+ */
+export function opOf() { return 'mul'; }
+
 const MIN_TABLE = 2;
 const MAX_TABLE = 9;
 

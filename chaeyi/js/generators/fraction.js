@@ -18,6 +18,15 @@ export const emoji = '½';
 export const mapTitle = '분수 지도';
 export const targetMs = 20000;
 
+/**
+ * 이 문항이 네 연산(＋ − × ÷) 중 무엇인가. 홈의 연산 분류와 섞어내기 세션이
+ * 이 값으로 문항을 모은다. 네 연산으로 안 갈리는 단원은 null 을 돌려준다.
+ */
+export function opOf(key) {
+  const p = String(key).split(':')[0];
+  return ['add', 'sub', 'mul', 'div'].includes(p) ? p : null;
+}
+
 export const VARIANTS = [
   { id: 'basic',    minLevel: 1, weight: 6 },  // 계산해서 기약분수로
   { id: 'compare',  minLevel: 2, weight: 3 },  // 어느 쪽이 큰가 (O/X)

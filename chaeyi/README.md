@@ -1,6 +1,7 @@
 # 채이 수학
 
 초등 2학년을 위한 곱셈구구 · 받아올림/받아내림 연습 PWA.
+"오늘의 공부"는 학년에 열려 있는 연산(＋ － × ÷)을 섞어서 낸다.
 빌드 도구 없는 바닐라 HTML/CSS/JS, 기록은 기기 안에만 저장된다.
 
 기획 배경과 설계 근거는 **[docs/PLAN.md](docs/PLAN.md)** 에 있다.
@@ -86,6 +87,7 @@ js/
   difficulty.js       자동 난이도 레벨 + 부모 프리셋
   allowance.js        용돈 저금통 (적립·지급·내역, 아이별 on/off)
   grades.js           학년별 차이 (초1~중3: 열리는 스킬·문제 자릿수·톤·기본 난이도)
+  ops.js              연산 분류 ＋ － × ÷ — 스킬의 문항을 연산별로 다시 묶는다
   answer.js           답 타입(int·frac·dec·pair·text)과 판정, 약분 진단
   theme.js            화면 톤 3단계(kid·tween·teen)와 문구 테이블
   session.js          한 판 진행 · 문항 선택 · 중단 복구
@@ -107,6 +109,8 @@ id, title, emoji
 allFacts()              학습 항목 키 목록
 groups()                홈 화면에 묶어 보여줄 단위
 targetMs                이 과목의 목표 응답 시간 (곱셈구구 3초 ~ 연립방정식 60초)
+opOf(key)               이 문항의 연산 'add'|'sub'|'mul'|'div' (해당 없으면 null)
+                        — 홈의 연산 칸과 섞어내기가 이걸로 문항을 모은다
 VARIANTS                [{ id, minLevel, weight }] 문제 형태 목록
 canUse(variantId, key)  이 형태를 이 문항에 쓸 수 있는가
 newFactOrder()          처음 배울 때의 순서 (allFacts 순서와 별개)

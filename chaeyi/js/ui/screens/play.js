@@ -19,6 +19,7 @@ import { numpad, choices, oxpad, fracpad, pairpad } from '../numpad.js';
 import { iyeyo } from '../../ko.js';
 import * as answer from '../../answer.js';
 import * as theme from '../../theme.js';
+import * as ops from '../../ops.js';
 
 /** q.render 를 보고 문제 본문을 그린다 */
 export function renderBody(render) {
@@ -71,22 +72,24 @@ export function makeInput(q, onSubmit) {
   return numpad({ onSubmit, maxLen: opt.maxLen, negative: opt.negative, decimal: opt.decimal });
 }
 
-export function play(go, { skillId, groupId = null }) {
-  const gen = sess.skill(skillId);
-  let s = sess.startOrResume(skillId, groupId);
+export function play(go, { skillId = null, groupId = null, opId = null } = {}) {
+  let s = sess.startOrResume(skillId, groupId, opId);
   let input = null;
   let locked = false;
+  // 섞은 판에서는 문항마다 스킬이 달라서, 제목을 판이 아니라 문제에서 읽는다
+  const kind = s.kind || 'skill';
 
   const pips = h('div', { class: 'pips' });
   const qBox = h('div', { class: 'q' });
   const inputSlot = h('div', {});
   const title = h('div', { class: 'h2' });
+  const sub = h('div', { class: 'muted' });
   const combo = h('div', { class: 'combo' });
 
   const root = h('div', { class: 'screen sess' },
     h('div', { class: 'topbar' },
       h('button', { class: 'icon-btn', 'aria-label': '나가기', onclick: () => go('home') }, '✕'),
-      h('div', {}, title, h('div', { class: 'muted' }, groupId ? '이 단만 연습해요' : '오늘의 문제')),
+      h('div', {}, title, sub),
       h('div', { class: 'spacer' }),
       combo,
     ),
@@ -122,7 +125,16 @@ export function play(go, { skillId, groupId = null }) {
   function renderQuestion() {
     const q = s.question;
     if (!q) return;
-    title.textContent = `${gen.title}${groupId ? ' · ' + gen.groups().find((g) => g.id === groupId).label : ''}`;
+    const gen = sess.skill(q.skillId);
+    const group = groupId && gen.groups().find((g) => g.id === groupId);
+    // 연산 판·섞은 판에서는 지금 이 문제가 무슨 연산인지가 제목이다 ("＋ 더하기").
+    // 초2가 한눈에 읽어야 해서 짧게 두고, 단원 이름은 아래 줄로 내린다.
+    const op = kind !== 'skill' && typeof gen.opOf === 'function' && ops.opInfo(gen.opOf(q.factKey));
+    title.textContent = op ? `${op.sign} ${op.label}`
+                           : `${gen.title}${group ? ' · ' + group.label : ''}`;
+    sub.textContent = kind === 'op' ? `${ops.opInfo(s.opId)?.label || ''}만 연습해요`
+                    : kind === 'mix' ? gen.title
+                    : group ? '이 단만 연습해요' : '오늘의 문제';
     qBox.replaceChildren(
       h('div', {},
         renderBody(q.render),

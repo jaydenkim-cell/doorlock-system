@@ -146,7 +146,51 @@ ok(await page.locator('.piggy').isVisible(), '용돈 저금통이 보인다');
 ok(await page.locator('text=60초 랠리').isVisible(), '랠리 입구가 있다');
 ok(!(await page.locator('text=어디까지 아는지').count()), '진단을 마쳤으면 안내가 사라진다');
 ok(!(await page.locator('text=하트').count()), '하트(생명) UI가 없다');
+
+// 6차: 연산 네 칸. 아이가 "곱셈만 나온다"고 한 뒤 넣었다.
+ok(await page.locator('text=어떤 걸 해볼까').isVisible(), '연산 고르는 칸이 보인다');
+ok((await page.locator('.map.ops .tile').count()) === 4, '＋ － × ÷ 네 칸이 있다');
+ok((await page.locator('.map.ops .tile.locked').count()) === 1, '초2에게 ÷ 한 칸만 잠겨 있다');
+ok(await page.locator('.map.ops .tile.locked:has-text("나누기")').isVisible(),
+   '잠긴 칸이 나눗셈이다');
+ok(await page.locator('.tile.locked:has-text("3학년")').isVisible(),
+   '언제 배우는지 적혀 있다 (감추지 않는다)');
+ok(await page.locator('.cta-note:has-text("섞어서")').isVisible(),
+   '오늘의 공부가 섞어서 낸다고 알려준다');
 await shot('4-home', true);
+
+console.log('\n[연산 섞어내기]');
+// 예전에는 이 한 판이 전부 곱셈이었다 — 아이가 재미없다고 한 바로 그 지점이다.
+{
+  const seen = await page.evaluate(() => {
+    const { sess, store } = window.__chaeyi;
+    sess.abandon();
+    const s = sess.startOrResume('mix');
+    const ops = s.queue.map((e) => sess.skill(e.skillId).opOf(e.factKey));
+    sess.abandon();
+    return { ops: [...new Set(ops)].sort(), n: s.queue.length };
+  });
+  ok(seen.n === 10, '한 판이 10문항이다');
+  ok(seen.ops.length >= 2, `한 판에 연산이 섞여 나온다 → ${seen.ops.join(' ')}`);
+}
+
+// ＋ 칸을 누르면 더하기만
+await page.locator('.map.ops .tile:has-text("더하기")').click();
+await page.waitForSelector('.q');
+ok(await page.locator('.topbar:has-text("더하기")').isVisible(), '＋ 칸은 더하기 판으로 들어간다');
+ok(await page.locator('text=더하기만 연습해요').isVisible(), '무슨 판인지 알려준다');
+{
+  const allAdd = await page.evaluate(() => {
+    const { sess } = window.__chaeyi;
+    const s = sess.active();
+    return s.queue.every((e) => sess.skill(e.skillId).opOf(e.factKey) === 'add');
+  });
+  ok(allAdd, '＋ 판에는 더하기만 들어 있다');
+}
+await shot('4b-op-add');
+// ＋ 판을 접고 홈으로. 버리고 나서 다시 그려야 버튼이 "오늘의 공부 시작"으로 돌아온다.
+await page.evaluate(() => { window.__chaeyi.sess.abandon(); window.__chaeyi.go('home'); });
+await page.waitForSelector('button:has-text("오늘의 공부 시작")');
 
 console.log('\n[세션 · 문제 형태]');
 await page.locator('button:has-text("오늘의 공부 시작")').click();
@@ -268,6 +312,27 @@ ok(await page.locator('text=지금 난이도').isVisible(), '난이도 상태가
 ok(await page.locator('text=지금 약한 곳').isVisible(), '약한 곳 섹션');
 const weakTxt = await page.locator('.card:has-text("지금 약한 곳")').textContent();
 ok(/헷갈림|느림|가끔|안 돼요|데이터가 모이지/.test(weakTxt), '무엇과 헷갈리는지 나온다');
+
+// 6차: 연산 켜고 끄기
+ok(await page.locator('text=어떤 연산을 낼까').isVisible(), '연산 설정이 있다');
+{
+  const opsCard = page.locator('.card:has-text("어떤 연산을 낼까")');
+  ok((await opsCard.locator('button:has-text("켜짐")').count()) === 3,
+     '초2는 ＋ － × 세 개가 켜져 있다');
+  await opsCard.locator('.row:has-text("곱하기") button').click();
+  await page.waitForTimeout(200);
+  const off = await page.evaluate(() => window.__chaeyi.sess.openOps());
+  ok(!off.includes('mul'), `곱하기를 끄면 판에서 빠진다 → ${off.join(' ')}`);
+  await opsCard.locator('.row:has-text("곱하기") button').click();   // 되돌린다
+  await page.waitForTimeout(200);
+  ok((await page.evaluate(() => window.__chaeyi.sess.openOps())).includes('mul'), '다시 켤 수 있다');
+}
+
+// append() 가 null 을 "null" 글자로 그리던 버그. 부모 화면에 실제로 찍혀 있었다.
+{
+  const txt = await page.locator('.parent').innerText();
+  ok(!/(^|\s)null(\s|$)/.test(txt), 'null 이 화면에 글자로 찍히지 않는다');
+}
 await shot('9-parent', true);
 
 console.log('\n[난이도 조정]');
