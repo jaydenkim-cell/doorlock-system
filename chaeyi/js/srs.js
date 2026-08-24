@@ -85,5 +85,8 @@ export function masteryRatio(m, targetMs) {
 }
 
 export function isDue(m, now = Date.now()) {
+  // 아직 만난 적 없는 문항은 기록 자체가 없다. 옆의 masteryRatio 와 같게 막아 둔다
+  // — 연산별 집계는 안 만나 본 문항까지 훑기 때문에 undefined 가 그대로 들어온다.
+  if (!m) return false;
   return m.box > 0 && m.dueAt <= now;
 }

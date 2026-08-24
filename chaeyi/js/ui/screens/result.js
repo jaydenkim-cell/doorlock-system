@@ -8,7 +8,6 @@ import * as theme from '../../theme.js';
 export function result(go, summary) {
   // 그리는 도중의 go() 는 바깥 라우터에 덮인다. 다음 프레임으로 미룬다.
   if (!summary) { setTimeout(() => go('home'), 0); return h('div', { class: 'screen' }); }
-  const gen = sess.skill(summary.skillId);
   const all = summary.correct === summary.total;
   const face = all ? '🏆' : summary.correct >= summary.total * 0.7 ? '🎉' : '💪';
 
@@ -36,25 +35,28 @@ export function result(go, summary) {
     summary.mastered.length
       ? h('div', { class: 'card' },
           h('div', { class: 'h2', style: { marginBottom: '9px' } }, '⭐️ 완전히 외운 문제'),
-          h('div', { class: 'chips' }, summary.mastered.map((k) => h('div', { class: 'chip' }, label(gen, k)))))
+          h('div', { class: 'chips' }, summary.mastered.map((e) => h('div', { class: 'chip' }, label(e)))))
       : null,
 
     summary.fast.length
       ? h('div', { class: 'card' },
           h('div', { class: 'h2', style: { marginBottom: '9px' } }, '⚡️ 빠르게 맞힌 문제'),
-          h('div', { class: 'chips' }, summary.fast.map((k) => h('div', { class: 'chip fast' }, label(gen, k)))))
+          h('div', { class: 'chips' }, summary.fast.map((e) => h('div', { class: 'chip fast' }, label(e)))))
       : null,
 
     summary.wrong.length
       ? h('div', { class: 'card' },
           h('div', { class: 'h2', style: { marginBottom: '9px' } }, '🔁 다음에 또 만날 문제'),
-          h('div', { class: 'chips' }, [...new Set(summary.wrong)].map((k) => h('div', { class: 'chip warn' }, label(gen, k)))))
+          h('div', { class: 'chips' }, summary.wrong.map((e) => h('div', { class: 'chip warn' }, label(e)))))
       : null,
 
     h('div', { class: 'spacer' }),
     h('button', { class: 'btn btn-block', onclick: () => go('home') }, theme.copy('home')),
     h('button', { class: 'btn btn-block btn-ghost',
-      onclick: () => go('session', { skillId: summary.skillId }) }, theme.copy('again')),
+      // 방금 푼 것과 같은 종류로 한 판 더. 섞은 판이었으면 또 섞어서.
+      onclick: () => go('session', summary.kind === 'op' ? { opId: summary.opId }
+                                 : summary.kind === 'mix' ? { skillId: 'mix' }
+                                 : { skillId: summary.skillId }) }, theme.copy('again')),
     h('div', { style: { height: '8px' } }),
   );
 }
@@ -95,8 +97,15 @@ function earnCard(summary) {
  * 결과 화면에 문항을 어떻게 적을지.
  * 생성기마다 factKey 모양이 달라서(7x8 / add:2,3 / ax+b=c) 일률적으로 못 쓴다.
  * 곱셈·덧뺄셈만 예쁘게 풀어 쓰고 나머지는 키를 그대로 보여준다.
+ *
+ * 섞은 판에서는 한 화면에 여러 스킬의 문항이 섞이므로 항목마다 자기 스킬을 들고 온다.
+ * (예전 세션 기록에는 skillId 가 없어서 그때는 대표 스킬로 읽는다)
  */
-function label(gen, key) {
+function label(entry) {
+  if (typeof entry === 'string') return entry;
+  const key = entry.factKey;
+  const gen = sess.skill(entry.skillId);
+  if (!gen) return key;
   try {
     const f = gen.parseFact(key);
     if (f && f.a !== undefined && f.b !== undefined && !f.kind) {

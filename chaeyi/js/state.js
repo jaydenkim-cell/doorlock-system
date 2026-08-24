@@ -22,6 +22,7 @@ export const DEFAULT_SETTINGS = {
   difficulty: 'auto',  // auto | easy | normal | hard
   allowance: null,     // 용돈 설정. null 이면 allowance.js 의 기본값
   maxNewPerSession: 3, // 한 세션에 새 항목은 최대 3개
+  ops: null,           // 켜 둘 연산 ['add','sub','mul','div']. null 이면 학년을 따름
   sound: true,
   haptics: true,
   parentPin: '',       // 비어 있으면 잠금 없음

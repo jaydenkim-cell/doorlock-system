@@ -37,6 +37,9 @@ const COPY = {
     rallyNote: '틀려도 별은 안 없어져요. 마음껏 해봐요!',
     placementTitle: '어디까지 아는지 볼까요?',
     placementHint: '점수가 아니에요. 모르면 아무거나 눌러도 돼요',
+    opsTitle: '어떤 걸 해볼까?',
+    opsHint: '한 가지만 골라도 돼요',
+    mixNote: (signs) => `${signs} 섞어서 나와요`,
     useGroups: true,
   },
   tween: {
@@ -62,6 +65,9 @@ const COPY = {
     rallyNote: '틀려도 진도는 안 깎여요',
     placementTitle: '실력 확인',
     placementHint: '점수가 아니라 시작점을 찾는 거예요',
+    opsTitle: '무엇을 연습할까?',
+    opsHint: '하나만 골라도 돼요',
+    mixNote: (signs) => `${signs} 섞어서 나와요`,
     useGroups: false,
   },
   teen: {
@@ -87,6 +93,9 @@ const COPY = {
     rallyNote: '오답이어도 숙련도는 내려가지 않습니다',
     placementTitle: '수준 진단',
     placementHint: '시작점을 잡기 위한 것입니다',
+    opsTitle: '연산 선택',
+    opsHint: '하나만 골라도 됩니다',
+    mixNote: (signs) => `${signs} 섞어서 출제`,
     useGroups: false,
   },
 };

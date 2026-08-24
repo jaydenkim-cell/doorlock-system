@@ -16,6 +16,12 @@ export const emoji = '➗';
 export const mapTitle = '나눗셈 지도';
 export const targetMs = 12000;   // 곱셈구구(3초)보다 한참 여유를 준다
 
+/**
+ * 이 문항이 네 연산(＋ − × ÷) 중 무엇인가. 홈의 연산 분류와 섞어내기 세션이
+ * 이 값으로 문항을 모은다. 네 연산으로 안 갈리는 단원은 null 을 돌려준다.
+ */
+export function opOf() { return 'div'; }
+
 export const VARIANTS = [
   { id: 'basic',     minLevel: 1, weight: 6 },  // 56 ÷ 7 = ?
   { id: 'remainder', minLevel: 2, weight: 4 },  // 58 ÷ 7 = 8 … ?

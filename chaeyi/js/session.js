@@ -14,6 +14,7 @@ import * as difficulty from './difficulty.js';
 import * as allowance from './allowance.js';
 import * as grades from './grades.js';
 import * as answer from './answer.js';
+import * as ops from './ops.js';
 import * as multiply from './generators/multiply.js';
 import * as addsub from './generators/addsub.js';
 import * as divide from './generators/divide.js';
@@ -30,6 +31,9 @@ export const SKILLS = Object.fromEntries(
    integers, linear, simul, quadratic].map((g) => [g.id, g]),
 );
 
+// 연산 분류가 생성기 표를 봐야 한다. import 로 가져가면 순환이라 등록으로 넘긴다.
+ops.register(SKILLS);
+
 /**
  * 이 스킬의 목표 응답 시간.
  *
@@ -45,9 +49,50 @@ export function skillTargetMs(skillId) {
 
 export function skill(skillId) { return SKILLS[skillId]; }
 
-/** 지금 프로필의 학년에서 열려 있는 스킬 목록 */
+/**
+ * 지금 프로필에서 열려 있는 스킬 목록.
+ * 학년이 정한 것 + 부모가 연산을 따로 켜서 딸려 오는 것.
+ */
 export function openSkills() {
-  return grades.of().skills.filter((id) => SKILLS[id]);
+  const base = grades.of().skills.filter((id) => SKILLS[id]);
+  const extra = ops.extraSkills().filter((id) => !base.includes(id));
+  return [...base, ...extra];
+}
+
+/** 지금 켜져 있는 연산 (＋ − × ÷ 중) */
+export function openOps() { return ops.enabled(); }
+
+/**
+ * 한 연산의 문항을 (스킬, factKey) 쌍으로 모은다.
+ * 받아올림·받아내림처럼 한 스킬이 두 연산에 걸치는 경우가 많아서
+ * 스킬이 아니라 문항 단위로 가른다.
+ */
+export function opFacts(opId) {
+  const out = [];
+  for (const { skillId, facts } of ops.sources(opId, openSkills())) {
+    for (const factKey of facts) out.push({ skillId, factKey });
+  }
+  return out;
+}
+
+/** 이 연산에서 지금 복습할 때가 된 문항 수 */
+export function opDueCount(opId) {
+  const now = Date.now();
+  const d = store.pdata();
+  return opFacts(opId)
+    .filter(({ skillId, factKey }) => srs.isDue(d.mastery[`${skillId}:${factKey}`], now)).length;
+}
+
+/** 이 연산의 숙련도 0~1 (홈의 연산 칸에 채워지는 높이) */
+export function opRatio(opId) {
+  const d = store.pdata();
+  const list = opFacts(opId);
+  if (!list.length) return 0;
+  let sum = 0;
+  for (const { skillId, factKey } of list) {
+    sum += srs.masteryRatio(d.mastery[`${skillId}:${factKey}`], skillTargetMs(skillId));
+  }
+  return sum / list.length;
 }
 
 /** 이 스킬에서 지금 복습할 때가 된 문항 수 (홈 화면 배지용) */
@@ -60,13 +105,19 @@ export function dueCount(skillId, groupId) {
     .filter((m) => !group || group.facts.includes(m.factKey)).length;
 }
 
-function buildQueue(skillId, groupId) {
+/**
+ * 한 스킬(또는 그 안의 한 단)에서 낼 만한 문항을 우선순위별로 갈라 놓는다.
+ *
+ * 5차까지는 이 함수가 곧 큐였다. 이제 연산 섞어내기가 여러 스킬에서 조금씩
+ * 가져가야 해서, "고르는 일"과 "몇 개씩 담는 일"을 나눈다.
+ *
+ * @returns {{due:string[], fresh:string[], weak:string[], rest:string[], freshSet:Set}}
+ */
+function candidates(skillId, factList) {
   const gen = SKILLS[skillId];
-  const s = store.settings();
   const now = Date.now();
-  // 홈에서 "3단"을 콕 집어 눌렀다면 그 단만 낸다.
-  const group = groupId ? gen.groups().find((g) => g.id === groupId) : null;
-  const all = group ? group.facts : gen.allFacts();
+  const all = factList || gen.allFacts();
+  const allSet = new Set(all);
 
   const recs = new Map();
   for (const m of store.masteryList(skillId)) recs.set(m.factKey, m);
@@ -82,7 +133,8 @@ function buildQueue(skillId, groupId) {
   }
   // 새로 배울 것은 allFacts() 순서(2단→3단→…)가 아니라 학습 순서로 꺼낸다.
   // 그 순서를 그대로 쓰면 아이가 매 판 같은 단만 행진하게 된다.
-  const fresh = (gen.newFactOrder ? gen.newFactOrder() : all).filter((k) => freshSet.has(k));
+  const fresh = (gen.newFactOrder ? gen.newFactOrder() : all)
+    .filter((k) => freshSet.has(k) && allSet.has(k));
 
   due.sort((x, y) => x[1].dueAt - y[1].dueAt);
 
@@ -95,41 +147,148 @@ function buildQueue(skillId, groupId) {
   };
   const weak = seen.filter(([, m]) => (m.seen && m.correct / m.seen < 0.7) || m.avgMs > target)
                    .sort((x, y) => weakness(y) - weakness(x));
+  const rest = seen.slice().sort((x, y) => x[1].box - y[1].box);
+
+  const keys = (list) => list.map(([k]) => k);
+  return { due: keys(due), fresh, weak: keys(weak), rest: keys(rest), freshSet };
+}
+
+/** 후보 묶음을 우선순위 한 줄로 편다 (복습할 때가 된 것 → 새 것 → 약한 것 → 나머지) */
+function ranked(c) {
+  const out = [];
+  for (const list of [c.due, c.fresh, c.weak, c.rest]) {
+    for (const k of list) if (!out.includes(k)) out.push(k);
+  }
+  return out;
+}
+
+/** 큐 항목은 {skillId, factKey}. 예전에 저장된 세션은 문자열만 들어 있다. */
+function entryOf(sess, v) {
+  return typeof v === 'string' ? { skillId: sess.skillId, factKey: v } : v;
+}
+
+function isFresh(skillId, factKey) {
+  return !(store.pdata().mastery[`${skillId}:${factKey}`]?.box);
+}
+
+/** 스킬 하나짜리 판 (홈에서 "3단"을 콕 집어 눌렀을 때가 이 경우다) */
+function buildSkillQueue(skillId, groupId) {
+  const gen = SKILLS[skillId];
+  const s = store.settings();
+  const group = groupId ? gen.groups().find((g) => g.id === groupId) : null;
+  const c = candidates(skillId, group ? group.facts : null);
 
   const queue = [];
-  const take = (list, n) => { for (const [k] of list) { if (queue.length >= n) break; if (!queue.includes(k)) queue.push(k); } };
+  const push = (k) => { if (!queue.includes(k)) queue.push(k); };
 
-  take(due, s.sessionLength);
+  for (const k of c.due) { if (queue.length >= s.sessionLength) break; push(k); }
   // 새 항목은 한 판에 최대 3개. 한꺼번에 몰아주면 초2는 무너진다.
   // (단 첫날처럼 복습할 것도 배운 것도 없으면 아래 마지막 채우기에서
   //  새 항목으로 판을 채운다. 그때는 전부 보기 4개짜리로 나간다.)
-  for (const k of fresh) {
-    if (queue.filter((q) => !recs.get(q)).length >= s.maxNewPerSession) break;
+  for (const k of c.fresh) {
+    if (queue.filter((q) => c.freshSet.has(q)).length >= s.maxNewPerSession) break;
     if (queue.length >= s.sessionLength) break;
-    if (!queue.includes(k)) queue.push(k);
+    push(k);
   }
-  take(weak, s.sessionLength);
+  for (const list of [c.weak, c.rest, c.fresh]) {
+    for (const k of list) { if (queue.length >= s.sessionLength) break; push(k); }
+  }
 
-  // 그래도 모자라면 박스가 낮은 것부터 채운다
-  if (queue.length < s.sessionLength) {
-    const rest = seen.sort((x, y) => x[1].box - y[1].box);
-    take(rest, s.sessionLength);
-  }
-  if (queue.length < s.sessionLength) {
-    for (const k of fresh) { if (queue.length >= s.sessionLength) break; if (!queue.includes(k)) queue.push(k); }
-  }
-  return arrange(queue.slice(0, s.sessionLength), freshSet);
+  const cut = queue.slice(0, s.sessionLength);
+  return arrange(cut.map((k) => ({ skillId, factKey: k })),
+                 (e) => c.freshSet.has(e.factKey));
 }
 
 /**
- * 순서를 섞는다. 1차에서 반복감의 직접 원인이 이 셔플의 부재였다.
+ * 연산을 섞은 판 — 이번 6차의 핵심.
+ *
+ * 아이가 "곱셈만 나온다"고 한 것은 정확한 관찰이었다. 판 하나가 스킬 하나에
+ * 묶여 있었고, 초2의 메인 스킬이 곱셈구구였기 때문이다.
+ *
+ * 이제 연산별로 후보를 뽑아 **한 개씩 돌아가며** 담는다. 우선순위(복습 → 새 것 →
+ * 약한 것)는 연산 **안에서** 지켜지고, 연산 **사이**는 균등해진다. 그래서
+ * 곱셈에 복습거리가 산더미여도 한 판에서 덧셈·뺄셈이 사라지지 않는다.
+ *
+ * @param {string[]} opIds 담을 연산들
+ */
+function buildMixedQueue(opIds) {
+  const s = store.settings();
+  const lanes = [];
+
+  for (const opId of opIds) {
+    // 한 연산의 문항이 여러 스킬에 흩어져 있을 수 있다 (분수 ＋ 와 소수 ＋ 처럼).
+    // 스킬별로 후보를 뽑은 뒤 그 안에서도 번갈아 담는다.
+    const perSkill = [];
+    for (const { skillId, facts } of ops.sources(opId, openSkills())) {
+      const c = candidates(skillId, facts);
+      perSkill.push(ranked(c).map((k) => ({ skillId, factKey: k })));
+    }
+    const lane = interleave(perSkill);
+    if (lane.length) lanes.push(lane);
+  }
+  if (!lanes.length) return [];
+
+  const queue = [];
+  const has = (e) => queue.some((x) => x.skillId === e.skillId && x.factKey === e.factKey);
+  let newCount = 0;
+  const cursors = lanes.map(() => 0);
+
+  // 연산을 한 바퀴씩 돌며 하나씩. 다 담을 때까지, 혹은 더 꺼낼 것이 없을 때까지.
+  let guard = 0;
+  while (queue.length < s.sessionLength && guard++ < 500) {
+    let moved = false;
+    for (let i = 0; i < lanes.length && queue.length < s.sessionLength; i++) {
+      const lane = lanes[i];
+      while (cursors[i] < lane.length) {
+        const e = lane[cursors[i]++];
+        if (has(e)) continue;
+        const fresh = isFresh(e.skillId, e.factKey);
+        // 새 항목 상한은 판 전체에 하나. 연산마다 3개씩이면 초2는 무너진다.
+        if (fresh && newCount >= s.maxNewPerSession && queue.length < s.sessionLength) {
+          // 상한에 걸린 새 항목은 건너뛰고 이 연산의 다음 후보를 본다
+          continue;
+        }
+        queue.push(e);
+        if (fresh) newCount += 1;
+        moved = true;
+        break;
+      }
+    }
+    if (!moved) break;
+  }
+
+  // 복습거리가 모자라 판이 안 차면 그때는 새 항목 상한을 푼다. 빈 판보다는 낫다.
+  if (queue.length < s.sessionLength) {
+    for (const lane of lanes) {
+      for (const e of lane) {
+        if (queue.length >= s.sessionLength) break;
+        if (!has(e)) queue.push(e);
+      }
+    }
+  }
+
+  return arrange(queue.slice(0, s.sessionLength), (e) => isFresh(e.skillId, e.factKey));
+}
+
+/** 여러 줄을 하나씩 번갈아 하나로 편다 */
+function interleave(lists) {
+  const out = [];
+  const max = Math.max(0, ...lists.map((l) => l.length));
+  for (let i = 0; i < max; i++) {
+    for (const l of lists) if (i < l.length) out.push(l[i]);
+  }
+  return out;
+}
+
+/**
+ * 순서를 섞는다. 3차에서 반복감의 직접 원인이 이 셔플의 부재였다.
  * 다만 완전 무작위로 두지는 않는다 — 처음 배우는 항목은 앞쪽 70% 안에 오게 한다.
  * 아이가 지친 뒤에 새로운 걸 가르치면 안 된다.
  */
-function arrange(queue, freshSet) {
+function arrange(queue, isNew) {
   const shuffled = shuffle(queue);
-  const early = shuffled.filter((k) => freshSet.has(k));
-  const late = shuffled.filter((k) => !freshSet.has(k));
+  const early = shuffled.filter(isNew);
+  const late = shuffled.filter((e) => !isNew(e));
   // 전부 새 항목이거나 전부 복습이면 섞을 것이 없다 (첫날이 이 경우다)
   if (!early.length || !late.length) return shuffled;
 
@@ -162,30 +321,90 @@ function boxOf(skillId, factKey) {
 }
 
 function nextQuestion(sess) {
-  const key = sess.queue[sess.index] ?? sess.retryQueue[sess.index - sess.queue.length];
-  if (!key) return null;
-  const gen = SKILLS[sess.skillId];
-  const level = difficulty.levelOf(sess.skillId);
+  const raw = sess.queue[sess.index] ?? sess.retryQueue[sess.index - sess.queue.length];
+  if (!raw) return null;
+  // 섞어내기 판에서는 문항마다 스킬이 다르다. 난이도 레벨도 그 스킬의 것을 쓴다.
+  const { skillId, factKey } = entryOf(sess, raw);
+  const gen = SKILLS[skillId];
+  const level = difficulty.levelOf(skillId);
   // 직전 문항과 같은 형태는 피한다. 연속 두 번이면 다양해진 느낌이 사라진다.
-  const variant = difficulty.pickVariant(gen, key, level, sess.lastVariant);
+  const variant = difficulty.pickVariant(gen, factKey, level, sess.lastVariant);
   // 학년에 따라 덧뺄셈을 한 자리로 낼지 두 자리로 감쌀지가 갈린다
-  const q = gen.makeQuestion(key, boxOf(sess.skillId, key), variant, grades.questionOpts());
+  const q = gen.makeQuestion(factKey, boxOf(skillId, factKey), variant, grades.questionOpts());
   sess.lastVariant = q.variant;
   return q;
 }
 
-/** 진행 중인 세션이 있으면 그대로 이어서, 없으면 새로 만든다 */
-export function startOrResume(skillId, groupId = null) {
-  const d = store.pdata();
-  const a = d.activeSession;
-  if (a && a.skillId === skillId && (a.groupId ?? null) === groupId) return a;
+/**
+ * 판 하나의 정체. 셋 중 하나다.
+ *   { kind:'mix' }                    연산을 모두 섞은 "오늘의 공부"
+ *   { kind:'op',   opId:'add' }       한 연산만 (홈의 ＋ 칸)
+ *   { kind:'skill', skillId, groupId } 한 스킬 / 한 단 (기존 지도 칸)
+ */
+export function specOf({ skillId = null, groupId = null, opId = null } = {}) {
+  if (opId) return { kind: 'op', opId, skillId: null, groupId: null };
+  if (!skillId || skillId === 'mix') return { kind: 'mix', opId: null, skillId: null, groupId: null };
+  return { kind: 'skill', skillId, groupId: groupId ?? null, opId: null };
+}
 
+function sameSpec(a, b) {
+  // 예전에 저장된 세션에는 kind 가 없다. 그때는 스킬 판이었다.
+  const kind = a.kind || 'skill';
+  if (kind !== b.kind) return false;
+  // 섞은 판·연산 판의 `skillId` 는 결과 화면용 대표 스킬일 뿐이라 정체성이 아니다.
+  // 그걸 비교하면 이어서 하기가 매번 어긋나 새 판이 만들어진다.
+  if (kind === 'mix') return true;
+  if (kind === 'op') return (a.opId ?? null) === b.opId;
+  return (a.skillId ?? null) === b.skillId && (a.groupId ?? null) === b.groupId;
+}
+
+/** 이 판에 쓸 큐를 만든다 */
+function buildQueue(spec) {
+  if (spec.kind === 'skill') return buildSkillQueue(spec.skillId, spec.groupId);
+  const opIds = spec.kind === 'op' ? [spec.opId] : openOps();
+  const q = buildMixedQueue(opIds);
+  // 켜진 연산에서 낼 것이 하나도 없으면(설정이 엇나간 경우) 메인 스킬로 물러선다
+  if (q.length) return q;
+  const fallback = openSkills()[0];
+  return fallback ? buildSkillQueue(fallback, null) : [];
+}
+
+/** 결과·랠리 화면이 쓸 대표 스킬. 섞은 판은 가장 많이 나온 스킬로 잡는다. */
+function leadSkill(spec, queue) {
+  if (spec.kind === 'skill') return spec.skillId;
+  const count = new Map();
+  for (const e of queue) count.set(e.skillId, (count.get(e.skillId) || 0) + 1);
+  let best = openSkills()[0] || null, n = -1;
+  for (const [k, v] of count) if (v > n) { best = k; n = v; }
+  return best;
+}
+
+/** 진행 중인 세션이 있으면 그대로 이어서, 없으면 새로 만든다 */
+export function startOrResume(skillId = null, groupId = null, opId = null) {
+  const d = store.pdata();
+  const spec = specOf({ skillId, groupId, opId });
+  const a = d.activeSession;
+  if (a && sameSpec(a, spec)) {
+    // 저장된 문제가 비어 있는데 큐는 아직 남은 경우 (저장이 어긋난 아주 드문 상태).
+    // 그냥 돌려주면 play.js 가 "다 풀었다"고 보고 판을 닫아 버린다 — 남은 문항이
+    // 통째로 사라지는 길이라, 여기서 다음 문제를 다시 만들어 준다.
+    if (!a.question && a.index < a.queue.length + a.retryQueue.length) {
+      a.question = nextQuestion(a);
+      a.questionStartedAt = Date.now();
+      store.save();
+    }
+    return a;
+  }
+
+  const queue = buildQueue(spec);
   const sess = {
     id: 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-    skillId,
-    groupId,
+    kind: spec.kind,
+    opId: spec.opId,
+    skillId: spec.kind === 'skill' ? spec.skillId : leadSkill(spec, queue),
+    groupId: spec.groupId,
     startedAt: Date.now(),
-    queue: buildQueue(skillId, groupId),
+    queue,
     retryQueue: [],
     items: [],
     index: 0,
@@ -203,6 +422,22 @@ export function startOrResume(skillId, groupId = null) {
 }
 
 export function active() { return store.pdata()?.activeSession || null; }
+
+/**
+ * 진행 중인 판을 **그대로** 다시 열기 위한 라우트 파라미터.
+ *
+ * 홈의 "이어서 하기" 가 대표 스킬만 넘기면, 섞은 판이 스킬 판으로 해석돼
+ * 판정이 어긋나고 새 판이 만들어진다 — 풀던 문항이 통째로 날아간다.
+ * 어떤 종류의 판이었는지는 세션 자신만 알고 있으니 여기서 되돌려 준다.
+ */
+export function resumeParams() {
+  const a = active();
+  if (!a) return null;
+  const kind = a.kind || 'skill';
+  if (kind === 'op') return { skillId: null, groupId: null, opId: a.opId };
+  if (kind === 'mix') return { skillId: 'mix', groupId: null, opId: null };
+  return { skillId: a.skillId, groupId: a.groupId ?? null, opId: null };
+}
 
 export function abandon() {
   const d = store.pdata();
@@ -228,11 +463,14 @@ export function submit(given) {
   const d = store.pdata();
   const sess = d.activeSession;
   const q = sess.question;
-  const gen = SKILLS[sess.skillId];
+  // 섞은 판에서는 문항마다 스킬이 다르다. 채점·목표시간·숙련도는 전부
+  // **그 문항의** 스킬 기준이어야 한다 (곱셈 3초 / 나눗셈 12초).
+  const skillId = q.skillId || sess.skillId;
+  const gen = SKILLS[skillId];
   const s = store.settings();
 
   const ms = Math.max(200, Date.now() - sess.questionStartedAt);
-  const target = skillTargetMs(sess.skillId);
+  const target = skillTargetMs(skillId);
   const verdict = answer.check(given, q.answer);
   const correct = verdict.correct;
   // 분수 값은 맞는데 약분을 안 한 경우는 따로 짚어준다
@@ -241,10 +479,10 @@ export function submit(given) {
     : gen.diagnose(q.factKey, typeof given === 'object' ? given : Number(given), q.ctx);
   const shown = answer.formatGiven(given, q.answer);
 
-  const m = store.mastery(sess.skillId, q.factKey);
+  const m = store.mastery(skillId, q.factKey);
   const outcome = srs.applyResult(m, { correct, ms, given: shown, reason }, target, d.bestMs);
 
-  sess.items.push({ factKey: q.factKey, given: shown, correct, ms,
+  sess.items.push({ skillId, factKey: q.factKey, given: shown, correct, ms,
                     variant: q.variant, at: Date.now() });
 
   // 콤보. 3·5·10 에서 반응을 키운다.
@@ -253,12 +491,16 @@ export function submit(given) {
   const milestone = correct && [3, 5, 10, 15, 20].includes(sess.streak) ? sess.streak : 0;
 
   // 난이도 레벨은 최근 성적을 보고 스스로 오르내린다
-  const lv = difficulty.record(sess.skillId, { correct, fast: srs.isFast(ms, target) });
+  const lv = difficulty.record(skillId, { correct, fast: srs.isFast(ms, target) });
 
   // 틀린 문제는 하트를 깎는 대신 이 판이 끝날 때 한 번 더 낸다.
   const inRetry = sess.index >= sess.queue.length;
-  if (!correct && !inRetry && !sess.retryQueue.includes(q.factKey)) {
-    sess.retryQueue.push(q.factKey);
+  const already = sess.retryQueue.some((r) => {
+    const e = entryOf(sess, r);
+    return e.skillId === skillId && e.factKey === q.factKey;
+  });
+  if (!correct && !inRetry && !already) {
+    sess.retryQueue.push({ skillId, factKey: q.factKey });
   }
 
   sess.index += 1;
@@ -268,7 +510,7 @@ export function submit(given) {
   store.save();
 
   return { correct, answer: q.answer, answerText: answer.format(q.answer),
-           reason, note: verdict.note, ms, ...outcome, done,
+           reason, note: verdict.note, ms, ...outcome, done, skillId,
            variant: q.variant, streak: sess.streak, milestone,
            level: lv.level, levelChanged: lv.changed };
 }
@@ -284,26 +526,46 @@ export function finish() {
   const main = sess.items.slice(0, sess.queue.length);
   const correctCount = main.filter((i) => i.correct).length;
 
-  const target = skillTargetMs(sess.skillId);
+  // 마스터·빠름 판정도 문항마다 그 스킬의 기준으로 잰다
+  const skillOf = (i) => i.skillId || sess.skillId;
+  const tag = (i) => `${skillOf(i)}:${i.factKey}`;
+
   const masteredNow = [];
-  for (const key of new Set(sess.items.map((i) => i.factKey))) {
-    const m = store.mastery(sess.skillId, key);
-    if (srs.isMastered(m, target)) masteredNow.push(key);
+  const seenTags = new Set();
+  for (const i of sess.items) {
+    if (seenTags.has(tag(i))) continue;
+    seenTags.add(tag(i));
+    const m = store.mastery(skillOf(i), i.factKey);
+    if (srs.isMastered(m, skillTargetMs(skillOf(i)))) {
+      masteredNow.push({ skillId: skillOf(i), factKey: i.factKey });
+    }
   }
 
   const faster = sess.items
-    .filter((i) => i.correct && i.ms <= target)
-    .map((i) => i.factKey);
+    .filter((i) => i.correct && i.ms <= skillTargetMs(skillOf(i)))
+    .map((i) => ({ skillId: skillOf(i), factKey: i.factKey }));
+
+  const uniq = (list) => {
+    const seen = new Set(); const out = [];
+    for (const e of list) { const t = `${e.skillId}:${e.factKey}`;
+      if (!seen.has(t)) { seen.add(t); out.push(e); } }
+    return out;
+  };
 
   const summary = {
+    kind: sess.kind || 'skill',
+    opId: sess.opId || null,
     skillId: sess.skillId,
+    // 이 판에 실제로 나온 스킬들 (섞은 판은 여럿)
+    skills: [...new Set(sess.items.map(skillOf))],
     total: main.length,
     correct: correctCount,
     retried: sess.retryQueue.length,
     avgMs: main.length ? Math.round(main.reduce((a, i) => a + i.ms, 0) / main.length) : 0,
-    fast: [...new Set(faster)],
-    mastered: masteredNow,
-    wrong: main.filter((i) => !i.correct).map((i) => i.factKey),
+    fast: uniq(faster),
+    mastered: uniq(masteredNow),
+    wrong: uniq(main.filter((i) => !i.correct)
+                    .map((i) => ({ skillId: skillOf(i), factKey: i.factKey }))),
     newStickers: [],
     bestStreak: sess.bestStreak,
     variants: [...new Set(sess.items.map((i) => i.variant).filter(Boolean))],
@@ -316,8 +578,8 @@ export function finish() {
   if (d.sessions.length > 200) d.sessions = d.sessions.slice(-200);
   d.activeSession = null;
 
-  // 새로 마스터한 단이 있으면 스티커를 준다
-  awardStickers(d, sess.skillId, summary);
+  // 새로 마스터한 단이 있으면 스티커를 준다 (섞은 판은 나온 스킬 전부 확인)
+  for (const skillId of summary.skills) awardStickers(d, skillId, summary);
   store.save();
 
   // 용돈 적립은 세션이 확정된 뒤에. 주간 목표는 이번 판을 포함해 계산한다.

@@ -16,6 +16,7 @@ import * as difficulty from '../../difficulty.js';
 import * as allowance from '../../allowance.js';
 import * as grades from '../../grades.js';
 import * as theme from '../../theme.js';
+import * as ops from '../../ops.js';
 
 const DAY_LABEL = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -109,6 +110,55 @@ function mapCard(go, skillId) {
   );
 }
 
+/**
+ * 연산 네 칸 — ＋ − × ÷
+ *
+ * 아이가 "곱셈만 나온다"고 한 뒤에 넣었다. 아이 머릿속의 분류는 스킬
+ * (곱셈구구 / 받아올림·받아내림 / 분수)이 아니라 연산 네 가지다.
+ * 학년이 아직 안 연 연산도 잠긴 채로 보여 준다 — 초2에게 나눗셈이 없는 것은
+ * 버그가 아니라 교육과정이라, 감추는 것보다 언제 배우는지 적어 두는 편이 낫다.
+ */
+function opsCard(go) {
+  const on = sess.openOps();
+
+  const tiles = ops.OPS.map((op) => {
+    const live = on.includes(op.id);
+    const r = live ? sess.opRatio(op.id) : 0;
+    const due = live ? sess.opDueCount(op.id) : 0;
+    const done = live && r >= 0.95;
+
+    return h('button', {
+      class: 'tile op' + (done ? ' done' : '') + (live ? '' : ' locked'),
+      disabled: !live,
+      title: live ? `${op.label} 연습` : ops.whenLearned(op.id),
+      'aria-label': live
+        ? `${op.label} 연습, 숙련도 ${Math.round(r * 100)}퍼센트`
+        : `${op.label}, ${ops.whenLearned(op.id)}`,
+      onclick: live ? () => go('session', { opId: op.id }) : null,
+    },
+      h('div', { class: 'fill', style: { height: `${Math.round(r * 100)}%`,
+                                         background: `var(--${op.color}-l)` } }),
+      h('div', { class: 'tile-inner' },
+        h('div', { class: 'op-sign', style: { color: `var(--${op.color})` } }, op.sign),
+        h('div', { class: 'lab' }, op.label),
+        h('div', { class: 'sub' }, live
+          ? (done ? '마스터' : `${Math.round(r * 100)}%`)
+          : ops.whenLearned(op.id)),
+      ),
+      due > 0 ? h('div', { class: 'badge' }, String(due)) : null,
+    );
+  });
+
+  return h('div', { class: 'card' },
+    h('div', { class: 'row', style: { marginBottom: '12px' } },
+      h('div', { class: 'h2' }, theme.copy('opsTitle')),
+      h('div', { class: 'spacer' }),
+      h('div', { class: 'muted' }, theme.copy('opsHint')),
+    ),
+    h('div', { class: 'map ops' }, tiles),
+  );
+}
+
 function skillCard(skillId, go) {
   const gen = sess.skill(skillId);
   const r = groupRatio(skillId, gen.allFacts());
@@ -156,15 +206,30 @@ export function home(go) {
   const g = grades.of();
   const open = sess.openSkills();
   const main = open.includes(g.mainSkill) ? g.mainSkill : open[0];
-  const others = open.filter((id) => id !== main);
+  // 연산 칸에서 이미 닿는 스킬은 아래에 또 늘어놓지 않는다. 초2 홈에 "받아올림·
+  // 받아내림" 카드와 ＋ － 칸이 같이 있으면 입구가 둘로 갈려 헷갈린다.
+  // 약수·방정식처럼 네 연산으로 안 갈리는 단원만 카드로 남는다.
+  const coveredByOps = (id) => {
+    const gen = sess.skill(id);
+    return typeof gen.opOf === 'function' && gen.allFacts().every((k) => gen.opOf(k));
+  };
+  const others = open.filter((id) => id !== main && !coveredByOps(id));
   const manyKids = store.profiles().length > 1;
 
   const resume = d.activeSession;
+  const onOps = sess.openOps();
   const totalDue = open.reduce((sum, id) => sum + sess.dueCount(id), 0);
+  // "오늘의 공부"는 이제 한 스킬이 아니라 켜진 연산을 전부 섞어서 낸다.
+  // 예전에는 학년의 메인 스킬 하나만 열어서, 초2에게는 매번 곱셈만 나왔다.
   const cta = resume
-    ? { label: theme.copy('resume'), skillId: resume.skillId, groupId: resume.groupId ?? null }
+    // 이어서 할 때는 판의 종류를 세션에게 물어본다. 대표 스킬만 넘기면
+    // 섞은 판이 스킬 판으로 해석돼 새 판이 만들어지고 풀던 문항이 날아간다.
+    ? { label: theme.copy('resume'), ...sess.resumeParams() }
     : { label: totalDue > 0 ? `${theme.copy('todayStart')} (${totalDue}개 복습)` : theme.copy('todayStart'),
-        skillId: main, groupId: null };
+        skillId: 'mix', groupId: null, opId: null };
+  const mixNote = onOps.length > 1
+    ? theme.copy('mixNote')(onOps.map((id) => ops.opInfo(id).sign).join(' '))
+    : null;
 
   return h('div', { class: 'screen' },
     h('div', { class: 'topbar' },
@@ -185,10 +250,15 @@ export function home(go) {
     ),
 
     h('button', { class: 'btn btn-block',
-      onclick: () => go('session', { skillId: cta.skillId, groupId: cta.groupId }) },
+      onclick: () => go('session',
+        { skillId: cta.skillId, groupId: cta.groupId, opId: cta.opId }) },
       cta.label),
+    mixNote && !resume
+      ? h('div', { class: 'cta-note' }, mixNote)
+      : null,
 
     sess.placementDone() ? null : placementCard(go),
+    opsCard(go),
     piggyCard(),
     weekCard(),
     main ? mapCard(go, main) : null,

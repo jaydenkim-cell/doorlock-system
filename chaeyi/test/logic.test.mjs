@@ -24,6 +24,8 @@ let pass = 0, fail = 0;
 const t = (name, fn) => { try { fn(); console.log('  ✓', name); pass++; } catch (e) { console.log('  ✗', name, '→', e.message); fail++; } };
 const eq = (a, b, m = '') => { if (JSON.stringify(a) !== JSON.stringify(b)) throw new Error(`${m} ${JSON.stringify(a)} !== ${JSON.stringify(b)}`); };
 const ok = (c, m) => { if (!c) throw new Error(m || 'false'); };
+// 6차부터 큐 항목은 {skillId, factKey} 다 (한 판에 여러 스킬이 섞이므로).
+const qk = (x) => (x.queue || x).map((e) => (typeof e === 'string' ? e : e.factKey));
 
 console.log('\n[생성기 · 곱셈구구]');
 t('2단~9단 × 1~9 = 72문항', () => eq(mul.allFacts().length, 72));
@@ -143,7 +145,7 @@ t('오답이면 이 판 끝에 재출제 목록에 들어간다', () => {
   const key = s.question.factKey;
   const r = sess.submit(wrongVal);
   ok(!r.correct);
-  ok(sess.active().retryQueue.includes(key), '재출제 목록에 없음');
+  ok(qk(sess.active().retryQueue).includes(key), '재출제 목록에 없음');
   const m = store.mastery('mul', key);
   eq(m.box, 1, '오답인데 box가 1이 아님');
   // 분수·좌표도 담아야 해서 오답은 사람이 읽는 문자열로 저장한다
@@ -178,7 +180,7 @@ t('복습할 때가 된 문항이 다음 판에 우선 출제된다', () => {
   for (const k of keys) { d.mastery[k].dueAt = Date.now() - 86400000; }
   const s = sess.startOrResume('mul');
   const dueKeys = keys.map((k) => k.split(':')[1]);
-  const hit = dueKeys.filter((k) => s.queue.includes(k)).length;
+  const hit = dueKeys.filter((k) => qk(s).includes(k)).length;
   eq(hit, dueKeys.length, `복습 대상 ${dueKeys.length}개 중 ${hit}개만 출제됨`);
   sess.abandon();
 });
@@ -194,16 +196,16 @@ t('배운 게 쌓이면 새 항목은 한 판에 3개까지만 나온다', () =>
     };
   });
   const s2 = sess.startOrResume('mul');
-  const fresh = s2.queue.filter((k) => !d.mastery[`mul:${k}`]).length;
+  const fresh = qk(s2).filter((k) => !d.mastery[`mul:${k}`]).length;
   ok(fresh <= 3, `새 항목이 ${fresh}개 나옴 (최대 3개여야 함)`);
   eq(s2.queue.length, 10);
-  ok(s2.queue.includes(keys[0]) && s2.queue.includes(keys[1]), '복습 시기가 된 문항이 빠짐');
+  ok(qk(s2).includes(keys[0]) && qk(s2).includes(keys[1]), '복습 시기가 된 문항이 빠짐');
   sess.abandon();
   for (const k of keys) delete d.mastery[`mul:${k}`];
 });
 t('단 하나만 콕 집어 연습하면 그 단만 나온다', () => {
   const s = sess.startOrResume('mul', '3dan');
-  ok(s.queue.every((k) => k.startsWith('3x')), '다른 단이 섞임: ' + s.queue.join(','));
+  ok(qk(s).every((k) => k.startsWith('3x')), '다른 단이 섞임: ' + qk(s).join(','));
   sess.abandon();
 });
 t('받아올림 스킬도 같은 엔진에서 동작한다', () => {
@@ -333,7 +335,7 @@ t('큐가 매번 다른 순서로 나온다 (1차 반복감의 직접 원인)', 
   const orders = new Set();
   for (let i = 0; i < 6; i++) {
     const s2 = sess.startOrResume('mul');
-    orders.add(s2.queue.join(','));
+    orders.add(qk(s2).join(','));
     sess.abandon();
   }
   ok(orders.size > 1, '여섯 번 만들었는데 순서가 전부 같다');
@@ -342,7 +344,7 @@ t('셔플해도 문항 수와 중복 없음이 유지된다', () => {
   for (let i = 0; i < 20; i++) {
     const s2 = sess.startOrResume('mul');
     eq(s2.queue.length, 10, '문항이 사라졌다');
-    eq(new Set(s2.queue).size, 10, '중복이 생겼다');
+    eq(new Set(qk(s2)).size, 10, '중복이 생겼다');
     sess.abandon();
   }
 });
@@ -350,7 +352,7 @@ t('첫 판이 2단 행진이 아니다', () => {
   const tables = new Set();
   for (let i = 0; i < 8; i++) {
     const s2 = sess.startOrResume('mul');
-    s2.queue.forEach((k) => tables.add(k.split('x')[0]));
+    qk(s2).forEach((k) => tables.add(k.split('x')[0]));
     sess.abandon();
   }
   ok(tables.size > 1, `한 단만 나온다: ${[...tables]}`);
@@ -379,7 +381,7 @@ t('진단 결과가 mastery 를 채운다', () => {
 });
 t('진단 뒤 첫 판에서 아는 단이 덜 나온다', () => {
   const s2 = sess.startOrResume('mul');
-  const fromKnown = s2.queue.filter((k) => ['2', '5'].includes(k.split('x')[0])).length;
+  const fromKnown = qk(s2).filter((k) => ['2', '5'].includes(k.split('x')[0])).length;
   ok(fromKnown < 10, '아는 단으로만 채워짐');
   sess.abandon();
 });
@@ -1000,6 +1002,211 @@ t('엉뚱한 파일은 거부한다', () => {
   try { store.importJSON('{"hello":1}'); } catch { threw = true; }
   ok(threw, '아무 JSON이나 받아들임');
 });
+
+console.log('\n[연산 분류 · 섞어내기]');
+{
+  // 아이가 "오늘의 공부가 곱셈만 나와서 재미없다"고 한 것이 이 묶음의 출발점이다.
+  // 관찰은 정확했다 — 판 하나가 스킬 하나에 묶여 있었고 초2의 메인이 곱셈구구였다.
+  const opsm = await import(B + 'ops.js');
+  const dv   = await import(B + 'generators/divide.js');
+
+  store.resetAll();
+  const kid = store.createProfile({ name: '연산', grade: 2, avatar: '🐤' });
+  store.setActiveProfile(kid);
+
+  t('생성기가 자기 문항의 연산을 안다', () => {
+    eq(mul.opOf('7x8'), 'mul');
+    eq(as.opOf('7+8'), 'add');
+    eq(as.opOf('13-8'), 'sub');
+    eq(dv.opOf('7x8'), 'div');
+  });
+
+  t('덧뺄셈 스킬 하나가 ＋ 와 − 두 연산으로 갈린다', () => {
+    const add = as.allFacts().filter((k) => as.opOf(k) === 'add');
+    const sub = as.allFacts().filter((k) => as.opOf(k) === 'sub');
+    eq(add.length + sub.length, as.allFacts().length, '어느 연산에도 안 들어간 문항이 있다');
+    ok(add.length > 0 && sub.length > 0);
+  });
+
+  t('초2는 ＋ − × 가 열리고 ÷ 는 잠긴다 (교육과정)', () => {
+    eq(sess.openOps(), ['add', 'sub', 'mul']);
+    ok(opsm.whenLearned('div').includes('3학년'), '언제 배우는지 안내가 없다');
+  });
+
+  t('연산마다 문항이 실제로 모인다', () => {
+    for (const op of ['add', 'sub', 'mul']) {
+      const list = sess.opFacts(op);
+      ok(list.length > 0, op + ' 문항이 0개');
+      ok(list.every((e) => sess.skill(e.skillId).opOf(e.factKey) === op), op + ' 에 다른 연산이 섞임');
+    }
+  });
+
+  t('오늘의 공부 한 판에 연산이 섞여 나온다 (이번 요청의 핵심)', () => {
+    // 예전 동작: 한 판 10문항이 전부 mul. 지금: ＋ − × 가 모두 등장해야 한다.
+    for (let trial = 0; trial < 5; trial++) {
+      sess.abandon();
+      const s = sess.startOrResume('mix');
+      eq(s.queue.length, 10);
+      const seen = new Set(s.queue.map((e) => sess.skill(e.skillId).opOf(e.factKey)));
+      eq([...seen].sort(), ['add', 'mul', 'sub'], `${trial}번째 판에 빠진 연산이 있다`);
+    }
+    sess.abandon();
+  });
+
+  t('섞은 판도 중복 없이 10문항이다', () => {
+    const s = sess.startOrResume('mix');
+    const tags = s.queue.map((e) => `${e.skillId}:${e.factKey}`);
+    eq(tags.length, 10);
+    eq(new Set(tags).size, 10, '같은 문항이 두 번 들어갔다');
+    sess.abandon();
+  });
+
+  t('연산 하나만 고르면 그 연산만 나온다', () => {
+    for (const op of ['add', 'sub', 'mul']) {
+      sess.abandon();
+      const s = sess.startOrResume(null, null, op);
+      ok(s.queue.length > 0, op + ' 판이 비었다');
+      ok(s.queue.every((e) => sess.skill(e.skillId).opOf(e.factKey) === op),
+         op + ' 판에 다른 연산이 섞였다');
+    }
+    sess.abandon();
+  });
+
+  t('섞은 판에서도 새 항목은 최대 3개다', () => {
+    const s = sess.startOrResume('mix');
+    const d = store.pdata();
+    const fresh = s.queue.filter((e) => !d.mastery[`${e.skillId}:${e.factKey}`]?.box).length;
+    ok(fresh <= 3 || fresh === s.queue.length,
+       `새 항목 ${fresh}개 — 복습거리가 있는데 상한을 넘었다`);
+    sess.abandon();
+  });
+
+  t('섞은 판을 끝까지 풀 수 있고 채점이 스킬별로 맞는다', () => {
+    sess.abandon();
+    const s = sess.startOrResume('mix');
+    const skillsSeen = new Set();
+    let guard = 0;
+    while (sess.active()?.question && guard++ < 60) {
+      const q = sess.active().question;
+      skillsSeen.add(q.skillId);
+      sess.submit(q.answer);          // 전부 정답
+    }
+    ok(guard < 60, '세션이 끝나지 않음');
+    ok(skillsSeen.size >= 2, '한 스킬만 나왔다: ' + [...skillsSeen]);
+    const sum = sess.finish();
+    eq(sum.total, 10);
+    eq(sum.correct, 10, '정답을 냈는데 오답 처리된 문항이 있다 (스킬별 채점이 어긋났다)');
+    eq(sum.kind, 'mix');
+    ok(sum.skills.length >= 2, '요약에 스킬이 하나뿐이다');
+  });
+
+  t('섞은 판의 숙련도가 각 스킬 버킷에 따로 쌓인다', () => {
+    const d = store.pdata();
+    const bySkill = {};
+    for (const m of Object.values(d.mastery)) {
+      bySkill[m.skillId] = (bySkill[m.skillId] || 0) + 1;
+    }
+    ok(Object.keys(bySkill).length >= 2, '한 스킬에만 기록됐다: ' + JSON.stringify(bySkill));
+    // 키가 `skillId:factKey` 라서 곱셈 7x8 과 나눗셈 7x8 이 섞이면 안 된다
+    for (const [k, m] of Object.entries(d.mastery)) {
+      eq(k, `${m.skillId}:${m.factKey}`, '숙련도 키가 어긋났다');
+    }
+  });
+
+  t('섞은 판에서 틀린 문제는 그 스킬 그대로 재출제된다', () => {
+    sess.abandon();
+    sess.startOrResume('mix');
+    const q = sess.active().question;
+    const wrong = typeof q.answer === 'number' ? q.answer + 1
+                : q.answer?.type === 'int' ? q.answer.value + 1 : 0;
+    sess.submit(wrong);
+    const rq = sess.active().retryQueue;
+    eq(rq.length, 1);
+    eq(rq[0].skillId, q.skillId, '재출제 항목이 다른 스킬로 들어갔다');
+    eq(rq[0].factKey, q.factKey);
+    sess.abandon();
+  });
+
+  t('목표 시간은 문항의 스킬 기준으로 잰다 (곱셈 3초 / 나눗셈 12초)', () => {
+    ok(sess.skillTargetMs('mul') < sess.skillTargetMs('divide'),
+       '나눗셈에 곱셈구구의 3초 기준을 들이대고 있다');
+  });
+
+  t('부모가 연산을 끄면 그 연산이 판에서 사라진다', () => {
+    opsm.setEnabled(['mul']);
+    eq(sess.openOps(), ['mul']);
+    sess.abandon();
+    const s = sess.startOrResume('mix');
+    ok(s.queue.every((e) => sess.skill(e.skillId).opOf(e.factKey) === 'mul'),
+       '꺼진 연산이 여전히 나온다');
+    sess.abandon();
+  });
+
+  t('전부 끄는 것은 막는다 (낼 문제가 없어진다)', () => {
+    opsm.setEnabled([]);
+    ok(sess.openOps().length > 0, '연산이 하나도 안 켜져 있다');
+  });
+
+  t('학년에 없는 연산을 켜면 그 스킬도 함께 열린다', () => {
+    opsm.setEnabled(['add', 'sub', 'mul', 'div']);
+    ok(sess.openSkills().includes('divide'), '나눗셈을 켰는데 divide 생성기가 안 열렸다');
+    sess.abandon();
+    const s = sess.startOrResume(null, null, 'div');
+    ok(s.queue.length > 0 && s.queue.every((e) => e.skillId === 'divide'));
+    sess.abandon();
+  });
+
+  t('되돌리면 다시 학년 기준을 따른다', () => {
+    opsm.setEnabled(null);
+    ok(opsm.isDefault());
+    eq(sess.openOps(), ['add', 'sub', 'mul']);
+    ok(!sess.openSkills().includes('divide'), '되돌렸는데 나눗셈이 남아 있다');
+  });
+
+  t('초5는 분수·소수까지 네 연산이 모두 열린다', () => {
+    const kid5 = store.createProfile({ name: '고학년', grade: 5, avatar: '🦉' });
+    store.setActiveProfile(kid5);
+    eq(sess.openOps(), ['add', 'sub', 'mul', 'div']);
+    sess.abandon();
+    const s = sess.startOrResume('mix');
+    const seen = new Set(s.queue.map((e) => sess.skill(e.skillId).opOf(e.factKey)));
+    ok(seen.size >= 3, '고학년 판에 연산이 ' + seen.size + '가지뿐이다');
+    sess.abandon();
+  });
+
+  t('초1은 ＋ − 만 열린다 (곱셈구구를 아직 안 배웠다)', () => {
+    const kid1 = store.createProfile({ name: '초1', grade: 1, avatar: '🐣' });
+    store.setActiveProfile(kid1);
+    eq(sess.openOps(), ['add', 'sub']);
+    sess.abandon();
+    const s = sess.startOrResume('mix');
+    ok(s.queue.every((e) => e.skillId === 'addsub'));
+    sess.abandon();
+  });
+
+  t('예전에 저장된 문자열 큐도 그대로 이어서 풀린다 (회귀)', () => {
+    const kid2 = store.createProfile({ name: '구버전', grade: 2, avatar: '🐰' });
+    store.setActiveProfile(kid2);
+    const d = store.pdata();
+    // 5차까지 저장되던 모양: kind 없음, queue 가 문자열 배열
+    d.activeSession = {
+      id: 'old', skillId: 'mul', groupId: null, startedAt: Date.now(),
+      queue: ['2x3', '3x4', '4x5'], retryQueue: [], items: [], index: 0,
+      question: null, questionStartedAt: Date.now(),
+      streak: 0, bestStreak: 0, lastVariant: null,
+    };
+    store.save();
+    const s = sess.startOrResume('mul');          // 앱을 껐다 켠 상황
+    eq(s.id, 'old', '예전 세션을 못 이어받았다');
+    ok(s.question, '예전 큐에서 문제를 못 만들었다');
+    eq(s.question.factKey, '2x3');
+    let guard = 0;
+    while (sess.active()?.question && guard++ < 30) sess.submit(sess.active().question.answer);
+    const sum = sess.finish();
+    eq(sum.total, 3);
+    eq(sum.correct, 3);
+  });
+}
 
 console.log(`\n결과: ${pass} 통과, ${fail} 실패\n`);
 process.exit(fail ? 1 : 0);
