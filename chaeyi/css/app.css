@@ -422,6 +422,9 @@ textarea.io{width:100%;height:110px;border:1px solid var(--line2);border-radius:
   display:block;line-height:0;
 }
 .av svg{display:block;width:100%;height:100%}
+/* 부위별 이미지 세트를 쓸 때 — 전부 같은 캔버스라 그냥 겹쳐 쌓으면 된다 */
+.av-layer{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;
+          pointer-events:none}
 button.av{cursor:pointer;transition:transform .08s}
 button.av:active{transform:scale(.94)}
 .av-swap{position:relative;flex:none}

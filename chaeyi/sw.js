@@ -17,7 +17,7 @@ const ASSETS = [
   './js/generators/decimal.js', './js/generators/factors.js',
   './js/generators/integers.js', './js/generators/linear.js',
   './js/generators/simul.js', './js/generators/quadratic.js',
-  './js/ui/dom.js', './js/ui/numpad.js', './js/ui/avatar.js', './js/avatar-art.js',
+  './js/ui/dom.js', './js/ui/numpad.js', './js/ui/avatar.js', './js/avatar-art.js', './js/avatar-render.js',
   './js/ui/screens/onboard.js', './js/ui/screens/home.js',
   './js/ui/screens/play.js', './js/ui/screens/result.js', './js/ui/screens/parent.js',
   './js/ui/screens/rally.js', './js/ui/screens/placement.js', './js/ui/screens/who.js', './js/ui/screens/shop.js', './js/ui/screens/lock.js',
