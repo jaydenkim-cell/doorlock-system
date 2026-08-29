@@ -1208,5 +1208,320 @@ console.log('\n[연산 분류 · 섞어내기]');
   });
 }
 
+console.log('\n[별 · 꾸미기 · 미션]');
+{
+  const pts  = await import(B + 'points.js');
+  const cos  = await import(B + 'cosmetics.js');
+  const qst  = await import(B + 'quests.js');
+  const artMod = await import(B + 'avatar-art.js');
+
+  const finishOne = () => {
+    sess.abandon();
+    sess.startOrResume('mix');
+    let guard = 0;
+    while (sess.active()?.question && guard++ < 60) sess.submit(sess.active().question.answer);
+    return sess.finish();
+  };
+
+  store.resetAll();
+  const kid = store.createProfile({ name: '별이', grade: 2, avatar: '🦄' });
+  store.setActiveProfile(kid);
+
+  t('별과 저금통은 서로 다른 지갑이다', () => {
+    eq(pts.balance(), 0);
+    eq(wal.balance(), 0);
+    pts.award('adjust', 100, '테스트');
+    eq(pts.balance(), 100, '별이 안 들어옴');
+    eq(wal.balance(), 0, '별을 넣었는데 저금통이 늘었다 — 두 지갑이 새고 있다');
+  });
+
+  t('별로는 현금화를 할 수 없다 (통로가 없다)', () => {
+    // 별을 아무리 많이 갖고 있어도 저금통 잔액은 그대로여야 한다
+    pts.award('adjust', 9000, '테스트');
+    eq(wal.balance(), 0, '별이 저금통으로 새어 들어갔다');
+    ok(!Object.keys(pts).some((k) => /payout|cash|won/i.test(k)),
+       'points 모듈에 현금화 통로가 생겼다');
+  });
+
+  const paid = (cat) => cos.ITEMS.find((i) => i.cat === cat && i.price > 0 && !cos.owned(i.id));
+
+  t('꾸미기를 사면 별만 줄고 저금통은 그대로다', () => {
+    const before = { star: pts.balance(), won: wal.balance() };
+    const it = paid('acc');
+    ok(cos.acquire(it.id).ok, '살 수 있어야 한다');
+    eq(pts.balance(), before.star - it.price, '별이 값만큼 안 줄었다');
+    eq(wal.balance(), before.won, '꾸미기를 샀는데 저금통이 변했다');
+    ok(cos.owned(it.id));
+  });
+
+  t('별이 모자라면 못 산다', () => {
+    store.pdata().points = { balance: 0, lifetime: 0, ledger: [] };
+    const it = paid('hair');
+    const r = cos.acquire(it.id);
+    ok(!r.ok && r.reason === 'NOT_ENOUGH', '별 없이 샀다');
+    ok(!cos.owned(it.id));
+  });
+
+  t('안 가진 물건은 입을 수 없다', () => {
+    const it = cos.ITEMS.find((i) => !cos.owned(i.id));
+    ok(!cos.wear(it.id), '없는 물건을 입었다');
+  });
+
+  t('조건부 물건은 돈으로 못 산다', () => {
+    pts.award('adjust', 5000, '테스트');
+    const locked = cos.ITEMS.find((i) => i.unlock && !cos.unlockMet(i));
+    const r = cos.acquire(locked.id);
+    ok(!r.ok && r.reason === 'LOCKED', '조건을 안 채웠는데 열렸다');
+    eq(pts.balance(), 5000, '실패했는데 별이 빠져나갔다');
+  });
+
+  t('조건을 채우면 열리고 자동으로 옷장에 들어온다', () => {
+    const d = store.pdata();
+    d.stickers = [{ tag: 'a', label: '2단' }, { tag: 'b', label: '3단' },
+                  { tag: 'c', label: '4단' }];
+    store.save();
+    const crown = cos.item('acc-crown');
+    ok(cos.unlockMet(crown), '단 3개를 마스터했는데 왕관이 안 열렸다');
+    const got = cos.claimUnlocked();
+    ok(got.some((i) => i.id === 'acc-crown'), '열린 물건이 옷장에 안 들어왔다');
+    ok(cos.owned('acc-crown'));
+    // 두 번 받지 않는다
+    eq(cos.claimUnlocked().length, 0, '같은 물건을 두 번 받았다');
+  });
+
+  t('온보딩에서 고른 캐릭터가 옷장에 그대로 이어진다', () => {
+    store.resetAll();
+    const k = store.createProfile({ name: '채이', grade: 2 });
+    store.setActiveProfile(k);
+    const preset = cos.PRESETS[4];
+    cos.applyPreset(preset.look);
+    eq(cos.look().hair, preset.look.hair, '고른 머리가 사라졌다');
+    eq(cos.look().top, preset.look.top, '고른 옷이 사라졌다');
+    // 값이 붙은 부위가 섞여 있어도 "사실은 못 가진 것" 이면 안 된다
+    for (const id of Object.values(preset.look)) {
+      if (cos.item(id)) ok(cos.owned(id), `고른 차림에 못 가진 부위가 있다: ${id}`);
+    }
+  });
+
+  t('아이마다 시작 얼굴이 다르다 (형제가 똑같이 생기면 내 캐릭터가 아니다)', () => {
+    store.resetAll();
+    const looks = new Set();
+    for (let i = 0; i < 6; i++) {
+      const k = store.createProfile({ name: `아이${i}`, grade: 2 });
+      store.setActiveProfile(k);
+      looks.add(JSON.stringify(cos.look()));
+    }
+    ok(looks.size >= 3, `여섯 아이 중 얼굴이 ${looks.size}가지뿐이다`);
+  });
+
+  t('시작 얼굴은 다시 열어도 같다 (무작위가 아니다)', () => {
+    store.resetAll();
+    const k = store.createProfile({ name: '채이', grade: 2 });
+    store.setActiveProfile(k);
+    const first = JSON.stringify(cos.lookOf(k));
+    eq(JSON.stringify(cos.lookOf(k)), first, '열 때마다 얼굴이 바뀐다');
+    eq(JSON.stringify(cos.look()), first, '홈과 목록의 얼굴이 다르다');
+  });
+
+  t('다른 아이의 얼굴을 활성 프로필을 바꾸지 않고 읽는다', () => {
+    store.resetAll();
+    const a = store.createProfile({ name: '채이', grade: 2 });
+    store.setActiveProfile(a);
+    cos.applyPreset(cos.PRESETS[0].look);
+    const b2 = store.createProfile({ name: '민준', grade: 1 });
+    store.setActiveProfile(b2);
+    cos.applyPreset(cos.PRESETS[5].look);
+    store.setActiveProfile(a);
+    eq(cos.lookOf(b2).hair, cos.PRESETS[5].look.hair);
+    eq(store.activeProfile().id, a, '남의 얼굴을 읽었더니 활성 프로필이 바뀌었다');
+    eq(cos.look().hair, cos.PRESETS[0].look.hair, '내 얼굴이 남의 것으로 바뀌었다');
+  });
+
+  t('한 판을 끝내면 별이 붙는다', () => {
+    store.resetAll();
+    const k = store.createProfile({ name: '별이', grade: 2, avatar: '🦊' });
+    store.setActiveProfile(k);
+    const sum = finishOne();
+    ok((sum.stars || []).length > 0, '별이 하나도 안 붙었다');
+    ok(sum.starBalance > 0);
+    ok(sum.stars.some((g) => g.kind === 'session'), '완주 별이 없다');
+  });
+
+  t('별 적립에도 하루 상한이 있다 (쉬운 판 무한 반복 방지)', () => {
+    let sessionAwards = 0;
+    for (let i = 0; i < pts.RULES.dailySessionCap + 3; i++) {
+      const sum = finishOne();
+      if ((sum.stars || []).some((g) => g.kind === 'session')) sessionAwards += 1;
+    }
+    // 위에서 이미 한 판 했으므로 남은 상한만큼만 더 붙는다
+    ok(sessionAwards <= pts.RULES.dailySessionCap,
+       `완주 별이 ${sessionAwards}번 붙었다 (상한 ${pts.RULES.dailySessionCap})`);
+  });
+
+  t('마스터·연속 정답에는 상한이 없다 (실력은 계속 보상한다)', () => {
+    const sum = { total: 10, correct: 10, bestStreak: 9,
+                  mastered: [{ skillId: 'mul', factKey: '7x8' }] };
+    const got = pts.awardForSession(sum, {});
+    ok(got.some((g) => g.kind === 'mastery'), '마스터 별이 상한에 막혔다');
+    ok(got.some((g) => g.kind === 'combo'), '콤보 별이 없다');
+    ok(got.some((g) => g.kind === 'perfect'), '만점 별이 없다');
+  });
+
+  t('오늘의 미션이 판을 풀면 채워진다', () => {
+    store.resetAll();
+    const k = store.createProfile({ name: '미션', grade: 2, avatar: '🦊' });
+    store.setActiveProfile(k);
+    eq(qst.doneCount(), 0);
+    const sum = finishOne();
+    ok(qst.doneCount() >= 1, '한 판을 끝냈는데 미션이 안 채워졌다');
+    ok(sum.quests.newly.includes('play'));
+  });
+
+  t('미션 셋을 다 깨면 보너스가 한 번만 나온다', () => {
+    const d = store.pdata();
+    d.quests = { date: null, done: [], bonusPaid: false };   // 오늘 것으로 다시 만들어진다
+    qst.state();
+    const before = pts.balance();
+    const r1 = qst.recordSession({ total: 10, correct: 10, bestStreak: 7,
+                                   fast: ['a', 'b', 'c'], mastered: [] });
+    ok(qst.allDone(), '셋 다 깼는데 완료가 아니다');
+    ok(r1.bonus, '보너스가 안 나왔다');
+    eq(pts.balance(), before + pts.RULES.questAll);
+    const r2 = qst.recordSession({ total: 10, correct: 10, bestStreak: 7,
+                                   fast: ['a', 'b', 'c'], mastered: [] });
+    ok(!r2.bonus, '보너스를 두 번 줬다');
+    eq(pts.balance(), before + pts.RULES.questAll, '별이 또 늘었다');
+  });
+
+  t('날짜가 바뀌면 미션이 새로 시작한다 (어제 것은 안 남는다)', () => {
+    const d = store.pdata();
+    d.quests = { date: '1999-1-1', done: ['play', 'streak', 'fast'], bonusPaid: true };
+    store.save();
+    eq(qst.doneCount(), 0, '어제 미션이 오늘로 넘어왔다');
+    ok(!qst.bonusPaid(), '어제 보너스 기록이 오늘 남았다');
+  });
+
+  t('예전 아이는 그동안 한 만큼 별을 받고 시작한다', () => {
+    // 빈 옷장을 열고 아무것도 못 사는 첫인상을 피하려고 소급 지급한다
+    const raw = JSON.stringify({
+      schemaVersion: 3,
+      profiles: [{ id: 'old', name: '기존', grade: 2, avatar: '🦄', createdAt: 1 }],
+      activeProfileId: 'old',
+      data: { old: { mastery: {}, sessions: new Array(12).fill({ items: [] }),
+        stickers: [{ tag: 'a' }, { tag: 'b' }], bestMs: {}, levels: {}, rally: {},
+        wallet: { balance: 120, lifetime: 120, ledger: [] }, settings: {} } },
+    });
+    store.importJSON(raw);
+    eq(store.SCHEMA_VERSION, 4);
+    eq(pts.balance(), 12 * 10 + 2 * 30, '소급 지급이 안 맞다');
+    eq(wal.balance(), 120, '마이그레이션이 저금통을 건드렸다');
+    ok(cos.look().hair, '기존 아이에게 시작 얼굴이 안 주어졌다');
+    ok(cos.ownedIds().length > 0, '기존 아이의 옷장이 비어 있다');
+  });
+
+  t('백업에 별과 옷장이 함께 담긴다', () => {
+    pts.award('adjust', 500, '테스트');
+    const buy = cos.ITEMS.find((i) => i.price > 0 && !cos.owned(i.id));
+    cos.acquire(buy.id);
+    cos.wear(buy.id);
+    const before = { star: pts.balance(), owned: cos.ownedIds().length,
+                     look: JSON.stringify(cos.look()) };
+    const dump = store.exportJSON();
+    store.resetAll();
+    store.importJSON(dump);
+    eq(pts.balance(), before.star, '별이 백업에서 빠졌다');
+    eq(cos.ownedIds().length, before.owned, '산 물건이 백업에서 빠졌다');
+    eq(JSON.stringify(cos.look()), before.look, '입고 있던 차림이 백업에서 빠졌다');
+  });
+
+  t('아이마다 별과 옷장이 따로다', () => {
+    store.resetAll();
+    const a = store.createProfile({ name: '가', grade: 2 });
+    const b2 = store.createProfile({ name: '나', grade: 2 });
+    store.setActiveProfile(a);
+    pts.award('adjust', 300, '테스트');
+    ok(cos.acquire('acc-glasses').ok);
+    store.setActiveProfile(b2);
+    eq(pts.balance(), 0, '다른 아이의 별이 보인다');
+    ok(!cos.owned('acc-glasses'), '다른 아이가 산 물건을 갖고 있다');
+    store.setActiveProfile(a);
+    eq(pts.balance(), 300 - cos.item('acc-glasses').price);
+    ok(cos.owned('acc-glasses'));
+  });
+
+  t('물건 목록에 빠진 값이 없다', () => {
+    for (const it of cos.ITEMS) {
+      ok(it.id && it.cat, JSON.stringify(it));
+      ok(it.price !== undefined || it.unlock, `값도 조건도 없는 물건: ${it.id}`);
+      if (it.unlock) ok(cos.unlockLabel(it), `조건 설명이 없다: ${it.id}`);
+      if (cos.SWATCH_CATS.includes(it.cat)) ok(it.color, `색 견본에 색이 없다: ${it.id}`);
+      ok(it.label && it.label !== it.id, `이름이 없는 물건: ${it.id}`);
+    }
+    eq(new Set(cos.ITEMS.map((i) => i.id)).size, cos.ITEMS.length, 'id 가 겹친다');
+    for (const c of cos.CATS) ok(cos.itemsIn(c.id).length > 0, `${c.id} 가 비었다`);
+  });
+
+  t('피부톤에는 값을 매기지 않는다', () => {
+    // 자기 얼굴을 고르는 데 돈을 내게 하는 것은 이 앱이 할 일이 아니다
+    for (const it of cos.itemsIn('skin')) {
+      eq(it.price, 0, `피부톤에 값이 붙었다: ${it.id}`);
+      ok(!it.unlock, `피부톤이 잠겨 있다: ${it.id}`);
+    }
+    ok(cos.itemsIn('skin').length >= 5, '피부톤 선택지가 너무 적다');
+  });
+
+  t('조건 여섯 가지가 전부 실제로 걸린 물건이 있다', () => {
+    // 닿을 수 없는 조건은 장식이다
+    const used = new Set(cos.ITEMS.filter((i) => i.unlock).map((i) => i.unlock));
+    for (const u of ['crown', 'trophy', 'fire', 'rocket', 'rainbow', 'medal']) {
+      ok(used.has(u), `조건 '${u}' 에 걸린 물건이 없다`);
+    }
+  });
+
+  t('모든 부위 조합이 그림으로 그려진다', () => {
+    // 하나라도 빠지면 그 조합을 고른 아이의 얼굴이 깨진다
+    for (const it of cos.ITEMS) {
+      const svg = artMod.svgMarkup({ ...artMod.DEFAULT_LOOK, [it.cat]: it.id });
+      ok(svg.startsWith('<svg') && svg.includes('</svg>'), `${it.id} 가 안 그려진다`);
+      ok(!/undefined|NaN|\[object/.test(svg), `${it.id} 그림에 빈 값이 들어갔다`);
+    }
+  });
+
+  t('고른 색이 실제로 그림에 들어간다', () => {
+    // 눈동자·머리색·옷색을 바꿨는데 그림이 그대로면 아이는 산 걸 못 본다
+    for (const [cat, id] of [['eyeColor', 'ec-rose'], ['hairColor', 'hc-mint'],
+                             ['topColor', 'tc-sun'], ['skin', 'skin-5']]) {
+      const want = artMod.INDEX[cat][id].color;
+      const svg = artMod.svgMarkup({ ...artMod.DEFAULT_LOOK, [cat]: id });
+      ok(svg.includes(want), `${id} 의 색 ${want} 가 그림에 없다`);
+    }
+  });
+
+  t('도안 그림체 규칙을 지킨다 — 굵은 검은 외곽선, 평면 채색', () => {
+    // 참고한 종이인형 도안의 핵심이 이 선이다. 빠지면 색면 덩어리로 보인다.
+    const svg = artMod.svgMarkup({});
+    const lines = (svg.match(new RegExp(artMod.LINE, 'g')) || []).length;
+    ok(lines >= 8, `외곽선이 ${lines}군데뿐이다 — 도안으로 안 보인다`);
+    ok(!svg.includes('linearGradient'), '평면 채색인데 그라데이션이 들어갔다');
+  });
+
+  t('전신이 다 그려진다 (반신 초상화가 아니다)', () => {
+    // 옷을 갈아입히는 놀이라 다리·신발까지 보여야 한다
+    const bare = artMod.svgMarkup({ shoe: 'shoe-bare' });
+    for (const s2 of ['shoe-sneak', 'shoe-boot', 'shoe-mary']) {
+      ok(artMod.svgMarkup({ shoe: s2 }) !== bare, `${s2} 를 신겨도 그림이 같다`);
+    }
+    // 다리·발이 뼈대에 들어 있는지 (y 좌표가 90 을 넘는 부위)
+    ok(/9[0-9](\.\d+)?/.test(bare), '다리 아래쪽이 안 그려졌다');
+  });
+
+  t('각 칸마다 공짜로 시작하는 물건이 하나는 있다', () => {
+    // 처음 연 옷장이 전부 잠겨 있으면 그건 재미가 아니라 결핍이다
+    for (const c of cos.CATS) {
+      ok(cos.itemsIn(c.id).some((i) => i.price === 0), `${c.label} 에 공짜가 없다`);
+    }
+  });
+}
+
 console.log(`\n결과: ${pass} 통과, ${fail} 실패\n`);
 process.exit(fail ? 1 : 0);

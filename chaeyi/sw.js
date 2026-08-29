@@ -3,23 +3,24 @@
  * 태블릿 와이파이는 자주 끊긴다. 앱이 안 열리는 경험이 한 번 있으면
  * 아이는 다시 누르지 않는다.
  */
-const CACHE = 'chaeyi-v3';   // 6차: 연산 분류·섞어내기
+const CACHE = 'chaeyi-v4';   // 7차: 별·꾸미기·오늘의 미션
 const ASSETS = [
   './', './index.html', './manifest.webmanifest', './icon.svg',
   './css/app.css',
   './js/app.js', './js/state.js', './js/srs.js', './js/session.js', './js/feedback.js', './js/ko.js',
   './js/difficulty.js', './js/allowance.js', './js/grades.js',
   './js/answer.js', './js/theme.js',
-  './js/ops.js', './js/generators/_util.js',
+  './js/ops.js', './js/points.js', './js/cosmetics.js', './js/quests.js',
+  './js/generators/_util.js',
   './js/generators/multiply.js', './js/generators/addsub.js',
   './js/generators/divide.js', './js/generators/fraction.js',
   './js/generators/decimal.js', './js/generators/factors.js',
   './js/generators/integers.js', './js/generators/linear.js',
   './js/generators/simul.js', './js/generators/quadratic.js',
-  './js/ui/dom.js', './js/ui/numpad.js',
+  './js/ui/dom.js', './js/ui/numpad.js', './js/ui/avatar.js', './js/avatar-art.js',
   './js/ui/screens/onboard.js', './js/ui/screens/home.js',
   './js/ui/screens/play.js', './js/ui/screens/result.js', './js/ui/screens/parent.js',
-  './js/ui/screens/rally.js', './js/ui/screens/placement.js', './js/ui/screens/who.js', './js/ui/screens/lock.js',
+  './js/ui/screens/rally.js', './js/ui/screens/placement.js', './js/ui/screens/who.js', './js/ui/screens/shop.js', './js/ui/screens/lock.js',
   './data/curriculum.json',
 ];
 

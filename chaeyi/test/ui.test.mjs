@@ -98,7 +98,7 @@ await page.goto(URL, { waitUntil: 'networkidle' });
 console.log('\n[첫 실행]');
 ok(await page.locator('text=반가워요!').isVisible(), '온보딩 화면이 뜬다');
 await shot('1-onboard');
-await page.locator('button[aria-label="🦄"]').click();
+await page.locator(".pick").nth(3).click();
 await page.locator('button:has-text("시작하기")').click();
 
 console.log('\n[부모 잠금]');
@@ -157,7 +157,55 @@ ok(await page.locator('.tile.locked:has-text("3학년")').isVisible(),
    '언제 배우는지 적혀 있다 (감추지 않는다)');
 ok(await page.locator('.cta-note:has-text("섞어서")').isVisible(),
    '오늘의 공부가 섞어서 낸다고 알려준다');
+ok(await page.locator('text=오늘의 미션').isVisible(), '오늘의 미션이 보인다');
+ok((await page.locator('.quest-row').count()) === 3, '미션 세 칸');
+ok(await page.locator('.shop-entry').isVisible(), '꾸미기 입구가 있다');
+ok(await page.locator('.av').first().isVisible(), '꾸민 얼굴이 보인다');
 await shot('4-home', true);
+
+console.log('\n[꾸미기]');
+await page.evaluate(() => window.__chaeyi.points.award('adjust', 400, '테스트'));
+await page.evaluate(() => window.__chaeyi.go('home'));
+await page.locator('.shop-entry').click();
+await page.waitForSelector('.shop-grid');
+ok((await page.locator('.shop-tab').count()) >= 8, '꾸미기 갈래가 여러 칸');
+ok(await page.locator('.shop-preview .av svg').isVisible(), '미리보기 캐릭터가 그려진다');
+{
+  // 꾸밈(안경·머리핀 등)에서 값이 붙은 것을 하나 산다
+  const before = await page.evaluate(() => window.__chaeyi.points.balance());
+  await page.locator('.shop-tab:has-text("꾸밈")').click();
+  await page.waitForTimeout(200);
+  await page.locator('.shop-item:has-text("40")').first().click();
+  await page.waitForTimeout(300);
+  const after = await page.evaluate(() => ({
+    star: window.__chaeyi.points.balance(),
+    won: window.__chaeyi.allowance.balance(),
+    acc: window.__chaeyi.cosmetics.look().acc,
+  }));
+  ok(after.star === before - 40, `꾸밈을 사면 별이 줄어든다 → ${before} → ${after.star}`);
+  ok(after.acc !== 'acc-none', '산 것을 바로 착용한다');
+  ok((await page.locator('.shop-item.worn').count()) > 0, '입고 있는 칸이 표시된다');
+  await shot('4c-shop');
+
+  // 저금통은 절대 건드리지 않는다 — 이 앱에서 가장 중요한 경계다
+  ok(after.won === 0, '꾸미기를 샀는데 저금통이 변했다');
+}
+{
+  // 못 사는 것을 눌러도 혼내지 않고 얼마가 모자란지만 알려 준다
+  await page.evaluate(() => {
+    const d = window.__chaeyi.store.pdata();
+    d.points.balance = 0; window.__chaeyi.store.save(); window.__chaeyi.go('shop');
+  });
+  await page.waitForSelector('.shop-grid');
+  await page.locator('.shop-tab:has-text("꾸밈")').click();
+  await page.waitForTimeout(200);
+  await page.locator('.shop-item:has-text("90")').first().click();
+  await page.waitForTimeout(250);
+  const toast = await page.locator('.toast').last().textContent();
+  ok(/더 모으면/.test(toast), `모자랄 때 얼마가 모자란지 알려준다 → ${toast}`);
+}
+await page.evaluate(() => window.__chaeyi.go('home'));
+await page.waitForSelector('.map');
 
 console.log('\n[연산 섞어내기]');
 // 예전에는 이 한 판이 전부 곱셈이었다 — 아이가 재미없다고 한 바로 그 지점이다.
@@ -328,6 +376,10 @@ ok(await page.locator('text=어떤 연산을 낼까').isVisible(), '연산 설�
   ok((await page.evaluate(() => window.__chaeyi.sess.openOps())).includes('mul'), '다시 켤 수 있다');
 }
 
+ok(await page.locator('text=별과 꾸미기').isVisible(), '별 현황이 부모 화면에 있다');
+ok(await page.locator('.card:has-text("별과 꾸미기")').locator('text=서로 바꿀 수 없').isVisible(),
+   '별과 저금통이 다른 것임을 부모에게 분명히 말한다');
+
 // append() 가 null 을 "null" 글자로 그리던 버그. 부모 화면에 실제로 찍혀 있었다.
 {
   const txt = await page.locator('.parent').innerText();
@@ -435,7 +487,7 @@ console.log('\n[아이 전환]');
 await page.evaluate(() => window.__chaeyi.go('home'));
 await page.waitForSelector('.screen');
 ok(await page.locator('.avatar-swap').isVisible(), '아이가 둘이면 얼굴에 전환 표시가 뜬다');
-await page.locator('button.avatar').click();
+await page.locator('button.av').click();
 await page.waitForSelector('.who-list');
 ok((await page.locator('.who-card').count()) === 2, '"누구야?" 화면에 두 명이 뜬다');
 await shot('13-who');

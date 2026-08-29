@@ -5,6 +5,9 @@ import * as store from './state.js';
 import * as fx from './feedback.js';
 import * as allowance from './allowance.js';
 import * as difficulty from './difficulty.js';
+import * as points from './points.js';
+import * as cosmetics from './cosmetics.js';
+import * as quests from './quests.js';
 import * as theme from './theme.js';
 import * as sess from './session.js';
 import { onboard } from './ui/screens/onboard.js';
@@ -16,6 +19,7 @@ import { rally } from './ui/screens/rally.js';
 import { placement } from './ui/screens/placement.js';
 import { who } from './ui/screens/who.js';
 import { lock } from './ui/screens/lock.js';
+import { shop } from './ui/screens/shop.js';
 
 const root = document.getElementById('app');
 
@@ -30,6 +34,7 @@ const SCREENS = {
   who:       (go) => who(go),
   onboard2:  (go) => onboard(go, { first: false }),   // 둘째 아이 추가
   lock:      (go, p) => lock(go, p || {}),
+  shop:      (go) => shop(go),
 };
 
 let current = null;
@@ -82,5 +87,5 @@ boot();
  */
 const isLocal = ['localhost', '127.0.0.1', '0.0.0.0', ''].includes(location.hostname);
 if (isLocal || new URLSearchParams(location.search).has('debug')) {
-  window.__chaeyi = { store, go, sess, allowance, difficulty };
+  window.__chaeyi = { store, go, sess, allowance, difficulty, points, cosmetics, quests };
 }

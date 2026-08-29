@@ -53,12 +53,10 @@
 :root[data-tone="tween"] body{font-size:16px}
 :root[data-tone="teen"] body{font-size:15.5px}
 :root[data-tone="teen"] .btn{font-size:17px}
-:root[data-tone="teen"] .piggy-em,
-:root[data-tone="teen"] .who-face{font-size:22px}
-/* 중학생 화면에서 저금통·얼굴 칸의 파스텔 배경은 유치해 보인다 */
+:root[data-tone="teen"] .piggy-em{font-size:22px}
+/* 중학생 화면에서 저금통 칸의 파스텔 배경은 유치해 보인다.
+   얼굴은 아이가 고른 배경색을 쓰므로 여기서 덮지 않는다. */
 :root[data-tone="teen"] .piggy-em{background:var(--bg2)}
-:root[data-tone="teen"] .avatar,
-:root[data-tone="teen"] .who-face{background:var(--bg2)}
 
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
@@ -105,10 +103,6 @@ button:disabled{opacity:.35;cursor:default}
 
 /* ── 헤더 ─────────────────────────────────────────────── */
 .topbar{display:flex;align-items:center;gap:10px;padding:6px 2px}
-.avatar{
-  width:46px;height:46px;border-radius:16px;background:var(--grape-l);
-  display:grid;place-items:center;font-size:26px;flex:none;
-}
 .who{font-weight:800;font-size:18px;line-height:1.15}
 .icon-btn{
   width:46px;height:46px;border-radius:15px;background:var(--card);
@@ -366,16 +360,9 @@ button:disabled{opacity:.35;cursor:default}
   transition:transform .08s;
 }
 .who-card:active{transform:scale(.98)}
-.who-face{
-  width:58px;height:58px;border-radius:19px;background:var(--grape-l);
-  display:grid;place-items:center;font-size:32px;flex:none;
-}
-.who-face.sm{width:42px;height:42px;border-radius:14px;font-size:23px}
 .who-name{font-size:19px;font-weight:800;line-height:1.2}
 
 /* 홈 상단 얼굴을 눌러 바꿀 수 있다는 표시 */
-.avatar{position:relative}
-button.avatar{cursor:pointer}
 .avatar-swap{
   position:absolute;right:-3px;bottom:-3px;
   width:20px;height:20px;border-radius:10px;background:var(--grape);color:#fff;
@@ -425,3 +412,88 @@ textarea.io{width:100%;height:110px;border:1px solid var(--line2);border-radius:
 @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 
 @media (max-width:359px){ .map.ops{grid-template-columns:repeat(2,1fr)} }
+
+
+/* ── 꾸민 얼굴 (SVG 캐릭터) ─────────────────────────────
+   그림은 avatar-art.js 가 100×100 viewBox 로 그린다. 여기서는 담는 그릇만.
+   overflow:hidden 이라야 머리·왕관이 모서리 밖으로 삐져나오지 않는다. */
+.av{
+  position:relative;border-radius:30%;overflow:hidden;flex:none;
+  display:block;line-height:0;
+}
+.av svg{display:block;width:100%;height:100%}
+button.av{cursor:pointer;transition:transform .08s}
+button.av:active{transform:scale(.94)}
+.av-swap{position:relative;flex:none}
+:root[data-tone="teen"] .av{border-radius:22%}
+
+/* ── 오늘의 미션 ──────────────────────────────────────── */
+.quest.all{background:linear-gradient(180deg,var(--mint-l),var(--card))}
+.quest-list{display:flex;flex-direction:column;gap:8px}
+.quest-row{display:flex;align-items:center;gap:11px;padding:8px 10px;border-radius:14px;
+           background:var(--card2)}
+.quest-row.done{background:var(--mint-l)}
+.quest-em{width:34px;height:34px;border-radius:11px;background:var(--card);
+          display:grid;place-items:center;font-size:19px;flex:none}
+.quest-lab{font-weight:800;font-size:15px}
+.quest-row.done .quest-lab{color:var(--ink2);text-decoration:line-through}
+
+/* ── 꾸미기 방 ────────────────────────────────────────── */
+.shop-entry{position:relative}
+.shop-top{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px}
+.shop-preview{display:grid;place-items:center}
+.shop-star{font-size:18px}
+.shop-star b{font-weight:800}
+.shop-tabs{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:2px 0}
+.shop-tab{
+  padding:9px 2px;border-radius:14px;background:var(--card);box-shadow:var(--sh);
+  display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12px;
+}
+.shop-tab span{font-size:17px}
+.shop-tab.on{background:var(--grape);color:#fff;box-shadow:0 3px 0 var(--grape-d)}
+.shop-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.shop-item .av{width:100%!important;height:auto!important;aspect-ratio:1;border-radius:26%}
+.shop-item{
+  position:relative;border-radius:16px;background:var(--card2);padding:9px 4px 6px;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  border:2px solid transparent;
+}
+.shop-item:active{transform:scale(.95)}
+.shop-item.worn{border-color:var(--grape);background:var(--grape-l)}
+.shop-item.locked{opacity:.55}
+/* 색만 바뀌는 갈래(머리색·눈동자·옷색·배경)는 얼굴 대신 색동그라미로 */
+.shop-swatch{width:100%;aspect-ratio:1;border-radius:26%;border:2px solid var(--line2)}
+/* 아직 못 여는 것 — 감추지 않고 실루엣으로 남긴다. 그게 다음에 할 이유가 된다. */
+.shop-locked{
+  width:100%;aspect-ratio:1;border-radius:26%;background:var(--line);
+  display:grid;place-items:center;font-size:26px;font-weight:800;color:var(--ink3);
+}
+.shop-foot{font-size:11px;font-weight:800;color:var(--ink2);white-space:nowrap}
+.shop-foot.own{color:var(--mint)}
+.shop-foot.earn{color:var(--coral)}
+.shop-foot.poor{color:var(--ink3)}
+.shop-foot.lock{font-size:9.5px;line-height:1.2;text-align:center;white-space:normal;
+                color:var(--ink3)}
+.shop-name{font-size:11px;color:var(--ink2);font-weight:800;line-height:1.2}
+
+/* ── 결과 화면의 별 · 새 아이템 ───────────────────────── */
+.star-row{display:flex;align-items:flex-start;gap:12px;background:var(--sun-l)}
+.star-em{width:46px;height:46px;border-radius:15px;background:#fff;
+         display:grid;place-items:center;font-size:24px;flex:none}
+.unlock-card{width:100%;text-align:left;background:var(--grape-l)}
+.unlock-row{display:flex;gap:9px;margin-top:9px;flex-wrap:wrap}
+.unlock-em{width:50px;height:50px;border-radius:16px;background:#fff;
+           display:grid;place-items:center;font-size:26px}
+
+@media (max-width:359px){ .shop-grid{grid-template-columns:repeat(3,1fr)} }
+
+/* ── 온보딩 캐릭터 고르기 ─────────────────────────────── */
+.pick-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.pick{
+  padding:6px;border-radius:18px;background:var(--card2);
+  border:3px solid transparent;display:grid;place-items:center;
+  transition:transform .08s;
+}
+.pick:active{transform:scale(.95)}
+.pick.on{border-color:var(--grape);background:var(--grape-l)}
+.pick .av{width:100%!important;height:auto!important;aspect-ratio:1}

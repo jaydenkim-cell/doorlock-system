@@ -17,6 +17,10 @@ import * as allowance from '../../allowance.js';
 import * as grades from '../../grades.js';
 import * as theme from '../../theme.js';
 import * as ops from '../../ops.js';
+import * as points from '../../points.js';
+import * as quests from '../../quests.js';
+import * as cosmetics from '../../cosmetics.js';
+import { avatar } from '../avatar.js';
 
 const DAY_LABEL = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -159,6 +163,61 @@ function opsCard(go) {
   );
 }
 
+/**
+ * 오늘의 미션 세 칸.
+ *
+ * "오늘 왜 켜야 하는가"에 답하는 자리다. 진도는 어제와 오늘이 구별되지 않지만
+ * 미션은 오늘 것이 따로 있어서 하루의 끝이 생긴다.
+ *
+ * 못 지킨 날에 잃는 것은 없다 — 어제 못 깬 미션은 화면에 남지 않는다.
+ * 초2는 스스로 앱을 못 켠다. 부모가 바빴던 날의 책임을 아이에게 돌리면 안 된다.
+ */
+function questCard() {
+  const list = quests.state();
+  const done = list.filter((q) => q.done).length;
+  const all = done === list.length;
+
+  return h('div', { class: 'card quest' + (all ? ' all' : '') },
+    h('div', { class: 'row', style: { marginBottom: '10px' } },
+      h('div', { class: 'h2' }, '🎯 오늘의 미션'),
+      h('div', { class: 'spacer' }),
+      h('div', { class: 'goal' }, all
+        ? `다 했어요! ${points.star(points.RULES.questAll)} 받음`
+        : `${done} / ${list.length}`),
+    ),
+    h('div', { class: 'quest-list' },
+      list.map((q) => h('div', { class: 'quest-row' + (q.done ? ' done' : '') },
+        h('div', { class: 'quest-em' }, q.done ? '✅' : q.emoji),
+        h('div', { style: { flex: '1' } },
+          h('div', { class: 'quest-lab' }, q.label),
+          h('div', { class: 'muted' }, q.hint)),
+      ))),
+  );
+}
+
+/** 꾸미기 입구. 살 수 있는 게 있으면 배지를 달아 알려 준다. */
+function shopCard(go) {
+  const bal = points.balance();
+  const ctx = cosmetics.progressCtx();
+  const canGet = cosmetics.ITEMS.filter((it) => {
+    const st = cosmetics.stateOf(it, ctx);
+    return st === 'buy' || st === 'earn';
+  }).length;
+  const c = cosmetics.collected();
+
+  return h('button', { class: 'skill shop-entry', onclick: () => go('shop') },
+    h('div', { class: 'em', style: { background: 'var(--grape-l)' } }, '🎨'),
+    h('div', { style: { flex: '1' } },
+      h('div', { class: 'h2' }, '꾸미기'),
+      h('div', { class: 'muted' }, canGet > 0
+        ? `${points.star(bal)} 로 ${canGet}개를 살 수 있어요`
+        : `모은 것 ${c.have} / ${c.all} · ${points.star(bal)}`),
+    ),
+    canGet > 0 ? h('div', { class: 'badge' }, String(canGet)) : null,
+    h('div', { class: 'go' }, '›'),
+  );
+}
+
 function skillCard(skillId, go) {
   const gen = sess.skill(skillId);
   const r = groupRatio(skillId, gen.allFacts());
@@ -235,14 +294,15 @@ export function home(go) {
     h('div', { class: 'topbar' },
       // 아이가 여럿이면 얼굴을 눌러 바꾼다
       manyKids
-        ? h('button', { class: 'avatar', title: '다른 친구로 바꾸기',
-            'aria-label': '다른 친구로 바꾸기', onclick: () => go('who') },
-            p.avatar, h('span', { class: 'avatar-swap' }, '⇄'))
-        : h('div', { class: 'avatar' }, p.avatar),
+        ? h('div', { class: 'av-swap' },
+            avatar(null, { size: 46, tag: 'button', title: '다른 친구로 바꾸기',
+              'aria-label': '다른 친구로 바꾸기', onclick: () => go('who') }),
+            h('span', { class: 'avatar-swap' }, '⇄'))
+        : avatar(null, { size: 46 }),
       h('div', {},
         h('div', { class: 'who-name' }, `${p.name}${theme.copy('kidSuffix')}`),
         h('div', { class: 'muted' },
-          `${g.label} · ${theme.copy('star')} ${d.sessions.length} · ${difficulty.preset().label}`),
+          `${g.label} · ${points.star(points.balance())} · ${difficulty.preset().label}`),
       ),
       h('div', { class: 'spacer' }),
       h('button', { class: 'icon-btn', title: '부모님 화면', 'aria-label': '부모님 화면',
@@ -258,7 +318,9 @@ export function home(go) {
       : null,
 
     sess.placementDone() ? null : placementCard(go),
+    questCard(),
     opsCard(go),
+    shopCard(go),
     piggyCard(),
     weekCard(),
     main ? mapCard(go, main) : null,

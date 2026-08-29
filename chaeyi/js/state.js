@@ -12,7 +12,7 @@
 
 const KEY = 'chaeyi.store';
 const LEGACY_KEY = 'chaei.store';   // 이름을 바꾸기 전에 쓰던 키
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 export const DEFAULT_SETTINGS = {
   weeklyGoalDays: 4,   // 스트릭 0 리셋 대신 "주 4일" 목표
@@ -50,6 +50,31 @@ const MIGRATIONS = {
     }
     return s;
   },
+  /**
+   * ⭐ 별과 꾸미기가 생겼다.
+   *
+   * 여기서 0별로 시작하게 두면, 이미 몇 주 푼 아이가 빈 옷장을 열고 아무것도
+   * 못 산 채 닫는다. 그건 새 기능이 아니라 결핍이다. **그동안 한 것을 별로
+   * 환산해서 넣어 준다** — 완주한 판 10, 마스터한 단 30.
+   * (지금 규칙과 같은 값이라 "원래 있었다면 이만큼" 이 된다)
+   *
+   * 옷장은 여기서 만들지 않는다. cosmetics.js 가 처음 열릴 때 공짜 물건으로
+   * 채우는데, 그 목록이 이 파일에 있으면 두 벌이 되어 언젠가 어긋난다.
+   */
+  4: (s) => {
+    for (const d of Object.values(s.data || {})) {
+      if (d.points) continue;
+      const sessions = (d.sessions || []).length;
+      const stickers = (d.stickers || []).length;
+      const earned = sessions * 10 + stickers * 30;
+      d.points = { balance: earned, lifetime: earned, ledger: [] };
+      if (earned > 0) {
+        d.points.ledger.push({ kind: 'welcome', amount: earned,
+          note: `${sessions}판 · 마스터 ${stickers}개`, at: Date.now() });
+      }
+    }
+    return s;
+  },
 };
 
 function emptyProfileData() {
@@ -61,6 +86,9 @@ function emptyProfileData() {
     bestMs: {},         // factKey -> 개인 최고 응답시간
     levels: {},         // skillId -> { level, recent[] }  난이도 자동 조정
     rally: {},          // skillId -> { best, last, at }   60초 랠리 기록
+    points: { balance: 0, lifetime: 0, ledger: [] },  // ⭐ 별 (꾸미기 전용)
+    closet: null,       // { owned:[itemId], worn:{face,hat,pet,frame} } — cosmetics.js
+    quests: null,       // { date, done:[], bonusPaid } — quests.js
     placementDone: false,
     wallet: { balance: 0, lifetime: 0, ledger: [] }, // 용돈 저금통
     settings: { ...DEFAULT_SETTINGS },
@@ -126,7 +154,11 @@ function uid(prefix, taken = []) {
   return id;
 }
 
-export function createProfile({ name, grade = 2, avatar = '🦊', color = 'grape' }) {
+/**
+ * `avatar` 는 6차까지 이모지 한 글자였다. 지금은 얼굴이 옷장(closet.worn)에
+ * 들어 있어서 여기서는 안 쓴다. 예전 백업을 되불러올 때를 위해 칸만 남긴다.
+ */
+export function createProfile({ name, grade = 2, avatar = null, color = 'grape' }) {
   const s = load();
   const id = uid('p', s.profiles.map((p) => p.id));
   s.profiles.push({ id, name, grade, avatar, color, createdAt: Date.now() });
@@ -182,7 +214,20 @@ export function pdata() {
   if (!d.levels) d.levels = {};
   if (!d.rally) d.rally = {};
   if (!d.wallet) d.wallet = { balance: 0, lifetime: 0, ledger: [] };
+  if (!d.points) d.points = { balance: 0, lifetime: 0, ledger: [] };
   return d;
+}
+
+/**
+ * 다른 아이의 데이터를 **읽기만** 한다.
+ *
+ * "누구야?" 화면과 부모 화면은 프로필 여럿의 얼굴을 한 번에 그려야 하는데,
+ * 그때마다 활성 프로필을 바꾸면 화면을 그리는 도중에 전역 상태가 흔들린다.
+ * (4차의 저금통 표시가 그래서 한 번 어긋났다) 읽기 전용 창구를 따로 둔다.
+ */
+export function pdataOf(profileId) {
+  const s = load();
+  return s.data[profileId] || null;
 }
 
 export function settings() { return pdata().settings; }

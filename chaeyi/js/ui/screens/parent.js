@@ -18,6 +18,9 @@ import * as difficulty from '../../difficulty.js';
 import * as allowance from '../../allowance.js';
 import * as grades from '../../grades.js';
 import { lock } from './lock.js';
+import * as points from '../../points.js';
+import * as cosmetics from '../../cosmetics.js';
+import { avatarFor } from '../avatar.js';
 
 export function parent(go, { unlocked = false } = {}) {
   // 잠금을 방금 설정하고 넘어온 경우. 라우터가 넘겨주는 값이라 아이가 만들 수 없다.
@@ -91,6 +94,7 @@ function dashboard(go) {
     ),
 
     kidsCard(go),
+    starCard(),
     opsCard(),
     walletCard(go),
     levelCard(),
@@ -128,7 +132,7 @@ function kidsCard(go) {
   const rows = list.map((p) => {
     const isActive = p.id === activeId;
     const row = h('div', { class: 'kid-row' },
-      h('div', { class: 'who-face sm' }, p.avatar),
+      avatarFor(p.id, { size: 42 }),
       h('div', { style: { flex: '1' } },
         h('div', { style: { fontWeight: '800' } }, p.name,
           isActive ? h('span', { class: 'chip', style: { marginLeft: '6px', fontSize: '11px' } }, '지금') : null),
@@ -308,6 +312,52 @@ function factLabel(gen, key) {
     }
   } catch { /* 키 모양이 다른 생성기 */ }
   return key;
+}
+
+/**
+ * ⭐ 별과 꾸미기 상황.
+ *
+ * 부모가 여기서 알아야 할 것은 잔액이 아니라 **아이가 무엇 때문에 앱을 켜는가**다.
+ * 별이 어디서 나왔는지(완주 / 마스터 / 미션)를 보여 주면, 아이가 문제를 푸는지
+ * 판만 빨리 넘기는지가 드러난다.
+ *
+ * 저금통과 나란히 두지 않고 위에 따로 둔 이유: 두 카드가 붙어 있으면 부모도
+ * 잠깐 헷갈린다. 하나는 실제 돈이고 하나는 아니다.
+ */
+function starCard() {
+  const bal = points.balance();
+  const life = points.lifetime();
+  const c = cosmetics.collected();
+
+  // 별이 어디서 나왔는지 종류별로 묶는다
+  const bySrc = new Map();
+  for (const e of points.ledger()) {
+    if (e.amount <= 0) continue;
+    bySrc.set(e.kind, (bySrc.get(e.kind) || 0) + e.amount);
+  }
+  const top = [...bySrc.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const spent = points.ledger()
+    .filter((e) => e.amount < 0)
+    .reduce((a, e) => a + Math.abs(e.amount), 0);
+
+  return h('div', { class: 'card' },
+    h('h3', {}, '⭐ 별과 꾸미기'),
+    h('div', { class: 'note', style: { marginBottom: '10px' } },
+      '별은 꾸미기에만 쓰는 앱 안의 포인트예요. 저금통(원)과 서로 바꿀 수 없습니다 — ' +
+      '아이가 "모자 하나 = 몇 백 원" 으로 배우지 않게 통로를 두지 않았어요.'),
+    h('div', { class: 'stat', style: { marginBottom: '10px' } },
+      h('div', { class: 'box' }, h('b', {}, String(bal)), h('span', {}, '지금 별')),
+      h('div', { class: 'box' }, h('b', {}, String(life)), h('span', {}, '모두 모은 별')),
+      h('div', { class: 'box' }, h('b', {}, `${c.have}/${c.all}`), h('span', {}, '모은 아이템')),
+    ),
+    top.length
+      ? h('div', { class: 'chips' },
+          top.map(([k, v]) => h('div', { class: 'chip' }, `${points.kindLabel(k)} ${v}`)))
+      : h('div', { class: 'muted' }, '아직 별을 모으지 않았어요'),
+    spent > 0
+      ? h('div', { class: 'muted', style: { marginTop: '8px' } }, `꾸미기에 ${spent} 썼어요`)
+      : null,
+  );
 }
 
 /**
