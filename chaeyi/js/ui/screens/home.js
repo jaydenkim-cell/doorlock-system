@@ -300,7 +300,7 @@ export function home(go) {
             h('span', { class: 'avatar-swap' }, '⇄'))
         : avatar(null, { size: 46 }),
       h('div', {},
-        h('div', { class: 'who-name' }, `${p.name}${theme.copy('kidSuffix')}`),
+        h('div', { class: 'who-name' }, p.name),
         h('div', { class: 'muted' },
           `${g.label} · ${points.star(points.balance())} · ${difficulty.preset().label}`),
       ),

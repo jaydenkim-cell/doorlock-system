@@ -139,7 +139,12 @@ await page.locator('button:has-text("시작하기")').click();
 
 console.log('\n[홈]');
 await page.waitForSelector('.map');
-ok(await page.locator('text=채이 어린이').isVisible(), '이름이 보인다');
+ok(await page.locator('.who-name').first().isVisible(), '이름이 보인다');
+{
+  // 채이가 "어린이 빼 달라" 고 했다. 8살은 그런 걸 눈치챈다.
+  const name = (await page.locator('.who-name').first().textContent()).trim();
+  ok(name === '채이', `이름만 나온다 (군더더기 없음) → "${name}"`);
+}
 ok((await page.locator('.tile').count()) >= 8, '구구단 지도 8칸');
 ok(await page.locator('text=이번 주').isVisible(), '주간 도장');
 ok(await page.locator('.piggy').isVisible(), '용돈 저금통이 보인다');
