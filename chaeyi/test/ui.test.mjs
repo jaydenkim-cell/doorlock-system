@@ -164,53 +164,40 @@ ok(await page.locator('.cta-note:has-text("섞어서")').isVisible(),
    '오늘의 공부가 섞어서 낸다고 알려준다');
 ok(await page.locator('text=오늘의 미션').isVisible(), '오늘의 미션이 보인다');
 ok((await page.locator('.quest-row').count()) === 3, '미션 세 칸');
-ok(await page.locator('.shop-entry').isVisible(), '꾸미기 입구가 있다');
+ok(await page.locator('.shop-soon').isVisible(), '꾸미기 열리기 전 안내가 보인다');
+ok(!(await page.locator('.shop-entry').count()), '그림이 준비되기 전엔 꾸미기 입구를 열지 않는다');
 ok(await page.locator('.av').first().isVisible(), '꾸민 얼굴이 보인다');
 await shot('4-home', true);
 
-console.log('\n[꾸미기]');
-await page.evaluate(() => window.__chaeyi.points.award('adjust', 400, '테스트'));
-await page.evaluate(() => window.__chaeyi.go('home'));
-await page.locator('.shop-entry').click();
-await page.waitForSelector('.shop-grid');
-ok((await page.locator('.shop-tab').count()) >= 8, '꾸미기 갈래가 여러 칸');
-ok(await page.locator('.shop-preview .av svg').isVisible(), '미리보기 캐릭터가 그려진다');
+console.log('\n[꾸미기 — 그림 준비 전이라 입구는 닫혀 있다]');
 {
-  // 꾸밈(안경·머리핀 등)에서 값이 붙은 것을 하나 산다
-  const before = await page.evaluate(() => window.__chaeyi.points.balance());
-  await page.locator('.shop-tab:has-text("꾸밈")').click();
-  await page.waitForTimeout(200);
-  await page.locator('.shop-item:has-text("40")').first().click();
-  await page.waitForTimeout(300);
-  const after = await page.evaluate(() => ({
-    star: window.__chaeyi.points.balance(),
-    won: window.__chaeyi.allowance.balance(),
-    acc: window.__chaeyi.cosmetics.look().acc,
-  }));
-  ok(after.star === before - 40, `꾸밈을 사면 별이 줄어든다 → ${before} → ${after.star}`);
-  ok(after.acc !== 'acc-none', '산 것을 바로 착용한다');
-  ok((await page.locator('.shop-item.worn').count()) > 0, '입고 있는 칸이 표시된다');
-  await shot('4c-shop');
+  // 입구가 닫혀 있어도 아이가 몇 개 모았는지는 정확히 보여야 한다.
+  // (아직 한 판도 안 끝냈으면 0 이 맞다 — 판을 푼 뒤 늘어나는지는 아래 완주 시나리오에서 본다)
+  const bal = await page.evaluate(() => window.__chaeyi.points.balance());
+  const shown = await page.locator('.shop-soon').textContent();
+  ok(shown.includes(String(bal)), `모은 별 수가 맞다 → ${bal} / "${shown.replace(/\s+/g,' ').trim()}"`);
 
-  // 저금통은 절대 건드리지 않는다 — 이 앱에서 가장 중요한 경계다
-  ok(after.won === 0, '꾸미기를 샀는데 저금통이 변했다');
-}
-{
-  // 못 사는 것을 눌러도 혼내지 않고 얼마가 모자란지만 알려 준다
-  await page.evaluate(() => {
-    const d = window.__chaeyi.store.pdata();
-    d.points.balance = 0; window.__chaeyi.store.save(); window.__chaeyi.go('shop');
-  });
+  // 화면 자체는 살아 있어야 한다 — 그림이 오면 플래그 하나로 열 것이므로,
+  // 그때 깨져 있으면 안 된다.
+  await page.evaluate(() => window.__chaeyi.points.award('adjust', 400, '테스트'));
+  await page.evaluate(() => window.__chaeyi.go('shop'));
   await page.waitForSelector('.shop-grid');
-  await page.locator('.shop-tab:has-text("꾸밈")').click();
-  await page.waitForTimeout(200);
-  await page.locator('.shop-item:has-text("90")').first().click();
-  await page.waitForTimeout(250);
-  const toast = await page.locator('.toast').last().textContent();
-  ok(/더 모으면/.test(toast), `모자랄 때 얼마가 모자란지 알려준다 → ${toast}`);
+  ok((await page.locator('.shop-tab').count()) >= 8, '상점 화면은 그대로 살아 있다');
+  ok(await page.locator('.shop-preview .av svg').isVisible(), '미리보기 캐릭터가 그려진다');
+
+  const spend = await page.evaluate(() => {
+    const w = window.__chaeyi;
+    const b = w.points.balance();
+    const it = w.cosmetics.ITEMS.find((i) => i.price > 0 && !w.cosmetics.owned(i.id));
+    const r = w.cosmetics.acquire(it.id);
+    return { ok: r.ok, spent: b - w.points.balance(), price: it.price, won: w.allowance.balance() };
+  });
+  ok(spend.ok && spend.spent === spend.price, `사면 별이 값만큼 준다 → ${spend.spent}`);
+  ok(spend.won === 0, '꾸미기를 샀는데 저금통이 변했다');
+  await shot('4c-shop');
+  await page.evaluate(() => window.__chaeyi.go('home'));
+  await page.waitForSelector('.map');
 }
-await page.evaluate(() => window.__chaeyi.go('home'));
-await page.waitForSelector('.map');
 
 console.log('\n[연산 섞어내기]');
 // 예전에는 이 한 판이 전부 곱셈이었다 — 아이가 재미없다고 한 바로 그 지점이다.

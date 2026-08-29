@@ -6,6 +6,7 @@ import * as allowance from '../../allowance.js';
 import * as theme from '../../theme.js';
 import * as points from '../../points.js';
 import * as cosmetics from '../../cosmetics.js';
+import * as renderer from '../../avatar-render.js';
 
 export function result(go, summary) {
   // 그리는 도중의 go() 는 바깥 라우터에 덮인다. 다음 프레임으로 미룬다.
@@ -95,7 +96,9 @@ function starCard(summary) {
 /** 이번 판으로 새로 열린 꾸미기 아이템 — 별로 산 게 아니라 해내서 얻은 것 */
 function unlockCard(summary, go) {
   const got = summary.unlocked || [];
-  if (!got.length) return null;
+  // 꾸미기 입구가 닫혀 있으면 "눌러서 입어 보세요" 가 막다른 길이 된다.
+  // 받아 둔 것은 옷장에 그대로 쌓여 있다가 열릴 때 한꺼번에 나온다.
+  if (!got.length || !renderer.ART_READY) return null;
   return h('button', { class: 'card unlock-card', onclick: () => go('shop') },
     h('div', { class: 'h2' }, '🎁 새 아이템이 열렸어요!'),
     h('div', { class: 'unlock-row' },

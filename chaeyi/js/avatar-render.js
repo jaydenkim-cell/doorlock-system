@@ -20,6 +20,18 @@ import * as art from './avatar-art.js';
 /** 'drawn' = 코드로 그린 SVG · 'image' = 부위별 이미지 파일 */
 export const MODE = 'drawn';
 
+/**
+ * 아바타 그림이 아이에게 내놓을 만한가.
+ *
+ * 지금은 아니다 — 손으로 찍은 SVG 가 아이 눈높이에 못 미친다는 판단을 받았고,
+ * 일러스트 세트를 구하는 중이다. 그래서 **꾸미기 입구를 홈에서 감춘다.**
+ * 별은 그동안에도 계속 쌓이므로, 그림이 오면 살 것이 많아 오히려 재미있어진다.
+ *
+ * 그림이 준비되면 이 값 하나만 true 로 바꾸면 된다 — 상점 화면도 라우트도
+ * 그대로 살아 있어서 다른 데를 손댈 필요가 없다.
+ */
+export const ART_READY = false;
+
 /** 이미지 모드에서 겹치는 순서. 뒤로 갈수록 위에 온다. */
 const LAYERS = ['bg', 'hairBack', 'body', 'shoe', 'top', 'face', 'hairFront', 'acc'];
 

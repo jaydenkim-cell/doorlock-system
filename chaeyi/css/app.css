@@ -443,6 +443,10 @@ button.av:active{transform:scale(.94)}
 
 /* ── 꾸미기 방 ────────────────────────────────────────── */
 .shop-entry{position:relative}
+/* 꾸미기가 열리기 전 — 별이 쌓이고 있다는 것만 알려 주는 자리 */
+.shop-soon{display:flex;align-items:center;gap:14px;background:var(--sun-l)}
+.shop-soon .em{width:52px;height:52px;border-radius:17px;background:#fff;
+               display:grid;place-items:center;font-size:26px;flex:none}
 .shop-top{display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px}
 .shop-preview{display:grid;place-items:center}
 .shop-star{font-size:18px}

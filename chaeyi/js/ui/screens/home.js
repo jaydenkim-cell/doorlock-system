@@ -21,6 +21,7 @@ import * as points from '../../points.js';
 import * as quests from '../../quests.js';
 import * as cosmetics from '../../cosmetics.js';
 import { avatar } from '../avatar.js';
+import * as renderer from '../../avatar-render.js';
 
 const DAY_LABEL = ['월', '화', '수', '목', '금', '토', '일'];
 
@@ -195,8 +196,22 @@ function questCard() {
   );
 }
 
-/** 꾸미기 입구. 살 수 있는 게 있으면 배지를 달아 알려 준다. */
+/**
+ * 꾸미기 입구.
+ *
+ * 아바타 그림이 준비되기 전에는 입구 대신 "모으는 중" 한 줄만 둔다. 별은 계속
+ * 쌓이니 아이가 헛수고하는 게 아니고, 열렸을 때 살 것이 많아 더 재미있다.
+ * 쓸 데 없는 숫자만 보여 주면 그건 그것대로 이상하므로 한 줄은 남긴다.
+ */
 function shopCard(go) {
+  if (!renderer.ART_READY) {
+    return h('div', { class: 'card shop-soon' },
+      h('div', { class: 'em' }, '⭐'),
+      h('div', { style: { flex: '1' } },
+        h('div', { class: 'h2' }, `별 ${points.balance()}개를 모았어요`),
+        h('div', { class: 'muted' }, '꾸미기가 열리면 이 별로 살 수 있어요')),
+    );
+  }
   const bal = points.balance();
   const ctx = cosmetics.progressCtx();
   const canGet = cosmetics.ITEMS.filter((it) => {
