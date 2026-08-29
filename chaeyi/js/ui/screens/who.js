@@ -12,6 +12,7 @@ import { h } from '../dom.js';
 import * as store from '../../state.js';
 import * as grades from '../../grades.js';
 import * as fx from '../../feedback.js';
+import { avatarFor } from '../avatar.js';
 
 export function who(go) {
   const list = store.profiles();
@@ -28,7 +29,7 @@ export function who(go) {
         class: 'who-card',
         onclick: () => { fx.tap(); store.setActiveProfile(p.id); go('home'); },
       },
-        h('div', { class: 'who-face' }, p.avatar),
+        avatarFor(p.id, { size: 56 }),
         h('div', { style: { flex: '1', textAlign: 'left' } },
           h('div', { class: 'who-name' }, p.name),
           h('div', { class: 'muted' }, grades.of(p.grade).label),

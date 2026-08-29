@@ -15,6 +15,9 @@ import * as allowance from './allowance.js';
 import * as grades from './grades.js';
 import * as answer from './answer.js';
 import * as ops from './ops.js';
+import * as points from './points.js';
+import * as quests from './quests.js';
+import * as cosmetics from './cosmetics.js';
 import * as multiply from './generators/multiply.js';
 import * as addsub from './generators/addsub.js';
 import * as divide from './generators/divide.js';
@@ -584,10 +587,17 @@ export function finish() {
 
   // 용돈 적립은 세션이 확정된 뒤에. 주간 목표는 이번 판을 포함해 계산한다.
   const goalDays = store.settings().weeklyGoalDays;
-  summary.earned = allowance.awardForSession(summary, {
-    weeklyGoalMet: weekStamps().filter(Boolean).length >= goalDays,
-  });
+  const weeklyGoalMet = weekStamps().filter(Boolean).length >= goalDays;
+  summary.earned = allowance.awardForSession(summary, { weeklyGoalMet });
   summary.balance = allowance.balance();
+
+  // ⭐ 별은 저금통과 완전히 별개로 계산한다 (하나는 실제 돈, 하나는 꾸미기 전용).
+  summary.stars = points.awardForSession(summary, { weeklyGoalMet });
+  summary.starBalance = points.balance();
+
+  // 오늘의 미션과, 이번 판으로 새로 열린 꾸미기 아이템
+  summary.quests = quests.recordSession(summary);
+  summary.unlocked = cosmetics.claimUnlocked();
   return summary;
 }
 
@@ -674,7 +684,10 @@ export function rallyFinish(skillId, score) {
   d.rally[skillId] = { best: Math.max(prev, score), last: score, at: Date.now() };
   store.save();
   const earned = isBest ? allowance.awardForRally() : null;
-  return { best: d.rally[skillId].best, prev, isBest, earned };
+  const stars = isBest ? points.awardForRally() : null;
+  const quest = quests.recordRally(score);
+  const unlocked = cosmetics.claimUnlocked();
+  return { best: d.rally[skillId].best, prev, isBest, earned, stars, quest, unlocked };
 }
 
 export function rallyBest(skillId) {

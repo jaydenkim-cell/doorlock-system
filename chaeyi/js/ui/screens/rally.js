@@ -12,6 +12,7 @@ import { h } from '../dom.js';
 import * as sess from '../../session.js';
 import * as fx from '../../feedback.js';
 import * as allowance from '../../allowance.js';
+import * as points from '../../points.js';
 import { renderBody, makeInput } from './play.js';
 import * as theme from '../../theme.js';
 
@@ -119,9 +120,14 @@ export function rally(go, { skillId = 'mul' } = {}) {
       h('div', { class: 'muted' }, r.isBest
         ? `새 최고 기록! (지난 기록 ${r.prev}개)`
         : `최고 기록은 ${r.best}개예요`),
-      r.earned
-        ? h('div', { class: 'chip', style: { marginTop: '10px', display: 'inline-block' } },
-            `🐷 +${allowance.won(r.earned.amount)}`)
+      h('div', { class: 'chips', style: { marginTop: '10px', justifyContent: 'center' } },
+        r.stars ? h('div', { class: 'chip' }, `⭐ +${r.stars.amount}`) : null,
+        r.earned ? h('div', { class: 'chip' }, `🐷 +${allowance.won(r.earned.amount)}`) : null,
+        r.quest?.bonus
+          ? h('div', { class: 'chip' }, `🎯 미션 완료 ⭐ +${r.quest.bonus.amount}`) : null),
+      (r.unlocked || []).length
+        ? h('div', { style: { marginTop: '10px', fontWeight: '800' } },
+            `🎁 새 아이템! ${r.unlocked.map((it) => it.emoji || '🎨').join(' ')}`)
         : null,
     ));
     inputSlot.replaceChildren(

@@ -15,18 +15,19 @@ import * as difficulty from '../../difficulty.js';
 import * as allowance from '../../allowance.js';
 import * as fx from '../../feedback.js';
 import * as theme from '../../theme.js';
+import * as cosmetics from '../../cosmetics.js';
+import { avatar } from '../avatar.js';
 
-const FACES_KID = ['🦊', '🐰', '🐱', '🐼', '🦄', '🐧', '🐣', '🐨', '🦖', '🐬', '🌸', '⭐️'];
-const FACES_TWEEN = ['🦊', '🐼', '🐧', '🦖', '🐬', '⚡️', '🎧', '🎮', '🏀', '⚽️', '🎨', '🚀'];
-const FACES_TEEN = ['◆', '●', '▲', '★', '✦', '⬢', 'A', 'B', 'J', 'K', 'M', 'S'];
-
-function facesFor(grade) {
-  const t = grades.of(grade).tone;
-  return t === 'teen' ? FACES_TEEN : t === 'tween' ? FACES_TWEEN : FACES_KID;
-}
+/**
+ * 처음 고르는 캐릭터.
+ *
+ * 여덟 갈래를 처음부터 다 고르게 하면 초2는 이름도 못 정하고 지친다.
+ * 여기서는 완성된 캐릭터 중 하나만 고르고, 세부는 꾸미기 방에서 만진다.
+ */
+function facesFor() { return cosmetics.PRESETS; }
 
 export function onboard(go, { first = true } = {}) {
-  let faces = facesFor(2);
+  const faces = facesFor();
   let face = faces[Math.floor(Math.random() * faces.length)];
   let name = first ? '채이' : '';
   let grade = 2;
@@ -42,14 +43,14 @@ export function onboard(go, { first = true } = {}) {
   });
   nameInput.addEventListener('input', () => { name = nameInput.value.trim(); });
 
-  const grid = h('div', { class: 'map', style: { gridTemplateColumns: 'repeat(4,1fr)' } });
+  const grid = h('div', { class: 'pick-grid' });
   const paintFaces = () => {
-    grid.replaceChildren(...faces.map((f) => h('button', {
-      class: 'tile',
-      style: f === face ? { boxShadow: '0 0 0 3px var(--grape)' } : {},
+    grid.replaceChildren(...faces.map((f, i) => h('button', {
+      class: 'pick' + (f === face ? ' on' : ''),
       onclick: () => { face = f; fx.tap(); paintFaces(); },
-      'aria-label': f,
-    }, h('div', { class: 'tile-inner' }, h('div', { style: { fontSize: '30px' } }, f)))));
+      'aria-label': `캐릭터 ${i + 1}`,
+      'aria-pressed': f === face ? 'true' : 'false',
+    }, avatar(f.look, { size: 68 }))));
   };
   paintFaces();
 
@@ -67,8 +68,6 @@ export function onboard(go, { first = true } = {}) {
                                        boxShadow: '0 3px 0 var(--grape-d)' } : {}) },
           onclick: () => {
             grade = g; fx.tap();
-            const next = facesFor(g);
-            if (next !== faces) { faces = next; face = faces[0]; paintFaces(); }
             piggyIcon.textContent = theme.copy('walletEmoji', g);
             paintGrades();
           },
@@ -114,8 +113,11 @@ export function onboard(go, { first = true } = {}) {
     h('div', { class: 'spacer' }),
     h('button', { class: 'btn btn-block', onclick: () => {
       fx.unlock();
-      const id = store.createProfile({ name: name || '친구', grade, avatar: face });
+      const id = store.createProfile({ name: name || '친구', grade });
       store.setActiveProfile(id);
+      // 여기서 고른 캐릭터가 곧 꾸미기 옷장의 시작 차림이다. 온보딩과 옷장이
+      // 따로 놀면 아이가 고른 얼굴이 홈에서 다른 걸로 보인다.
+      cosmetics.applyPreset(face.look);
       // 학년에 맞는 난이도로 시작하고, 저금통 여부를 이 아이에게만 적용한다
       difficulty.setPreset(grades.of(grade).defaultPreset);
       allowance.setConfig({ enabled: piggy });

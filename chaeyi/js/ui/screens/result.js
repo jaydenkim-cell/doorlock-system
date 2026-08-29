@@ -4,6 +4,9 @@ import { h } from '../dom.js';
 import * as sess from '../../session.js';
 import * as allowance from '../../allowance.js';
 import * as theme from '../../theme.js';
+import * as points from '../../points.js';
+import * as cosmetics from '../../cosmetics.js';
+import * as renderer from '../../avatar-render.js';
 
 export function result(go, summary) {
   // 그리는 도중의 go() 는 바깥 라우터에 덮인다. 다음 프레임으로 미룬다.
@@ -19,7 +22,9 @@ export function result(go, summary) {
     ),
 
     h('div', { class: 'stat' },
-      h('div', { class: 'box' }, h('b', {}, '+1'), h('span', {}, theme.copy('star'))),
+      h('div', { class: 'box' },
+        h('b', {}, `+${(summary.stars || []).reduce((a, g) => a + g.amount, 0)}`),
+        h('span', {}, theme.copy('star'))),
       h('div', { class: 'box' }, h('b', {}, (summary.avgMs / 1000).toFixed(1) + '초'), h('span', {}, '평균 시간')),
       h('div', { class: 'box' }, h('b', {}, String(summary.fast.length)), h('span', {}, '빠르게 맞힘')),
     ),
@@ -30,6 +35,9 @@ export function result(go, summary) {
           h('div', { class: 'muted' }, '이 단은 완전히 외웠어요'))
       : null,
 
+    starCard(summary),
+    unlockCard(summary, go),
+    questCard(summary),
     earnCard(summary),
 
     summary.mastered.length
@@ -58,6 +66,60 @@ export function result(go, summary) {
                                  : summary.kind === 'mix' ? { skillId: 'mix' }
                                  : { skillId: summary.skillId }) }, theme.copy('again')),
     h('div', { style: { height: '8px' } }),
+  );
+}
+
+/**
+ * 이번 판에 받은 ⭐ 별.
+ *
+ * 저금통 카드와 나란히 서지만 **다른 재화**다. 그래서 색도 문구도 겹치지 않게 두고,
+ * 여기서는 "꾸미기에 쓸 수 있어요" 라고만 말한다. 원으로 바꿀 수 있다는 인상을
+ * 한 번이라도 주면 저금통의 약속이 흐려진다.
+ */
+function starCard(summary) {
+  const got = summary.stars || [];
+  if (!got.length) return null;
+  const total = got.reduce((a, g) => a + g.amount, 0);
+
+  return h('div', { class: 'card star-row' },
+    h('div', { class: 'star-em' }, '⭐'),
+    h('div', { style: { flex: '1' } },
+      h('div', { class: 'h2' }, `별 ${total}개를 받았어요!`),
+      h('div', { class: 'chips', style: { marginTop: '6px' } },
+        got.map((g) => h('div', { class: 'chip' }, `${g.note} +${g.amount}`))),
+      h('div', { class: 'muted', style: { marginTop: '6px' } },
+        `모두 ${points.star(summary.starBalance ?? points.balance())} · 꾸미기에 쓸 수 있어요`),
+    ),
+  );
+}
+
+/** 이번 판으로 새로 열린 꾸미기 아이템 — 별로 산 게 아니라 해내서 얻은 것 */
+function unlockCard(summary, go) {
+  const got = summary.unlocked || [];
+  // 꾸미기 입구가 닫혀 있으면 "눌러서 입어 보세요" 가 막다른 길이 된다.
+  // 받아 둔 것은 옷장에 그대로 쌓여 있다가 열릴 때 한꺼번에 나온다.
+  if (!got.length || !renderer.ART_READY) return null;
+  return h('button', { class: 'card unlock-card', onclick: () => go('shop') },
+    h('div', { class: 'h2' }, '🎁 새 아이템이 열렸어요!'),
+    h('div', { class: 'unlock-row' },
+      got.map((it) => h('div', { class: 'unlock-em',
+        style: it.color ? { background: it.color } : {} }, it.emoji || '🎨'))),
+    h('div', { class: 'muted', style: { marginTop: '8px' } },
+      got.map((it) => cosmetics.unlockLabel(it)).join(' · ') + ' — 눌러서 입어 보세요'),
+  );
+}
+
+/** 이번 판으로 깬 오늘의 미션 */
+function questCard(summary) {
+  const q = summary.quests;
+  if (!q || (!q.newly?.length && !q.bonus)) return null;
+  return h('div', { class: 'card', style: { background: 'var(--sky-l)' } },
+    h('div', { class: 'h2' }, q.bonus
+      ? `🎯 오늘의 미션 전부 완료! ${points.star(q.bonus.amount)}`
+      : `🎯 오늘의 미션 ${q.newly.length}개 완료`),
+    h('div', { class: 'muted' }, q.bonus
+      ? '내일 또 세 가지가 기다려요'
+      : '남은 미션은 홈에서 볼 수 있어요'),
   );
 }
 
