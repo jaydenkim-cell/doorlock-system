@@ -1032,13 +1032,53 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <script>
 'use strict';
 /* ── localStorage keys (기존 그대로 유지) ── */
-const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close',MCS:'doorlock_monthly_snap',SV:'doorlock_svc',LOG:'doorlock_audit'};
+const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close',MCS:'doorlock_monthly_snap',SV:'doorlock_svc',LOG:'doorlock_audit',TS:'doorlock_tombstones'};
 const getSlackProfile=(email)=>{const sp=ld(K.SP,{});return sp[(email||'').toLowerCase()]||null;};
 const getUserEmailByName=(name)=>{if(!name)return null;const users=ld(K.U,[]);const u=users.find(u=>u.name===name);return u?.email||null;};
 const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${p.avatar}" alt="${p.name||name||''}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${p.name||name||email||'—'}`;const initials=(name||email||'?').charAt(0).toUpperCase();return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${name||email||'—'}</span>`;};
 const DATA_VERSION='v4';
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}};
 const sv=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));localStorage.removeItem('__init__'+k);sbSet(k,v);};
+
+/* ── 삭제 툼스톤 ──
+   삭제는 "로컬 배열에서 빼기"만으로는 지워지지 않는다. sbSync 병합은
+   "서버엔 없고 로컬엔 있다"를 새 항목으로 보고 서버에 되돌려 올리기 때문에,
+   아직 그 항목을 들고 있는 다른 브라우저가 30초 뒤 삭제분을 부활시킨다.
+   그래서 삭제한 ID를 별도 키에 기록(툼스톤)하고, 병합·자동복구 양쪽에서 걸러낸다. */
+const TS_TTL=1000*60*60*24*180;               // 180일 뒤 툼스톤 정리
+const TS_NOREPAIR='doorlock_orders#norepair'; // repairOrders 재생성 금지 접수ID
+const getTomb=()=>{try{return JSON.parse(localStorage.getItem(K.TS))||{};}catch{return {};}};
+const tombSet=k=>new Set(Object.keys(getTomb()[k]||{}));
+const notTomb=(arr,dead)=>arr.filter(x=>!dead.has(String(x&&x.id)));
+function markDel(k,ids){
+  const t=getTomb(),m=t[k]||(t[k]={}),now=Date.now();
+  (Array.isArray(ids)?ids:[ids]).forEach(id=>{m[String(id)]=now;});
+  sv(K.TS,t);
+}
+function unmarkDel(k,ids){
+  const t=getTomb(),m=t[k];if(!m)return;
+  (Array.isArray(ids)?ids:[ids]).forEach(id=>{delete m[String(id)];});
+  sv(K.TS,t);
+}
+/* 서버 툼스톤 + 로컬 툼스톤 합집합 (같은 ID는 늦은 타임스탬프 채택). 삭제는 유실되면 안 되므로 합집합. */
+function mergeTomb(sbTomb){
+  const now=Date.now(),merged={};
+  [(sbTomb&&typeof sbTomb==='object'&&!Array.isArray(sbTomb))?sbTomb:{},getTomb()].forEach(src=>{
+    Object.entries(src).forEach(([key,m])=>{
+      if(!m||typeof m!=='object')return;
+      const dst=merged[key]||(merged[key]={});
+      Object.entries(m).forEach(([id,ts])=>{
+        const t=Number(ts)||now;
+        if(now-t>TS_TTL)return;
+        if(!(id in dst)||t>dst[id])dst[id]=t;
+      });
+    });
+  });
+  localStorage.setItem(K.TS,JSON.stringify(merged));
+  localStorage.removeItem('__init__'+K.TS);
+  if(JSON.stringify(merged)!==JSON.stringify(sbTomb||{}))sbSet(K.TS,merged);
+  return merged;
+}
 
 /* ── SUPABASE SYNC ── */
 const SB_URL='https://vsklmsiuxntcsiowrwsl.supabase.co';
@@ -1060,30 +1100,38 @@ async function sbSync(){
     const rows=await kvFn('get_all');
     if(!rows)return;
     const sbKeys=new Set(rows.map(r=>r.key));
+    // 툼스톤은 다른 키보다 먼저 병합해야 한다. 삭제 목록이 확정된 뒤에 배열을 병합해야
+    // 삭제분이 "로컬 전용 신규 항목"으로 오인돼 서버에 되살아나는 일이 없다.
+    const TOMB=mergeTomb((rows.find(r=>r.key===K.TS)||{}).value);
     // 다중 사용자 공유 배열 키: ID 기준 병합 (Supabase 기반 + 로컬 전용 항목 추가)
     // 설정 키: 로컬 우선 (어드민만 수정)
     const MERGE_KEYS=new Set([K.R,K.O,K.U,K.LOG]);
     rows.forEach(row=>{
+      if(row.key===K.TS)return; // 위에서 병합 완료
       const local=localStorage.getItem(row.key);
+      const dead=new Set(Object.keys(TOMB[row.key]||{}));
       const sbVal=row.value;
       const isInit=!!localStorage.getItem('__init__'+row.key);
       if(!local||isInit){
         // 로컬 없거나 초기 데이터 → Supabase 우선 (새 기기/브라우저 첫 접속)
         if(sbVal!==undefined&&sbVal!==null){
-          localStorage.setItem(row.key,JSON.stringify(sbVal));
+          const v=(MERGE_KEYS.has(row.key)&&Array.isArray(sbVal))?notTomb(sbVal,dead):sbVal;
+          localStorage.setItem(row.key,JSON.stringify(v));
           localStorage.removeItem('__init__'+row.key);
         }
       } else if(MERGE_KEYS.has(row.key)){
         // 접수/발주: ID 기준 병합 — Supabase를 기본으로 하고 로컬 전용 항목 추가
         // (다른 브라우저에서 접수한 데이터를 덮어쓰지 않음)
         try{
-          const localArr=JSON.parse(local);
-          const sbArr=Array.isArray(sbVal)?sbVal:[];
+          const rawSb=Array.isArray(sbVal)?sbVal:[];
+          const localArr=notTomb(JSON.parse(local),dead);
+          const sbArr=notTomb(rawSb,dead);
           const sbIds=new Set(sbArr.map(x=>x.id));
           const localOnly=localArr.filter(x=>!sbIds.has(x.id));
           const merged=[...sbArr,...localOnly];
           localStorage.setItem(row.key,JSON.stringify(merged));
-          if(localOnly.length>0)sbSet(row.key,merged);
+          // 신규 항목이 생겼거나(localOnly) 툼스톤으로 걸러낸 게 있으면(길이 감소) 서버에도 반영
+          if(localOnly.length>0||sbArr.length!==rawSb.length)sbSet(row.key,merged);
         }catch{}
       } else if(row.key===K.MCS){
         // 월마감 레코드: 월 단위 LWW(at 이 늦은 쪽 채택) — 설정 키의 '로컬 우선'로는
@@ -1191,8 +1239,10 @@ function repairOrders(){
   const rcs=getRc();
   const ors=getOr();
   const tmap={'신규 설치':'신규','교체(노후화)':'교체','교체(고장)':'교체','추가 설치':'추가'};
+  // 사용자가 지운 발주를 여기서 되살리면 안 된다. 삭제된 접수·재생성 금지 접수는 건너뛴다.
+  const deadRc=tombSet(K.R),noRepair=tombSet(TS_NOREPAIR);
   let changed=false;
-  rcs.filter(r=>['발주','설치','결제'].includes(r.status)).forEach(r=>{
+  rcs.filter(r=>['발주','설치','결제'].includes(r.status)&&!deadRc.has(String(r.id))&&!noRepair.has(String(r.id))).forEach(r=>{
     if(!ors.find(o=>o.receiptId===r.id)){
       const b=getBr().find(x=>x.name===r.branch);
       const rQty=r.qty||1;
@@ -1816,10 +1866,14 @@ function saveOrder(){
 function deleteO(id){
   const o=getOr().find(x=>x.id===id);if(!o)return;
   showCfm(CI.trash,'발주 삭제',`${o.branch} ${o.room} 발주를 삭제하시겠습니까?`,()=>{
-    const backup=JSON.parse(JSON.stringify(o));
+    const backup=JSON.parse(JSON.stringify(o)),rid=o.receiptId;
+    // 툼스톤 먼저: 다른 브라우저의 병합 부활과 repairOrders 재생성을 동시에 막는다
+    markDel(K.O,id);if(rid)markDel(TS_NOREPAIR,rid);
     sv(K.O,getOr().filter(x=>x.id!==id));
     renderO();
-    toastUndo('삭제됨: '+o.branch+' '+o.room,()=>{const ors2=getOr();ors2.push(backup);sv(K.O,ors2);renderO();toast('s','복구 완료','발주가 복구되었습니다.');});
+    toastUndo('삭제됨: '+o.branch+' '+o.room,()=>{
+      unmarkDel(K.O,id);if(rid)unmarkDel(TS_NOREPAIR,rid);
+      const ors2=getOr();ors2.push(backup);sv(K.O,ors2);renderO();toast('s','복구 완료','발주가 복구되었습니다.');});
   });
 }
 
@@ -2121,6 +2175,7 @@ function setUserRole(uid, role){
 }
 function removeUser(uid){
   showCfm(CI.trash,'사용자 삭제',`${uid} 의 접근 권한을 제거합니다.`,()=>{
+    markDel(K.U,uid);
     sv(K.U,getUsers().filter(u=>u.id!==uid));renderUsers();toast('s','삭제 완료',`${uid} 권한이 제거되었습니다.`);
   });
 }
@@ -2679,10 +2734,21 @@ function doUndo(uid){
 }
 function deleteR(id){
   const rcs=getRc(),r=rcs.find(x=>x.id===id);if(!r)return;
-  showCfm(CI.trash,'접수 삭제','이 접수건을 삭제하시겠습니까?',()=>{
+  const linked=getOr().find(x=>x.receiptId===id);
+  const msg=linked?'이 접수건과 연결된 발주까지 함께 삭제됩니다. 삭제하시겠습니까?':'이 접수건을 삭제하시겠습니까?';
+  showCfm(CI.trash,'접수 삭제',msg,()=>{
     const backup=JSON.parse(JSON.stringify(r));
-    sv(K.R,getRc().filter(x=>x.id!==id));renderR();
-    toastUndo('삭제됨: '+r.branch+' '+r.room,()=>{const rcs2=getRc();rcs2.push(backup);sv(K.R,rcs2);renderR();toast('s','복구 완료','접수가 복구되었습니다.');});
+    const oBackup=linked?JSON.parse(JSON.stringify(linked)):null;
+    markDel(K.R,id);markDel(TS_NOREPAIR,id);
+    if(linked)markDel(K.O,linked.id);
+    sv(K.R,getRc().filter(x=>x.id!==id));
+    if(linked)sv(K.O,getOr().filter(x=>x.id!==linked.id));
+    renderR();
+    toastUndo('삭제됨: '+r.branch+' '+r.room,()=>{
+      unmarkDel(K.R,id);unmarkDel(TS_NOREPAIR,id);
+      const rcs2=getRc();rcs2.push(backup);sv(K.R,rcs2);
+      if(oBackup){unmarkDel(K.O,oBackup.id);const ors2=getOr();ors2.push(oBackup);sv(K.O,ors2);}
+      renderR();toast('s','복구 완료','접수가 복구되었습니다.');});
   });
 }
 function toggleUrg(){urgOn=!urgOn;document.getElementById('tgl').style.background=urgOn?'var(--red)':'var(--border2)';document.getElementById('tgld').style.transform=urgOn?'translateX(18px)':'translateX(0)';}
