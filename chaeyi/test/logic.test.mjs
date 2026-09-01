@@ -1280,11 +1280,14 @@ console.log('\n[별 · 꾸미기 · 미션]');
     d.stickers = [{ tag: 'a', label: '2단' }, { tag: 'b', label: '3단' },
                   { tag: 'c', label: '4단' }];
     store.save();
-    const crown = cos.item('acc-crown');
-    ok(cos.unlockMet(crown), '단 3개를 마스터했는데 왕관이 안 열렸다');
+    // 어떤 물건에 걸렸는지가 아니라 '조건이 실제로 열리는가' 가 요지다.
+    // (그림이 아직 없는 물건은 상점에서 걸러지므로 id 를 박아 두면 부러진다)
+    const crown = cos.ITEMS.find((i) => i.unlock === 'crown');
+    ok(crown, "조건 'crown' 에 걸린 물건이 없다");
+    ok(cos.unlockMet(crown), '단 3개를 마스터했는데 왕관 조건이 안 열렸다');
     const got = cos.claimUnlocked();
-    ok(got.some((i) => i.id === 'acc-crown'), '열린 물건이 옷장에 안 들어왔다');
-    ok(cos.owned('acc-crown'));
+    ok(got.some((i) => i.id === crown.id), '열린 물건이 옷장에 안 들어왔다');
+    ok(cos.owned(crown.id));
     // 두 번 받지 않는다
     eq(cos.claimUnlocked().length, 0, '같은 물건을 두 번 받았다');
   });

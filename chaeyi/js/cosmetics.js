@@ -27,9 +27,17 @@
 import * as store from './state.js';
 import * as points from './points.js';
 import * as art from './avatar-art.js';
+import { CATS_OFF, has as hasArt } from './avatar-render.js';
 
-/** 꾸미기 갈래. 순서가 곧 상점 탭 순서다. */
-export const CATS = [
+/**
+ * 꾸미기 갈래. 순서가 곧 상점 탭 순서다.
+ *
+ * 그림이 없는 갈래는 `avatar-render.js` 가 `CATS_OFF` 로 알려 준다 (지금은
+ * 표정·눈동자 — 몸통 그림에 얼굴이 이미 그려져 있어 못 바꾼다). 목록에서
+ * 지우지 않고 걸러내기만 하는 것은, 표정만 다른 몸통을 받으면 한 줄 지워
+ * 바로 되살리기 위해서다.
+ */
+const ALL_CATS = [
   { id: 'hair',      label: '머리',   emoji: '💇' },
   { id: 'hairColor', label: '머리색', emoji: '🎨' },
   { id: 'face',      label: '표정',   emoji: '😊' },
@@ -42,6 +50,8 @@ export const CATS = [
   { id: 'bg',        label: '배경',   emoji: '🖼' },
 ];
 
+export const CATS = ALL_CATS.filter((c) => !CATS_OFF.includes(c.id));
+
 /** 색만 있는 갈래는 상점에서 색동그라미로 보여 준다 (작은 얼굴로는 차이가 안 보인다) */
 export const SWATCH_CATS = ['hairColor', 'topColor', 'bg', 'eyeColor'];
 
@@ -51,8 +61,14 @@ const SRC = {
   topColor: art.TOP_COLORS, shoe: art.SHOES, acc: art.ACCS, bg: art.BGS,
 };
 
+/**
+ * 상점에 내놓을 물건.
+ *
+ * 그림이 아직 안 온 물건은 뺀다. 목록에는 남겨 두고 거르기만 하는 것은,
+ * 그림이 오면 파일 한 장 넣는 것으로 바로 되살아나게 하기 위해서다.
+ */
 export const ITEMS = Object.entries(SRC).flatMap(([cat, list]) =>
-  list.map((it) => ({
+  list.filter((it) => hasArt(cat, it.id)).map((it) => ({
     id: it.id, cat, label: it.label || it.id,
     // 색 견본으로 보여 줄 때 쓸 색. 눈동자는 위·아래 두 색이라 그라데이션으로 만든다.
     color: it.color || null,
@@ -214,13 +230,13 @@ export const PRESETS = [
   { skin: 'skin-1', hair: 'hair-bob',   hairColor: 'hc-brown', eyeColor: 'ec-brown',  top: 'top-tee',    topColor: 'tc-mint', shoe: 'shoe-bare' },
   { skin: 'skin-3', hair: 'hair-curl',  hairColor: 'hc-choco', eyeColor: 'ec-brown',  top: 'top-hoodie', topColor: 'tc-sky', shoe: 'shoe-bare' },
   { skin: 'skin-2', hair: 'hair-short', hairColor: 'hc-black', eyeColor: 'ec-dark',   top: 'top-tee',    topColor: 'tc-sky', shoe: 'shoe-bare' },
-  { skin: 'skin-4', hair: 'hair-twin',  hairColor: 'hc-choco', eyeColor: 'ec-brown',  top: 'top-dress',  topColor: 'tc-coral', shoe: 'shoe-bare' },
-  { skin: 'skin-5', hair: 'hair-afro',  hairColor: 'hc-black', eyeColor: 'ec-dark',   top: 'top-stripe', topColor: 'tc-mint', shoe: 'shoe-bare' },
+  { skin: 'skin-4', hair: 'hair-pony',  hairColor: 'hc-choco', eyeColor: 'ec-brown',  top: 'top-dress',  topColor: 'tc-coral', shoe: 'shoe-bare' },
+  { skin: 'skin-5', hair: 'hair-curl',  hairColor: 'hc-black', eyeColor: 'ec-dark',   top: 'top-stripe', topColor: 'tc-mint', shoe: 'shoe-bare' },
   { skin: 'skin-1', hair: 'hair-pony',  hairColor: 'hc-brown', eyeColor: 'ec-brown',  top: 'top-tee',    topColor: 'tc-coral', shoe: 'shoe-bare' },
   { skin: 'skin-3', hair: 'hair-wave',  hairColor: 'hc-black', eyeColor: 'ec-dark',   top: 'top-turtle', topColor: 'tc-mint', shoe: 'shoe-bare' },
-  { skin: 'skin-6', hair: 'hair-bun',   hairColor: 'hc-black', eyeColor: 'ec-dark',   top: 'top-tee',    topColor: 'tc-sun', shoe: 'shoe-bare' },
-  { skin: 'skin-2', hair: 'hair-pixie', hairColor: 'hc-brown', eyeColor: 'ec-brown',  top: 'top-hoodie', topColor: 'tc-grape', shoe: 'shoe-bare' },
-  { skin: 'skin-4', hair: 'hair-hime',  hairColor: 'hc-choco', eyeColor: 'ec-brown',  top: 'top-dress',  topColor: 'tc-sky', shoe: 'shoe-bare' },
+  { skin: 'skin-6', hair: 'hair-long',   hairColor: 'hc-black', eyeColor: 'ec-dark',   top: 'top-tee',    topColor: 'tc-sun', shoe: 'shoe-bare' },
+  { skin: 'skin-2', hair: 'hair-short', hairColor: 'hc-brown', eyeColor: 'ec-brown',  top: 'top-hoodie', topColor: 'tc-grape', shoe: 'shoe-bare' },
+  { skin: 'skin-4', hair: 'hair-wave',  hairColor: 'hc-choco', eyeColor: 'ec-brown',  top: 'top-dress',  topColor: 'tc-sky', shoe: 'shoe-bare' },
   { skin: 'skin-1', hair: 'hair-short', hairColor: 'hc-blonde', eyeColor: 'ec-sky',   top: 'top-tee',    topColor: 'tc-grape', shoe: 'shoe-bare' },
 ].map((p, i) => ({ id: `preset-${i}`, look: { ...art.DEFAULT_LOOK, ...p } }));
 

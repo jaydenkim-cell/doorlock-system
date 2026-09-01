@@ -13,7 +13,7 @@
  */
 
 import { build } from 'esbuild';
-import { readFile, writeFile, mkdir } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -21,6 +21,25 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const DIST = join(ROOT, 'dist');
 
 const css = await readFile(join(ROOT, 'css/app.css'), 'utf8');
+
+/**
+ * 부위 그림을 본문 안에 넣는다.
+ *
+ * 아바타는 `assets/parts/` 의 PNG 25장을 겹쳐 그린다. 단일 파일에는 딸린
+ * 파일이 없으니 그림도 같이 들어가야 한다 — 안 그러면 아바타가 빈 칸이 된다.
+ * `avatar-render.js` 가 이 표를 먼저 본다.
+ */
+const partDirs = ['body', 'hair', 'top', 'shoe', 'acc'];
+const parts = {};
+for (const d of partDirs) {
+  for (const f of await readdir(join(ROOT, 'assets/parts', d))) {
+    if (!f.endsWith('.png')) continue;
+    const b64 = (await readFile(join(ROOT, 'assets/parts', d, f))).toString('base64');
+    parts[`./assets/parts/${d}/${f}`] = `data:image/png;base64,${b64}`;
+  }
+}
+const PARTS_JS = `window.__CHAEYI_PARTS__=${JSON.stringify(parts)};`;
+const partsKB = Math.round(PARTS_JS.length / 1024);
 
 const bundled = await build({
   entryPoints: [join(ROOT, 'js/app.js')],
@@ -47,7 +66,7 @@ ${css}
 // Artifact 용: 게시할 때 doctype/html/head/body 로 감싸주므로 본문만 넣는다
 await mkdir(DIST, { recursive: true });
 await writeFile(join(DIST, 'chaeyi-artifact.html'),
-  `${HEAD_BITS}\n${BODY}\n<script>\n${js}</script>\n`);
+  `${HEAD_BITS}\n${BODY}\n<script>${PARTS_JS}</script>\n<script>\n${js}</script>\n`);
 
 // 범용: 어디에 올리든 그대로 열리는 완전한 문서
 await writeFile(join(DIST, 'chaeyi-standalone.html'),
@@ -64,6 +83,7 @@ ${HEAD_BITS}
 </head>
 <body>
 ${BODY}
+<script>${PARTS_JS}</script>
 <script>
 ${js}</script>
 </body>
@@ -72,5 +92,5 @@ ${js}</script>
 
 const kb = (s) => (Buffer.byteLength(s) / 1024).toFixed(0) + 'KB';
 console.log(`빌드 완료
-  dist/chaeyi-standalone.html   ${kb(js) } JS + ${kb(css)} CSS
-  dist/chaeyi-artifact.html`);
+  dist/chaeyi-standalone.html   ${kb(js)} JS + ${kb(css)} CSS + ${partsKB}KB 부위 그림
+  dist/chaeyi-artifact.html     그림 ${Object.keys(parts).length}장 포함`);

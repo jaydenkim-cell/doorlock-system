@@ -164,26 +164,33 @@ ok(await page.locator('.cta-note:has-text("섞어서")').isVisible(),
    '오늘의 공부가 섞어서 낸다고 알려준다');
 ok(await page.locator('text=오늘의 미션').isVisible(), '오늘의 미션이 보인다');
 ok((await page.locator('.quest-row').count()) === 3, '미션 세 칸');
-ok(await page.locator('.shop-soon').isVisible(), '꾸미기 열리기 전 안내가 보인다');
-ok(!(await page.locator('.shop-entry').count()), '그림이 준비되기 전엔 꾸미기 입구를 열지 않는다');
+ok(await page.locator('.shop-entry').isVisible(), '꾸미기 입구가 열려 있다');
+ok(!(await page.locator('.shop-soon').count()), '그림이 왔으니 "준비 중" 안내는 사라졌다');
 ok(await page.locator('.av').first().isVisible(), '꾸민 얼굴이 보인다');
 await shot('4-home', true);
 
-console.log('\n[꾸미기 — 그림 준비 전이라 입구는 닫혀 있다]');
+console.log('\n[꾸미기]');
 {
-  // 입구가 닫혀 있어도 아이가 몇 개 모았는지는 정확히 보여야 한다.
+  // 입구에 아이가 몇 개 모았는지 정확히 보여야 한다.
   // (아직 한 판도 안 끝냈으면 0 이 맞다 — 판을 푼 뒤 늘어나는지는 아래 완주 시나리오에서 본다)
   const bal = await page.evaluate(() => window.__chaeyi.points.balance());
-  const shown = await page.locator('.shop-soon').textContent();
+  const shown = await page.locator('.shop-entry').textContent();
   ok(shown.includes(String(bal)), `모은 별 수가 맞다 → ${bal} / "${shown.replace(/\s+/g,' ').trim()}"`);
 
-  // 화면 자체는 살아 있어야 한다 — 그림이 오면 플래그 하나로 열 것이므로,
-  // 그때 깨져 있으면 안 된다.
   await page.evaluate(() => window.__chaeyi.points.award('adjust', 400, '테스트'));
   await page.evaluate(() => window.__chaeyi.go('shop'));
   await page.waitForSelector('.shop-grid');
-  ok((await page.locator('.shop-tab').count()) >= 8, '상점 화면은 그대로 살아 있다');
-  ok(await page.locator('.shop-preview .av svg').isVisible(), '미리보기 캐릭터가 그려진다');
+  ok((await page.locator('.shop-tab').count()) >= 8, '상점 화면이 열린다');
+
+  // 부위 그림이 실제로 겹쳐 쌓였는지. 색을 입히는 데 한 박자 걸리므로 기다린다.
+  await page.waitForFunction(() => {
+    const imgs = document.querySelectorAll('.shop-preview .av .av-layer');
+    return imgs.length >= 3 && [...imgs].every((i) => i.getAttribute('src'));
+  }, null, { timeout: 15000 });
+  const layers = await page.evaluate(() =>
+    [...document.querySelectorAll('.shop-preview .av .av-layer')].map((i) => i.src.slice(0, 22)));
+  ok(layers.length >= 3, `미리보기가 부위 그림을 겹쳐 그린다 → ${layers.length}겹`);
+  ok(layers.some((s) => s.startsWith('data:image')), '고른 색이 입혀진 그림이 쓰인다');
 
   const spend = await page.evaluate(() => {
     const w = window.__chaeyi;
