@@ -1667,7 +1667,7 @@ function populateSels(){
   const ors=getOr();
   const ms=[...new Set(ors.map(o=>(o.orderDate||'').substring(0,7)).filter(Boolean))].sort().reverse();
   const fom=document.getElementById('fo-m');if(fom){const f0=fom.options[0];fom.innerHTML='';fom.appendChild(f0);ms.forEach(m=>fom.appendChild(new Option(m,m)));}
-  const fmm=document.getElementById('fm-m');if(fmm){const f0=fmm.options[0];fmm.innerHTML='';fmm.appendChild(f0);const all=[...new Set(ors.filter(o=>o.installed&&o.doneDate).map(o=>(o.doneDate||'').substring(0,7)).filter(Boolean))].sort().reverse();all.forEach(m=>fmm.appendChild(new Option(m,m)));if(all[0])fmm.value=all[0];}
+  const fmm=document.getElementById('fm-m');if(fmm){const f0=fmm.options[0];fmm.innerHTML='';fmm.appendChild(f0);const all=mMonths();all.forEach(m=>fmm.appendChild(new Option(m,m)));if(all[0])fmm.value=all[0];}
 }
 
 /* ── BADGE ── */
@@ -1985,14 +1985,77 @@ const mVat=t=>{const ex=Math.round(t*10/11);return{t,ex,tax:t-ex};};
 // 지점 표시키 — 그룹핑·검색·표시가 반드시 같은 값을 쓰게 한다.
 // (String() 은 백업 복원 등으로 branch 가 숫자/null 로 들어와도 .toLowerCase() 가 터지지 않게)
 const mBr=o=>String(o.branch||'(지점없음)');
+// (구)정산 필터 — mLines() 의 legacy 분기와 조건이 동일하다. 참고·롤백용으로 남긴다.
 const mDoneOrs=()=>getOr().filter(o=>o.installed===true&&o.doneDate&&o.doneDate.length>0);
-function mGroupSum(bo){
-  const q=o=>Number(o.qty)||1;
-  const p=bo.reduce((s,o)=>s+(Number(o.price)||0)*q(o),0);
-  const i=bo.reduce((s,o)=>s+(Number(o.install)||0)*q(o),0);
-  const e=bo.reduce((s,o)=>s+(Number(o.extra)||0)*q(o),0);
-  // cnt=발주 건수, qty=실 수량. 금액 열은 모두 수량 가중이라 건수만으로는 검산이 안 된다
-  return{cnt:bo.length,qty:bo.reduce((s,o)=>s+q(o),0),p,i,e,...mVat(p+i+e)};
+
+/* ── 정산 라인 ──
+   "그 금액이 몇 월에 잡히는가"를 결정하는 파일 내 유일한 곳.
+
+   발주 1건이 1줄이던 것을 라인 1건 = 1줄로 바꾼다. 재고가 들어오면 물건값과 설치비의
+   청구 시점이 갈리기 때문이다 — 계산서가 납품 시점에 오므로 물건값은 입고월,
+   설치비·자재비는 실제 설치한 달에 잡힌다.
+
+   ★ 불변식: 단가는 규칙이 아니라 레코드에 박제된 '값'이다. 이 함수는 지점 마스터
+     (b.lockPrice / b.instCost) 도 할인 상수도 다시 읽지 않는다. 6개월 뒤 단가표를
+     고쳐도 과거 확정 금액이 1원도 안 움직이는 이유가 이것이다.
+
+   ★ legacy(재고 도입 전 발주)는 else-if 가지 하나만 탄다. 필터 조건과 곱셈식이
+     mDoneOrs + 구 mGroupSum 과 문자 그대로 같으므로 배포 전후 금액이 비트 단위로 같다. */
+function mLines(){
+  const out=[];
+  getOr().forEach(o=>{
+    const q=Number(o.qty)||1;
+    if(o.inv===true){                                   // ① 입고 라인 — 물건값만
+      if(o.opening)return;                              // 기초재고는 수량만 잡고 정산 제외
+      const m=(o.recvDate||'').substring(0,7);
+      if(!m)return;
+      out.push({m,branch:mBr(o),isNew:mIsNew(o),lineKind:'물건',
+        vendor:String(o.vendor||'(주)솔리티'),id:o.id,qty:q,
+        p:(Number(o.price)||0)*q,i:0,e:0});
+    } else if(o.installed===true&&o.doneDate&&o.doneDate.length>0){
+      // ② 출고 라인(price=0) 과 ③ legacy 가 같은 가지를 탄다.
+      out.push({m:o.doneDate.substring(0,7),branch:mBr(o),isNew:mIsNew(o),
+        lineKind:o.insOf?'설치':'일괄',vendor:String(o.vendor||'(주)솔리티'),
+        id:o.id,qty:q,
+        p:(Number(o.price)||0)*q,i:(Number(o.install)||0)*q,e:(Number(o.extra)||0)*q});
+    }
+  });
+  return out;
+}
+
+/* 월 선택지. 재고만 산 달은 설치완료일이 없어 종전엔 드롭다운에 아예 뜨지 않았고,
+   그래서 마감 자체가 불가능했다. 이미 마감한 달도 합쳐 목록에서 사라지지 않게 한다. */
+const mMonths=()=>[...new Set([...mLines().map(x=>x.m),...mClosedList()])]
+                  .filter(Boolean).sort().reverse();
+const mLocMonth=ym=>String(ym||'').substring(0,7);
+
+/* mGroupSum — 입력만 라인 배열로 바꾸고 출력 스키마는 한 글자도 안 바꾼다.
+   이 출력이 K.MCS 스냅샷에 영구 저장되므로 필드명 변경·삭제는 금지, 추가만 허용. */
+function mGroupSum(ls){
+  const p=ls.reduce((s,x)=>s+x.p,0),i=ls.reduce((s,x)=>s+x.i,0),e=ls.reduce((s,x)=>s+x.e,0);
+  // cnt=라인 수, qty=실 수량. 금액 열은 모두 수량 가중이라 건수만으로는 검산이 안 된다
+  return{cnt:ls.length,qty:ls.reduce((s,x)=>s+(Number(x.qty)||0),0),p,i,e,...mVat(p+i+e)};
+}
+
+/* 마감 지문. drift 판정이 total.t 숫자 하나뿐이면 +132,000 과 −132,000 이 상쇄될 때
+   데이터가 바뀌었는데도 경고가 안 뜬다(지점 귀속만 통째로 바뀐 상태). 라인 id 집합까지 굳힌다. */
+function mFp(mv){
+  const ls=mLines().filter(x=>x.m===mv);
+  return{t:ls.reduce((s,x)=>s+x.p+x.i+x.e,0),cnt:ls.length,
+         qty:ls.reduce((s,x)=>s+x.qty,0),ids:ls.map(x=>String(x.id)).sort().join(',')};
+}
+function mDrift(mv,snap){
+  const n=mFp(mv);
+  if(snap&&snap.schema>=2&&snap.fp){                    // 신버전 마감 — 지문 비교
+    const f=snap.fp;
+    if(n.ids!==f.ids)return{d:n.t-f.t,why:'라인 구성 변경'};
+    if(n.cnt!==f.cnt)return{d:n.t-f.t,why:'건수 변경'};
+    if(n.qty!==f.qty)return{d:n.t-f.t,why:'수량 변경'};
+    if(n.t!==f.t)return{d:n.t-f.t,why:'금액 변경'};
+    return{d:0,why:''};
+  }
+  const d=mSettle({month:mv,branch:'',search:''}).total.t-mAgg(snap.rows).t;  // 구버전 마감
+  return{d,why:d?'금액 변경':''};
 }
 const mAgg=rs=>rs.reduce((a,r)=>({cnt:a.cnt+r.cnt,qty:a.qty+(r.qty||0),p:a.p+r.p,i:a.i+r.i,e:a.e+r.e,t:a.t+r.t,ex:a.ex+r.ex,tax:a.tax+r.tax}),{cnt:0,qty:0,p:0,i:0,e:0,t:0,ex:0,tax:0});
 // 화면 필터를 기본값으로 쓰지만, 마감 스냅샷을 만들 때는 월 전체가 필요하므로 ov 로 덮어쓸 수 있다
@@ -2001,20 +2064,27 @@ function mSettle(ov){
   const mv=ov&&'month'in ov?ov.month:g('fm-m');
   const bv=ov&&'branch'in ov?ov.branch:g('fm-b');
   const sv2=((ov&&'search'in ov?ov.search:g('fm-s'))||'').trim();
-  let ors=mDoneOrs();
-  if(mv)ors=ors.filter(o=>o.doneDate.startsWith(mv));
-  if(bv)ors=ors.filter(o=>o.branch===bv);
+  let ls=mLines();
+  if(mv)ls=ls.filter(x=>x.m===mv);
+  if(bv)ls=ls.filter(x=>x.branch===bv);
   // 검색어도 여기서 한 번만 적용 → 표·요약카드·엑셀이 항상 같은 범위를 본다
-  if(sv2)ors=ors.filter(o=>mBr(o).toLowerCase().includes(sv2.toLowerCase()));
+  if(sv2)ls=ls.filter(x=>x.branch.toLowerCase().includes(sv2.toLowerCase()));
   const rows=[];
-  // 지점 미지정 발주도 '(지점없음)'으로 묶어 합계에서 누락되지 않게 한다
-  [...new Set(ors.map(mBr))].sort().forEach(bn=>{
+  /* 그룹 축: 지점 × 신규/교체 × 라인성격 × 공급처.
+     legacy 는 lineKind 가 전부 '일괄' 이고 vendor 필드가 없어 기본값 하나로 모이므로,
+     과거 달은 그룹이 한 개도 안 쪼개진다 → mVat 반올림 기준 불변 → 금액 불변. */
+  [...new Set(ls.map(x=>x.branch))].sort().forEach(bn=>{
     [true,false].forEach(nw=>{
-      const bo=ors.filter(o=>mBr(o)===bn&&mIsNew(o)===nw);
-      if(bo.length)rows.push({branch:bn,isNew:nw,...mGroupSum(bo)});
+      ['일괄','물건','설치'].forEach(kd=>{
+        const grp=ls.filter(x=>x.branch===bn&&x.isNew===nw&&x.lineKind===kd);
+        [...new Set(grp.map(x=>x.vendor))].sort().forEach(vd=>{
+          const g=grp.filter(x=>x.vendor===vd);
+          if(g.length)rows.push({branch:bn,isNew:nw,lineKind:kd,vendor:vd,...mGroupSum(g)});
+        });
+      });
     });
   });
-  return{month:mv,filters:{branch:bv,search:sv2},rows,
+  return{month:mv,filters:{branch:bv,search:sv2},rows,lines:ls,
     sNew:mAgg(rows.filter(r=>r.isNew)),sRep:mAgg(rows.filter(r=>!r.isNew)),total:mAgg(rows)};
 }
 
@@ -2051,19 +2121,18 @@ function mView(){
   if(bv)rows=rows.filter(r=>r.branch===bv);
   if(sv2)rows=rows.filter(r=>String(r.branch).toLowerCase().includes(sv2));
   // 마감 후 실데이터가 바뀌었는지: 월 전체 기준으로 비교
-  const drift=mSettle({branch:'',search:''}).total.t-mAgg(snap.rows).t;
+  const dr=mDrift(mv,snap);const drift=dr.d;
   return{month:mv,filters:{branch:bv,search:sv2},rows,
     sNew:mAgg(rows.filter(r=>r.isNew)),sRep:mAgg(rows.filter(r=>!r.isNew)),total:mAgg(rows),
-    closed:true,snap:true,closedAt:snap.closedAt,closedBy:snap.closedBy,backfilled:!!snap.backfilled,drift};
+    closed:true,snap:true,closedAt:snap.closedAt,closedBy:snap.closedBy,backfilled:!!snap.backfilled,
+    drift,driftWhy:dr.why};
 }
 function renderM(){
   // 1) 설치완료 발주 전체 (doneDate 기준) — mSettle 과 같은 판정을 쓴다
-  const doneOrs=mDoneOrs();
-
   // 2) 월 선택지 갱신 (옵션을 하나씩 제거하는 안전한 방법)
   const fmm=document.getElementById('fm-m');
   if(fmm){
-    const months=[...new Set(doneOrs.map(o=>o.doneDate.substring(0,7)))].sort().reverse();
+    const months=mMonths();   // ★ 재고만 산 달(설치완료일 없음)도 여기서 뜬다
     const prev=fmm.value;
     while(fmm.options.length>1)fmm.options[fmm.options.length-1].remove();
     months.forEach(m=>{const opt=document.createElement('option');opt.value=m;opt.textContent=m;fmm.appendChild(opt);});
@@ -2155,7 +2224,8 @@ function doClose(){
 function mSaveClose(mv,rows,backfilled){
   const now=new Date().toISOString();
   const snaps=mSnaps();
-  snaps[mv]={state:'closed',at:now,rows,closedAt:now,closedBy:(S&&(S.name||S.id))||'',backfilled:!!backfilled};
+  snaps[mv]={state:'closed',at:now,rows,closedAt:now,closedBy:(S&&(S.name||S.id))||'',backfilled:!!backfilled,
+             schema:2,fp:mFp(mv)};
   sv(K.MCS,snaps);
   sv(K.MC,mClosedList());
 }
