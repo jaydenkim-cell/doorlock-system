@@ -1085,6 +1085,29 @@ const SB_URL='https://vsklmsiuxntcsiowrwsl.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZza2xtc2l1eG50Y3Npb3dyd3NsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3ODg0NDEsImV4cCI6MjA5MTM2NDQ0MX0.ZqCKdT1kxilUpag6D-9Ka1zVOOBDm34ddxXEQQZpMTw';
 const SB_H={'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
 /* ── kv 게이트웨이: 로그인한 사용자의 SSO 토큰으로만 kv_store 접근 (anon 키 직접 사용 안 함) ── */
+/* ── 발주 id 채번 ──
+   기존 Math.max+1 은 두 가지로 깨진다.
+   ① 가장 큰 id 발주를 지우면 툼스톤에 그 id 가 180일 남는데, 다음 발주가 같은 id 를
+      다시 받아 병합에서 삭제분으로 걸러진다 — 방금 만든 발주가 30초 뒤 사라진다.
+   ② 숫자가 아닌 id 가 하나라도 섞이면 Math.max 가 NaN 을 내고 저장하면 id:null 이 된다.
+   그래서 시각 기반으로 잡고 기존 id·툼스톤과 겹치지 않을 때까지 민다.
+   숫자를 유지하는 이유: 발주 목록 버튼이 onclick="openOMo(${o.id})" 처럼 따옴표 없이 박혀 있다. */
+function newOid(){
+  const used=new Set();
+  getOr().forEach(o=>{const n=Number(o&&o.id);if(Number.isFinite(n))used.add(n);});
+  Object.keys(getTomb()[K.O]||{}).forEach(k=>{const n=Number(k);if(Number.isFinite(n))used.add(n);});
+  let id=Date.now();
+  while(used.has(id))id++;
+  return id;
+}
+
+/* 마감된 달인가. 확정된 정산 금액을 뒤늦게 흔드는 입력을 막는다.
+   지금까지는 drift 경고만 뜨고 저장 자체는 막히지 않아 확정 금액이 조용히 어긋났다. */
+function mLocked(d){
+  const ym=String(d||'').substring(0,7);
+  return !!ym&&mClosedList().includes(ym);
+}
+
 const KV_FN_URL=SB_URL+'/functions/v1/kv';
 async function kvFn(op,extra){
   const t=(S&&S.token)||'';
@@ -1093,7 +1116,28 @@ async function kvFn(op,extra){
   if(!r.ok)throw new Error('kv '+op+' '+r.status);
   return r.json();
 }
-async function sbSet(k,v){try{if(!(S&&S.token))return;await kvFn('set',{key:k,value:v});}catch{}}
+/* 서버 저장 실패는 지금까지 완전히 무음이었다(catch{}). 저장이 안 된 줄 모르고
+   계속 입력하면 그 내용이 다른 사람에게 영영 전달되지 않는다. 연속 실패만 알린다 —
+   일시적 네트워크 끊김 1회까지 배너를 띄우면 아무도 안 보게 된다. */
+let PUSH_FAIL=0;
+async function sbSet(k,v){
+  try{
+    if(!(S&&S.token))return;
+    await kvFn('set',{key:k,value:v});
+    PUSH_FAIL=0;
+  }catch(e){
+    console.warn('서버 저장 실패',k,e);
+    if(++PUSH_FAIL>=3)showPushFail();
+  }
+}
+function showPushFail(){
+  if(document.getElementById('push-fail-bar'))return;
+  const el=document.createElement('div');
+  el.id='push-fail-bar';
+  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#b3261e;color:#fff;padding:11px 16px;font-size:13px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+  el.textContent='서버 저장에 연속 실패했습니다. 지금 입력한 내용이 다른 사람에게 전달되지 않습니다 — 새로고침 후 다시 로그인하세요.';
+  document.body.appendChild(el);
+}
 async function sbSync(){
   try{
     if(!(S&&S.token))return;
@@ -1106,8 +1150,13 @@ async function sbSync(){
     // 다중 사용자 공유 배열 키: ID 기준 병합 (Supabase 기반 + 로컬 전용 항목 추가)
     // 설정 키: 로컬 우선 (어드민만 수정)
     const MERGE_KEYS=new Set([K.R,K.O,K.U,K.LOG]);
+    /* 서버가 채우는 참조 데이터 — 앱은 읽기만 한다(syncDuckRooms 가 kvFn 으로 직접 읽는다).
+       localStorage 에 담으면 아래 마지막 else 분기로 떨어져, 오래된 탭이 자기 사본을
+       30초마다 서버에 되밀어 올려 최신 스냅샷을 과거로 되돌린다. */
+    const READONLY_KEYS=new Set([K.DR]);
     rows.forEach(row=>{
       if(row.key===K.TS)return; // 위에서 병합 완료
+      if(READONLY_KEYS.has(row.key))return; // 참조 데이터는 로컬에 담지 않는다
       const local=localStorage.getItem(row.key);
       const dead=new Set(Object.keys(TOMB[row.key]||{}));
       const sbVal=row.value;
@@ -1246,7 +1295,7 @@ function repairOrders(){
     if(!ors.find(o=>o.receiptId===r.id)){
       const b=getBr().find(x=>x.name===r.branch);
       const rQty=r.qty||1;
-      const nid=ors.length>0?Math.max(...ors.map(o=>typeof o.id==='number'?o.id:0))+1:1;
+      const nid=newOid();
       ors.push({id:nid,receiptId:r.id,branch:r.branch,room:r.room,qty:rQty,
         type:tmap[r.type]||r.type||'신규',price:b?.lockPrice||132000,
         install:rQty>=10?22000:(b?.instCost||55000),extra:brExtra(b),
@@ -1629,7 +1678,12 @@ const emp=c=>`<tr><td colspan="${c}" style="text-align:center;padding:28px;color
 /* ── DASHBOARD ── */
 function renderD(){
   const ym=new Date().toISOString().substring(0,7);
-  const rc=getRc().filter(r=>(r.date||'').startsWith(ym));
+  /* 지점 계정은 자기 지점만 본다. 접수(renderR)·발주(renderO)·설치(renderI) 에는 이미
+     같은 필터가 있는데 대시보드에만 없어서, 지점 직원 화면에 전 지점 수치가 그대로 떴다. */
+  const onlyMine=!!(S&&S.role==='user'&&S.branch&&S.branch!=='본사');
+  const myRc=()=>onlyMine?getRc().filter(r=>r.branch===S.branch):getRc();
+  const myBr=()=>onlyMine?getActiveBr().filter(b=>b.name===S.branch):getActiveBr();
+  const rc=myRc().filter(r=>(r.date||'').startsWith(ym));
   document.getElementById('d-tot').textContent=rc.length;
   document.getElementById('d-ord').textContent=rc.filter(r=>r.status==='발주').length;
   document.getElementById('d-ins').textContent=rc.filter(r=>r.status==='설치').length;
@@ -1637,7 +1691,7 @@ function renderD(){
   const payWait=rc.filter(r=>r.status==='결제'&&!r.paymentDone).length;
   document.getElementById('d-don').textContent=payDone;
   const pw=document.getElementById('d-pay-wait');if(pw)pw.textContent=payWait?`(대기 ${payWait}건)`:'';
-  const recent=[...getRc()].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,6);
+  const recent=[...myRc()].sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,6);
   document.getElementById('d-rec').innerHTML=recent.map(r=>{
     let badge='';
     if(r.status==='설치') badge=r.expectedInstallDate?`<span class="badge b-i">설치예정 ${r.expectedInstallDate}</span>`:`<span class="badge b-i">설치일정확인중</span>`;
@@ -1645,21 +1699,23 @@ function renderD(){
     else badge=badg(r.status);
     return`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td>${badge}</td><td style="color:var(--text3)">${r.date}</td></tr>`;
   }).join('')||emp(5);
-  const urg=getRc().filter(r=>r.urgent&&!['결제','취소'].includes(r.status));
+  const urg=myRc().filter(r=>r.urgent&&!['결제','취소'].includes(r.status));
   document.getElementById('d-urg').innerHTML=urg.map(r=>`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td style="color:var(--text3)">${r.date}</td><td><button class="btn bp bsm" onclick="goP('receipt')">처리</button></td></tr>`).join('')||`<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--green)">긴급 미처리 없음 ✓</td></tr>`;
   // 지점별 현황 필터
   const dbm=document.getElementById('db-m')?.value||ym;
   const dbb=document.getElementById('db-b')?.value||'';
   // db-b 옵션 채우기 (최초 1회)
   const dbSel=document.getElementById('db-b');
-  if(dbSel&&dbSel.options.length===1){getActiveBr().forEach(b=>dbSel.appendChild(new Option(b.name,b.name)));}
+  if(dbSel&&dbSel.options.length===1){myBr().forEach(b=>dbSel.appendChild(new Option(b.name,b.name)));}
   // 접수 status 기준 집계
-  const mRcs=getRc().filter(r=>(r.date||'').startsWith(dbm));
-  let brs=getActiveBr();
+  const mRcs=myRc().filter(r=>(r.date||'').startsWith(dbm));
+  let brs=myBr();
   if(dbb)brs=brs.filter(b=>b.name===dbb);
   const rows=brs.map(b=>{
     const br=mRcs.filter(r=>r.branch===b.name);
-    if(!br.length)return null;
+    // 0건이어도 지점이 하나로 좁혀진 상태(지점 계정·지점 필터)에서는 행을 남긴다.
+    // 그래야 "우리 지점이 목록에 아예 없다"가 되지 않는다.
+    if(!br.length&&brs.length>1)return null;
     const 접수=br.filter(r=>r.status==='접수').length;
     const 발주=br.filter(r=>r.status==='발주').length;
     const 설치=br.filter(r=>r.status==='설치').length;
@@ -1758,7 +1814,7 @@ function advR(id,ns){
       sv(K.O,ors);
       toast('i','발주 업데이트',`${r.branch} ${r.room} 수량/설치비 반영됨`);
     } else {
-      const nid=ors.length>0?Math.max(...ors.map(o=>typeof o.id==='number'?o.id:0))+1:1;
+      const nid=newOid();
       const autoInstall=rQty>=10?22000:(b?.instCost||55000);
       ors.push({
         id:nid, receiptId:id, branch:r.branch, room:r.room, qty:rQty, type:orderType,
@@ -1778,7 +1834,7 @@ function advR(id,ns){
     const b=getBr().find(x=>x.name===receipt.branch);
     const rQty=receipt.qty||1;
     const tmap={'신규 설치':'신규','교체(노후화)':'교체','교체(고장)':'교체','추가 설치':'추가'};
-    const nid=ors.length>0?Math.max(...ors.map(o=>typeof o.id==='number'?o.id:0))+1:1;
+    const nid=newOid();
     ors.push({id:nid,receiptId:rid,branch:receipt.branch,room:receipt.room,qty:rQty,
       type:tmap[receipt.type]||receipt.type||'신규',price:b?.lockPrice||132000,
       install:rQty>=10?22000:(b?.instCost||55000),extra:brExtra(b),
@@ -1844,23 +1900,38 @@ function saveOrder(){
   if(!br||!rm||!od){toast('e','입력 오류','지점, 객실번호, 발주일은 필수입니다.');return;}
   const ors=getOr(),eid=document.getElementById('edit-order-id').value;
   const data={branch:br,room:rm,qty:Math.max(1,parseInt(document.getElementById('m-qty').value)||1),type:document.getElementById('m-type').value,price:parseInt(document.getElementById('m-price').value)||0,install:parseInt(document.getElementById('m-install').value)||0,extra:parseInt(document.getElementById('m-extra').value)||0,orderDate:od,openDate:document.getElementById('m-open-date').value,doneDate:document.getElementById('m-done-date').value,note:document.getElementById('m-memo').value};
+  // 확정된 정산은 뒤에서 흔들지 않는다. 수정 전 값과 수정 후 값 양쪽을 본다 —
+  // 마감된 달에서 빼내는 것도, 마감된 달로 밀어넣는 것도 확정 금액을 바꾼다.
+  if(eid){
+    const o0=ors.find(x=>x.id==eid);
+    if(o0&&o0.installed&&mLocked(o0.doneDate)){
+      toast('e','마감된 달',`${String(o0.doneDate).substring(0,7)} 는 마감된 달입니다. 마감을 취소한 뒤 수정하세요.`);return;
+    }
+  }
+  if(mLocked(data.doneDate)){
+    toast('e','마감된 달',`설치완료일 ${String(data.doneDate).substring(0,7)} 는 마감된 달입니다.`);return;
+  }
   if(eid){
     const idx=ors.findIndex(o=>o.id==eid);
     if(idx>=0)ors[idx]={...ors[idx],...data}; // installed/paid는 기존 값 유지
     toast('s','수정 완료',`${br} ${rm} 발주 수정됨`);
-  }else{const nid=ors.length>0?Math.max(...ors.map(o=>o.id))+1:1;ors.push({id:nid,...data,installed:false,paid:false});toast('s','발주 등록',`${br} ${rm} 발주 등록됨`);}
-  sv(K.O,ors);
-  // 신규 발주 등록 시 → 해당 지점+객실의 '접수' 상태 접수건을 '발주'로 자동 전환
-  if(!eid){
+  }else{
+    /* 같은 지점·객실의 '접수' 건을 먼저 찾아 연결한 뒤 발주를 만든다.
+       receiptId 를 비워두면 repairOrders 가 "발주 상태인데 발주 레코드가 없다"고 판단해
+       두 번째 발주를 자동 생성한다 — 발주 건수만 2배가 되고 정산은 1배가 된다. */
     const rcs=getRc();
     const matching=rcs.filter(r=>r.branch===br&&r.room===rm&&r.status==='접수');
+    let rcId='';
     if(matching.length){
-      // 가장 최근 접수건 하나만 전환
-      matching.sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+      matching.sort((a,b)=>(b.date||'').localeCompare(a.date||''));  // 가장 최근 접수건 하나만
       matching[0].status='발주';
+      rcId=matching[0].id;
       sv(K.R,rcs);
     }
+    ors.push({id:newOid(),receiptId:rcId,...data,installed:false,paid:false});
+    toast('s','발주 등록',rcId?`${br} ${rm} 발주 등록됨 (접수 ${rcId} 연결)`:`${br} ${rm} 발주 등록됨`);
   }
+  sv(K.O,ors);
   closeMo('modal');renderO();
 }
 function deleteO(id){
@@ -2261,8 +2332,24 @@ function saveBr(){
   // 추가자재비는 유형에서 결정 — 화면 값이 조작돼도 규칙(일반 0 / 호텔 22,000)을 벗어나지 않는다
   const lt=(document.getElementById('br-lockType').value in LOCK_TYPES)?document.getElementById('br-lockType').value:'일반도어락';
   const data={name:nm,short:document.getElementById('br-short').value,addr:document.getElementById('br-addr').value,loc:document.getElementById('br-loc').value,rooms:parseInt(document.getElementById('br-rooms').value)||0,manager:document.getElementById('br-manager').value,recipient:document.getElementById('br-recipient').value,phone:document.getElementById('br-phone').value,email:document.getElementById('br-email').value,lockOld:document.getElementById('br-lockOld').value,lockNew:document.getElementById('br-lockNew').value,lockPrice:parseInt(document.getElementById('br-lockPrice').value)||0,instCost:parseInt(document.getElementById('br-instCost').value)||0,lockType:lt,extraCost:LOCK_TYPES[lt]??0,cDone:document.getElementById('br-cDone').value==='true',note:document.getElementById('br-note').value,account:acct};
-  if(eid){const idx=brs.findIndex(b=>b.id==eid);if(idx>=0)brs[idx]={...brs[idx],...data};}else{const nid=brs.length>0?Math.max(...brs.map(b=>b.id))+1:1;brs.push({id:nid,...data});}
+  /* 발주·접수는 지점을 이름 문자열로 참조한다(branchId 가 없다). 이름만 바꾸면
+     과거 이력이 옛 이름에 남아 한 지점이 두 덩어리로 쪼개진다 — repairBranchNames() 가
+     파일에 존재한다는 것 자체가 이미 한 번 깨졌다는 증거다. 이름을 바꿀 때 같이 옮긴다. */
+  let oldName='';
+  if(eid){
+    const idx=brs.findIndex(b=>b.id==eid);
+    if(idx>=0){oldName=brs[idx].name||'';brs[idx]={...brs[idx],...data};}
+  }else{const nid=brs.length>0?Math.max(...brs.map(b=>b.id))+1:1;brs.push({id:nid,...data});}
   sv(K.B,brs);
+  if(oldName&&oldName!==nm){
+    const ors=getOr(),rcs=getRc();
+    const oc=ors.filter(o=>o.branch===oldName).length;
+    const rcn=rcs.filter(r=>r.branch===oldName).length;
+    if(oc){ors.forEach(o=>{if(o.branch===oldName)o.branch=nm;});sv(K.O,ors);}
+    if(rcn){rcs.forEach(r=>{if(r.branch===oldName)r.branch=nm;});sv(K.R,rcs);}
+    logAudit('지점명변경',`${oldName} → ${nm}`,`발주 ${oc}건 · 접수 ${rcn}건 함께 갱신`);
+    if(oc||rcn)toast('i','지점명 변경',`과거 이력도 함께 옮겼습니다 (발주 ${oc}건 · 접수 ${rcn}건)`);
+  }
   logAudit(eid?'지점수정':'지점추가', nm, eid?`지점 정보 수정 (ID ${eid})`:'신규 지점 등록');
   if(acct){const accs=getAc();const ai=accs.findIndex(a=>a.branch===nm||a.id===acct);if(ai>=0){accs[ai].branch=nm;accs[ai].id=acct;if(npw)accs[ai].pw=npw;}else accs.push({id:acct,pw:npw||'1234',role:'user',name:nm+' 담당자',branch:nm});sv(K.A,accs);}
   closeMo('br-modal');populateSels();renderBr();toast('s','저장 완료','지점 정보가 저장되었습니다.');
@@ -2767,7 +2854,17 @@ function submitR(){
     closeMo('mo-r');renderR();toast('s','수정 완료',`${br} ${rm} 접수 수정됨`);return;
   }
   function doCreate(){
-    const rcs2=getRc(),now=new Date(),ym=now.toISOString().substring(2,4)+now.toISOString().substring(5,7),seq=String(rcs2.length+1).padStart(3,'0');
+    /* 배열 길이 기반(rcs.length+1) 채번은 삭제·동시접수에서 id 가 겹친다.
+       겹치면 repairOrders·submitI 가 엉뚱한 발주를 건드린다.
+       그 달 접수의 최대 번호 다음을 쓰되, 툼스톤(삭제된 id)까지 피한다. */
+    const rcs2=getRc(),now=new Date(),ym=now.toISOString().substring(2,4)+now.toISOString().substring(5,7);
+    const pre=`DL-${ym}-`;
+    const taken=new Set();
+    rcs2.forEach(r=>{const id=String(r&&r.id||'');if(id.startsWith(pre))taken.add(id);});
+    Object.keys(getTomb()[K.R]||{}).forEach(id=>{if(String(id).startsWith(pre))taken.add(String(id));});
+    let n=0;
+    taken.forEach(id=>{const v=parseInt(id.slice(pre.length),10);if(Number.isFinite(v)&&v>n)n=v;});
+    let seq;do{n++;seq=String(n).padStart(3,'0');}while(taken.has(pre+seq));
     const newR={id:`DL-${ym}-${seq}`,branch:br,room:rm,type:document.getElementById('r-type').value,qty:Math.max(1,parseInt(document.getElementById('r-qty').value)||1),openDate:document.getElementById('r-open-date').value||'',urgent:urgOn,status:'접수',memo:document.getElementById('r-memo').value,date:now.toISOString().substring(0,10),regBy:S.name||S.id||'unknown',regEmail:S.email||S.id||'',installDate:'',installModel:'',installMemo:''};
     rcs2.push(newR);
     sv(K.R,rcs2);closeMo('mo-r');renderR();renderD();toast('s','접수 완료',`${br} ${rm} (DL-${ym}-${seq})`);
@@ -2785,7 +2882,12 @@ function submitR(){
 function openIMo(id){instId=id;document.getElementById('inst-noti').innerHTML=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> 접수 ID: <strong>${id}</strong>`;document.getElementById('inst-date').value=new Date().toISOString().substring(0,10);document.getElementById('inst-model').value='';document.getElementById('inst-memo').value='';openMo('mo-i');}
 function submitI(){
   const rcs=getRc(),r=rcs.find(x=>x.id===instId);if(!r)return;
-  r.installDate=document.getElementById('inst-date').value;
+  // 이 버튼은 지점 직원도 누른다(renderI). 권한은 그대로 두되 마감월 침범만 막는다.
+  const _id=document.getElementById('inst-date').value;
+  if(mLocked(_id)){
+    toast('e','마감된 달',`설치일 ${String(_id).substring(0,7)} 는 이미 마감됐습니다. 날짜를 확인하거나 관리자에게 마감 취소를 요청하세요.`);return;
+  }
+  r.installDate=_id;
   r.installModel=document.getElementById('inst-model').value;
   r.installMemo=document.getElementById('inst-memo').value;
   r.status='결제';
