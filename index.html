@@ -683,7 +683,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
         </div>
         <div class="panel">
           <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><span style="display:inline-flex;gap:6px"><button class="btn bo bsm" id="mc-backfill" onclick="backfillClose()" style="display:none">확정 금액 저장</button><button class="btn bo bsm" id="mc-reopen" onclick="reopenMonth()" style="display:none;color:#ea580c;border-color:rgba(234,88,12,.3)">마감 취소</button><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></span></div>
-          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>유형</th><th>완료건</th><th>수량(실)</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-all"></tbody><tfoot id="m-foot-all"></tfoot></table></div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>유형</th><th title="일괄=물건+설치 한 건 / 물건=재고 입고 / 설치=재고에서 꺼내 설치">구분2</th><th>완료건</th><th title="물건 라인은 구매 개수, 설치 라인은 설치 실수입니다">수량</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-all"></tbody><tfoot id="m-foot-all"></tfoot></table></div>
         </div>
       </div>
 
@@ -991,7 +991,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
     </div>
     <div class="fr2">
       <div class="fg"><label>수량 <span class="req">*</span></label><input class="fi" id="stk-qty" type="number" min="1" value="1" oninput="calcStk()"></div>
-      <div class="fg"><label>도어락 단가</label><input class="fi" id="stk-price" type="number" oninput="calcStk()"></div>
+      <div class="fg"><label>도어락 단가</label><input class="fi" id="stk-price" type="number" min="0" oninput="calcStk()"></div>
     </div>
     <div class="fr2">
       <div class="fg"><label>공급처</label><input class="fi" id="stk-vendor" value="(주)솔리티"></div>
@@ -1025,9 +1025,9 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
     <div class="fr2">
       <div class="fg"><label>설치처</label><select class="fi" id="out-vendor" onchange="onOutChange()">
         <option value="(주)솔리티">(주)솔리티</option><option value="지점직접">지점직접 (지점비용 별도 상신)</option></select></div>
-      <div class="fg"><label>설치비 단가</label><input class="fi" id="out-install" type="number" oninput="calcOut()"></div>
+      <div class="fg"><label>설치비 단가</label><input class="fi" id="out-install" type="number" min="0" oninput="calcOut()"></div>
     </div>
-    <div class="fg"><label>추가자재비 단가</label><input class="fi" id="out-extra" type="number" oninput="calcOut()"></div>
+    <div class="fg"><label>추가자재비 단가</label><input class="fi" id="out-extra" type="number" min="0" oninput="calcOut()"></div>
     <div style="margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:13px" id="out-sum">—</div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-out')">취소</button><button class="btn bg" onclick="saveOut()">설치 등록</button></div>
@@ -1795,6 +1795,9 @@ function populateSels(){
   const ors=getOr();
   const ms=[...new Set(ors.map(o=>(o.orderDate||'').substring(0,7)).filter(Boolean))].sort().reverse();
   const fom=document.getElementById('fo-m');if(fom){const f0=fom.options[0];fom.innerHTML='';fom.appendChild(f0);ms.forEach(m=>fom.appendChild(new Option(m,m)));}
+  const fstkb=document.getElementById('fstk-b');
+  if(fstkb){const f0=fstkb.options[0];fstkb.innerHTML='';fstkb.appendChild(f0);
+    getActiveBr().forEach(b=>fstkb.appendChild(new Option(b.name,b.name)));}
   const fmm=document.getElementById('fm-m');if(fmm){const f0=fmm.options[0];fmm.innerHTML='';fmm.appendChild(f0);const all=mMonths();all.forEach(m=>fmm.appendChild(new Option(m,m)));if(all[0])fmm.value=all[0];}
 }
 
@@ -2002,7 +2005,12 @@ function renderO(){
     const tot=(o.qty||1)*((o.price||0)+(o.install||0)+(o.extra||0));
     const i=o.installed?'<span style="color:var(--green);font-size:12px">✓</span>':'<span style="color:var(--text3)">—</span>';
     const p=o.paid?'<span style="color:var(--green);font-size:12px">✓</span>':'<span style="color:var(--text3)">—</span>';
-    const e=isA?`<button class="btn bo bsm" onclick="openOMo(${o.id})">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteO(${o.id})">삭제</button>`:'';
+    /* 재고 라인은 여기서 못 고치게 한다. 발주 모달에는 recvDate 칸이 없어 날짜를 고쳐도
+       정산 귀속월이 안 따라오고, deleteO 에는 delStk 가 가진 '이미 출고된 입고분 삭제 금지'
+       가드가 없어 입고를 지우면 출고가 고아가 되고 잔량이 음수가 된다. */
+    const e=!isA?'':(isStkAny(o)
+      ?`<button class="btn bo bsm" onclick="goP('stock')">재고 화면에서</button>`
+      :`<button class="btn bo bsm" onclick="openOMo(${o.id})">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteO(${o.id})">삭제</button>`);
     return`<tr><td style="text-align:center"><input type="checkbox" class="ord-chk" value="${o.id}" onchange="onOrdChkChange()" style="cursor:pointer"></td><td style="font-weight:500">${o.branch}</td><td>${o.room}</td><td style="text-align:center">${o.qty||1}</td><td>${o.type||'신규'}</td><td style="font-family:'JetBrains Mono',monospace">${(o.price||0).toLocaleString()}</td><td style="font-family:'JetBrains Mono',monospace">${(o.install||0).toLocaleString()}</td><td style="font-family:'JetBrains Mono',monospace">${(o.extra||0).toLocaleString()}</td><td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--accent)">${tot.toLocaleString()}</td><td style="color:var(--text3)">${o.orderDate||'—'}</td><td style="color:var(--text3)">${o.openDate||'—'}</td><td style="color:var(--green)">${o.doneDate||'—'}</td><td>${i}</td><td>${p}</td><td style="color:var(--text3);font-size:11px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.note||''}</td><td style="white-space:nowrap">${e}</td></tr>`;
   }).join('');
 }
@@ -2284,7 +2292,7 @@ function renderM(){
   const allRows=MS.rows.map(r=>{
     const m=r.isNew?NEWM:REPM;
     const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${m.bg};color:${m.color}">${m.label}</span><div style="font-size:10px;color:var(--text3);margin-top:2px">${m.sub}</div>`;
-    return`<tr><td style="font-weight:600">${r.branch}</td><td style="white-space:nowrap">${badge}</td><td>${r.cnt}건</td><td style="${mono}">${r.qty==null?'—':r.qty+'실'}</td><td style="${mono}">${r.p.toLocaleString()}</td><td style="${mono}">${r.i.toLocaleString()}</td><td style="${mono}">${r.e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${r.ex.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${r.tax.toLocaleString()}</td><td style="${mono};font-weight:700;color:${m.color}">${r.t.toLocaleString()}</td></tr>`;
+    return`<tr><td style="font-weight:600">${r.branch}</td><td style="white-space:nowrap">${badge}</td><td style="white-space:nowrap;font-size:11px;color:var(--text3)">${r.lineKind||'일괄'}${(r.vendor&&r.vendor!=='(주)솔리티')?'<br>'+r.vendor:''}</td><td>${r.cnt}건</td><td style="${mono}">${r.qty==null?'—':r.qty+(r.lineKind==='물건'?'개':'실')}</td><td style="${mono}">${r.p.toLocaleString()}</td><td style="${mono}">${r.i.toLocaleString()}</td><td style="${mono}">${r.e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${r.ex.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${r.tax.toLocaleString()}</td><td style="${mono};font-weight:700;color:${m.color}">${r.t.toLocaleString()}</td></tr>`;
   }).join('');
 
   // 5) 요약 카드 — 공급가액·부가세 모두 표의 열 합계와 정확히 일치(전표 합산 기준)
@@ -2298,9 +2306,9 @@ function renderM(){
 
   // 6) 테이블 렌더링 + 합계행(카드 숫자를 눈으로 대조할 수 있게)
   const tbody=document.getElementById('m-body-all');
-  if(tbody)tbody.innerHTML=allRows||emp(10);
+  if(tbody)tbody.innerHTML=allRows||emp(11);
   const tfootM=document.getElementById('m-foot-all');
-  if(tfootM)tfootM.innerHTML=MS.rows.length?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="2" style="text-align:right">합계</td><td>${tt.cnt}건</td><td style="${mono}">${tt.qty?tt.qty+'실':'—'}</td><td style="${mono}">${tt.p.toLocaleString()}</td><td style="${mono}">${tt.i.toLocaleString()}</td><td style="${mono}">${tt.e.toLocaleString()}</td><td style="${mono}">${tt.ex.toLocaleString()}</td><td style="${mono}">${tt.tax.toLocaleString()}</td><td style="${mono}">${tt.t.toLocaleString()}</td></tr>`:'';
+  if(tfootM)tfootM.innerHTML=MS.rows.length?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="3" style="text-align:right">합계</td><td>${tt.cnt}건</td><td style="${mono}" title="물건 라인의 '개'와 설치 라인의 '실'이 섞인 합이라 단위를 붙이지 않습니다">${tt.qty||'—'}</td><td style="${mono}">${tt.p.toLocaleString()}</td><td style="${mono}">${tt.i.toLocaleString()}</td><td style="${mono}">${tt.e.toLocaleString()}</td><td style="${mono}">${tt.ex.toLocaleString()}</td><td style="${mono}">${tt.tax.toLocaleString()}</td><td style="${mono}">${tt.t.toLocaleString()}</td></tr>`:'';
 
   // 7) 마감 상태 카드 + 버튼 (월을 바꿀 때마다 갱신 — 이전엔 doClose 에서만 갱신돼 값이 남아 있었다)
   const stEl=document.getElementById('mc-st'),ssEl=document.getElementById('mc-ss');
@@ -3339,7 +3347,8 @@ function exportToExcel(type){
     fileName=`접수목록_${today}.xlsx`;
 
   }else if(type==='order'){
-    let ors=getOr();
+    // 화면(renderO)과 같은 범위를 낸다. 이 한 줄이 없으면 화면엔 숨겨진 재고 라인이 엑셀에만 나온다.
+    let ors=getOr().filter(o=>stkShow?true:!isStkAny(o));
     if(S.role==='user'&&S.branch&&S.branch!=='본사')ors=ors.filter(o=>o.branch===S.branch);
     const bv=document.getElementById('fo-b')?.value;if(bv)ors=ors.filter(o=>o.branch===bv);
     const mv=document.getElementById('fo-m')?.value;if(mv)ors=ors.filter(o=>(o.orderDate||'').startsWith(mv));
@@ -3367,14 +3376,16 @@ function exportToExcel(type){
     const MS=mView();
     const mv=MS.month;
     // 수량(실)을 함께 낸다 — 금액 열은 수량 가중이므로 건수만으로는 검산이 안 된다
-    rows=[['지점','구분','건수','수량(실)','도어락','설치비','자재비','공급가액','부가세','합계','계정과목']];
-    MS.rows.forEach(r=>rows.push([r.branch,r.isNew?'신규':'교체',r.cnt,r.qty??'',r.p,r.i,r.e,r.ex,r.tax,r.t,
+    rows=[['지점','구분','구분2','공급처','건수','수량','도어락','설치비','자재비','공급가액','부가세','합계','계정과목']];
+    MS.rows.forEach(r=>rows.push([r.branch,r.isNew?'신규':'교체',r.lineKind||'일괄',r.vendor||'(주)솔리티',
+      r.cnt,r.qty??'',r.p,r.i,r.e,r.ex,r.tax,r.t,
       r.isNew?'선급금/집기출금 · 6200':'수선비/지점출금 · 6055']));
     // 합계 행 — 각 행의 값을 그대로 더한다(전표 합산 기준). 기준을 파일에 남겨 대조 시 다툼이 없게 한다.
     if(MS.rows.length){
       const tt=MS.total;
-      rows.push(['합계','',tt.cnt,tt.qty||'',tt.p,tt.i,tt.e,tt.ex,tt.tax,tt.t,
-        (MS.snap?`${MS.backfilled?'사후확정':'마감확정'}(${(MS.closedAt||'').substring(0,10)}) · `:'')+'부가세 기준: 지점·계정과목 단위 반올림 합산']);
+      rows.push(['합계','','','',tt.cnt,tt.qty||'',tt.p,tt.i,tt.e,tt.ex,tt.tax,tt.t,
+        (MS.snap?`${MS.backfilled?'사후확정':'마감확정'}(${(MS.closedAt||'').substring(0,10)}) · `:'')
+        +'부가세 기준: 지점·구분·구분2·공급처 단위 반올림 합산 · 수량은 물건=구매 개수, 설치=설치 실수']);
     }
     // 지점/검색 필터가 걸린 채 내보내면 부분 정산이므로 파일명에 범위를 드러낸다
     const scope=[mv||'전체'];
@@ -3855,7 +3866,7 @@ function _fbCopy(text,ok,fail){
 let stkShow=false;   // 발주 목록에서 재고 라인을 함께 볼지
 /* ══════════ 재고 관리 ══════════
    관리자 전용 화면. 지점 계정에는 메뉴도 안 보이고 goP 에서도 막힌다.
-   지점이 재고를 꺼내 쓴 것은 월 실사 엑셀로 맞춘다(exportToExcel('stock')). */
+   지점이 재고를 꺼내 쓴 것은 월 실사로 맞춘다(실사 엑셀은 아직 없다 — 다음 단계). */
 function stkBrOpts(sel,cur){
   const el=document.getElementById(sel);if(!el)return;
   el.innerHTML='<option value="">선택</option>'+getActiveBr().map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
@@ -3894,7 +3905,9 @@ function renderStock(){
       <td>${o.branch||'—'}</td>
       <td>${inn?(o.note||'—'):(o.room||'—')}</td>
       <td class="num-r">${inn?'+':'−'}${q}</td>
-      <td class="num-r">${inn?oLeft(o):''}</td>
+      <td class="num-r">${inn?(oLeft(o)<0
+        ?`<span style="color:#dc2626;font-weight:700" title="다른 입고분까지 걸쳐 나갔습니다. 지점 잔량은 위 카드가 정확합니다">${oLeft(o)}</span>`
+        :oLeft(o)):''}</td>
       <td class="num-r">${amt.toLocaleString()}</td>
       <td>${o.vendor||'(주)솔리티'}</td>
       <td>${lockd?'<span style="color:var(--text3);font-size:11px">마감됨</span>'
@@ -3937,6 +3950,9 @@ function saveStk(){
   const q=parseInt(document.getElementById('stk-qty').value)||0;
   const op=document.getElementById('stk-opening').checked;
   if(!br||!d||q<1){toast('e','입력 오류','지점·입고일·수량은 필수입니다.');return;}
+  // 연도 오타(2026→2062)는 월 드롭다운을 오염시키고 월마감 기본 선택까지 미래로 끌고 간다
+  const _y=new Date().getFullYear(), _dy=Number(d.substring(0,4));
+  if(!(_dy>=_y-2&&_dy<=_y+1)){toast('e','입고일 확인',`입고일 ${d} 의 연도를 확인하세요.`);return;}
   if(mLocked(d)){toast('e','마감된 달',`${d.substring(0,7)} 는 이미 마감됐습니다. 마감을 취소하거나 다른 날짜를 쓰세요.`);return;}
   const ors=getOr();
   ors.push({
