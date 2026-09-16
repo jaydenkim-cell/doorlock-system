@@ -1945,7 +1945,15 @@ function renderR(){
       badge=r.paymentDone?`<span class="badge b-d">결제완료</span>`:`<span class="badge" style="background:rgba(234,88,12,.1);color:#ea580c;border:1px solid rgba(234,88,12,.2);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">결제대기</span>`;
     } else badge=badg(r.status);
     // 버튼
-    if(isAdm()&&r.status==='접수')act=`<button class="btn bo bsm" onclick="advR('${r.id}','발주')">발주 처리</button>`;
+    if(isAdm()&&r.status==='접수'){
+      /* 재고가 있는데 새로 발주하면 재고는 남은 채로 비용이 또 나간다.
+         접수 화면은 재고를 전혀 모르고 있었다 — 여기서 알려주고 한 번 물어본다.
+         재고 수량은 관리자에게만 보인다(재고 화면이 관리자 전용인 것과 같은 기준). */
+      const _bal=stkBal(r.branch);
+      act=_bal>0
+        ? `<button class="btn bo bsm" style="color:var(--yellow);border-color:var(--yellow)" onclick="advRCheck('${r.id}')">발주 처리 · 재고 ${_bal}</button>`
+        : `<button class="btn bo bsm" onclick="advR('${r.id}','발주')">발주 처리</button>`;
+    }
     else if(isAdm()&&r.status==='발주')act=`<button class="btn bo bsm" style="color:var(--purple);border-color:var(--purple)" onclick="advR('${r.id}','설치')">설치 시작</button>`;
     else if(r.status==='설치'){
       if(isAdm())act=`<button class="btn bp bsm" style="display:inline-flex;align-items:center;gap:4px" onclick="openExpDateMo('${r.id}')">${CI.calendar} 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button> <button class="btn bo bsm" style="color:var(--yellow);border-color:var(--yellow)" onclick="revertToOrder('${r.id}')">↩ 발주로</button>`;
@@ -1986,6 +1994,21 @@ function renderLog(){
     const bcls=LOG_ACTION_BADGE[x.action]||'';
     return `<tr><td style="white-space:nowrap;font-variant-numeric:tabular-nums">${ts}</td><td>${escLog(x.user)}</td><td>${escLog(ROLE_LABELS[x.role]||x.role||'')}</td><td><span class="badge ${bcls}">${escLog(x.action)}</span></td><td>${escLog(x.target)}</td><td style="color:var(--text2)">${escLog(x.detail)}</td></tr>`;
   }).join('');
+}
+/* 발주 처리 전 재고 확인. showCfm 이 콜백 방식이라 advR 안에서 물어보면 흐름이 끊겨,
+   버튼에서 한 겹 감싼다. 막지는 않는다 — 재고가 다른 용도로 잡혀 있을 수도 있다. */
+function advRCheck(id){
+  const r=getRc().find(x=>x.id===id);if(!r)return;
+  const bal=stkBal(r.branch);
+  if(bal>0){
+    showCfm('📦','이 지점에 재고가 있습니다',
+      `${r.branch} 재고 ${bal}대. 새로 발주하면 재고는 남은 채로 비용이 또 나갑니다. `
+      +`재고에서 설치하려면 [재고 관리] 화면의 [재고에서 설치] 에서 이 접수를 연결하세요. `
+      +`그래도 새로 발주할까요?`,
+      ()=>advR(id,'발주'));
+    return;
+  }
+  advR(id,'발주');
 }
 function advR(id,ns){
   const rc=getRc();const r=rc.find(x=>x.id===id);
@@ -4760,7 +4783,11 @@ function onOutChange(){
     const keep=rcSel.value;
     const list=outRcList(br);
     rcSel.innerHTML='<option value="">연결 안 함 (예비분 사용 등)</option>'
-      +list.map(r=>`<option value="${r.id}">${r.id} · ${r.room} · ${r.type||''} (${r.status})</option>`).join('');
+      +list.map(r=>{
+          const hasOrd=getOr().some(o=>o.receiptId===r.id&&!o.insOf);
+          return `<option value="${r.id}">${r.id} · ${r.room} · ${r.type||''} (${r.status})`
+               + `${hasOrd?' ⚠ 발주 있음':''}</option>`;
+        }).join('');
     if(list.some(r=>r.id===keep))rcSel.value=keep;
   }
   const q=parseInt(document.getElementById('out-qty').value)||0;
@@ -4840,6 +4867,10 @@ function saveOut(){
     toast('s','설치 등록',rcId?`${br} ${rm} ${q}개 — 접수 ${rcId} 완료 처리 · 잔량 ${stkBal(br)}개`
                           :`${br} ${rm} ${q}개 — 잔량 ${stkBal(br)}개`);
   };
+  /* 연결하려는 접수에 이미 정가 발주가 있으면 그대로 두면 이중계상이다
+     (발주 132,000+55,000+자재 + 출고 설치비). 접수를 [발주 처리] 한 뒤 뒤늦게
+     재고로 처리하는 순서가 오히려 자연스럽기 때문에 반드시 걸러야 한다. */
+  const dupe=rcId?getOr().find(o=>o.receiptId===rcId&&!o.insOf):null;
   const openRc=rcId?[]:outRcList(br).filter(r=>String(r.room||'').trim()===rm);
   const ask=(msg,next)=>showCfm('⚠️','확인',msg,next);
   const step2=()=>{
@@ -4847,8 +4878,27 @@ function saveOut(){
       ask(`${br} ${rm} 에 아직 안 끝난 접수(${openRc.map(r=>r.id).join(', ')})가 있는데 연결하지 않았습니다. 연결하지 않으면 그 접수를 나중에 발주 처리할 때 같은 설치가 두 번 잡힙니다. 그래도 진행할까요?`,go);
     else go();
   };
-  if(q>bal)ask(`${br} 현재 재고는 ${bal}개인데 ${q}개를 출고합니다. 입고 등록이 누락됐을 수 있습니다. 그래도 진행할까요?`,step2);
-  else step2();
+  const step1=()=>{
+    if(!dupe){step2();return;}
+    const dAmt=((Number(dupe.price)||0)+(Number(dupe.install)||0)+(Number(dupe.extra)||0))*(Number(dupe.qty)||1);
+    if(dupe.installed&&mLocked(dupe.doneDate)){
+      toast('e','마감된 발주',
+        `접수 ${rcId} 에 이미 발주가 있고 ${String(dupe.doneDate).substring(0,7)} 마감에 들어갔습니다. `
+        +`마감을 취소하고 그 발주를 정리한 뒤 다시 시도하세요.`);
+      return;
+    }
+    ask(`접수 ${rcId} 에는 이미 발주가 있습니다 (${dAmt.toLocaleString()}원). `
+      +`그대로 두고 재고 출고를 추가하면 같은 설치가 두 번 정산됩니다. `
+      +`기존 발주를 지우고 재고 출고로 대체할까요?`,
+      ()=>{
+        markDel(K.O,dupe.id);                       // 툼스톤 — 안 찍으면 30초 뒤 되살아난다
+        sv(K.O,getOr().filter(x=>x.id!==dupe.id));
+        logAudit('발주→재고대체',`${br} ${rm} (${rcId})`,`발주 ${dAmt.toLocaleString()}원 삭제 후 재고 출고`);
+        step2();
+      });
+  };
+  if(q>bal)ask(`${br} 현재 재고는 ${bal}개인데 ${q}개를 출고합니다. 입고 등록이 누락됐을 수 있습니다. 그래도 진행할까요?`,step1);
+  else step1();
 }
 /* ── 월 실사 ──
    지점에 엑셀(exportToExcel('stock'))을 보내 실물 수량을 받아 여기서 차이를 맞춘다.
