@@ -2766,6 +2766,11 @@ function genDraft(){
   const rows=getDraftRows();
   if(!rows.length){toast('e','오류','지점을 선택한 행이 없습니다.');return;}
   const dt=document.getElementById('draft-date').value,tp=document.getElementById('draft-type').value,note=document.getElementById('draft-note').value;
+  /* 설치비가 한 행도 없으면 '납품 발주서'다 — 물건만 받고 설치는 나중에 하는 재고 입고 건.
+     계약상 인도·검수 기준이 '설치 완료'가 아니라 '하차·적치 완료'가 되므로 조항 문구도 갈라야 한다.
+     설치까지 받는 일반 발주서와 같은 문구로 내보내면 검수 기준이 성립하지 않는다. */
+  const stockOnly=rows.every(r=>!r.install);
+  const DLV=stockOnly?'하차, 적치':'하차, 적치, 설치';
   const cfg=ld(K.D,{});
   const ordCo=cfg['drc-ord-company']||'주식회사 핸디즈';
   const ordMgr=cfg['drc-ord-manager']||'운영기획팀 기획파트';
@@ -2793,8 +2798,8 @@ function genDraft(){
   <!-- 헤더 -->
   <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;padding-bottom:7px;border-bottom:2px solid #222">
     <div>
-      <div style="font-size:18px;font-weight:700;letter-spacing:-0.5px">도어락 설치 발주서</div>
-      <div style="font-size:10px;color:#555;margin-top:3px">품목: 도어락 &nbsp;|&nbsp; 발주년월: ${dt.substring(0,7)}</div>
+      <div style="font-size:18px;font-weight:700;letter-spacing:-0.5px">도어락 ${stockOnly?'납품':'설치'} 발주서</div>
+      <div style="font-size:10px;color:#555;margin-top:3px">품목: 도어락 &nbsp;|&nbsp; 발주년월: ${dt.substring(0,7)}${stockOnly?' &nbsp;|&nbsp; <span style="color:#8a5d18;font-weight:700">설치 없이 납품만</span>':''}</div>
     </div>
     <div style="text-align:right;font-size:9.5px;color:#333;line-height:1.7">
       <div style="font-size:11px;font-weight:700">${ordCo}</div>
@@ -2834,10 +2839,10 @@ function genDraft(){
       <div>
         <div style="font-weight:700;margin-bottom:1px">제1조(발주와 공급)</div>
         <div>&nbsp;① "발주자"는 위 발주서로써 본 계약을 청약한다. "공급자"가 "발주자"에게 본 계약의 승낙을 통지하거나, 통지 없이 위 발주서 물품 등의 공급 절차에 착수한 경우 본 계약을 승낙한 것으로 본다.</div>
-        <div>&nbsp;② "공급자"는 본 계약을 승낙한 경우 자신의 책임과 비용으로 위 발주서에 명시한 품목, 수량, 발주금액대로 납기일까지 발주서 각 항목별 배송지로 물품을 배송하여 하차, 적치, 설치함으로써 인도한다.</div>
+        <div>&nbsp;② "공급자"는 본 계약을 승낙한 경우 자신의 책임과 비용으로 위 발주서에 명시한 품목, 수량, 발주금액대로 납기일까지 발주서 각 항목별 배송지로 물품을 배송하여 ${DLV}함으로써 인도한다.</div>
         <div style="margin-bottom:3px">&nbsp;③ 공급 물품은 "발주자"의 구매 목적에 적합한 견고하고 손색없는 신품이어야 한다. "공급자"가 이를 위반하여 적합하지 않은 물품 등을 공급할 경우 "발주자"는 물품 등의 검수 또는 인수를 거절하거나 발주 금액을 감액할 수 있다.</div>
         <div style="font-weight:700;margin-bottom:1px">제2조(물품의 검수 및 사후 서비스)</div>
-        <div>&nbsp;① "발주자"는 "공급자"가 물품을 하차, 적치, 설치하여 "발주자"에게 인계한 날로부터 7일 이내에 물품을 검수하여 다음 각 호의 사유에 해당하는 물품(이하 "불량품")에 대한 교환/반품 등을 "공급자"에게 요구할 수 있다. "공급자"는 객관적으로 불가한 사유가 없는 경우 이에 응해야 한다.</div>
+        <div>&nbsp;① "발주자"는 "공급자"가 물품을 ${DLV}하여 "발주자"에게 인계한 날로부터 7일 이내에 물품을 검수하여 다음 각 호의 사유에 해당하는 물품(이하 "불량품")에 대한 교환/반품 등을 "공급자"에게 요구할 수 있다. "공급자"는 객관적으로 불가한 사유가 없는 경우 이에 응해야 한다.</div>
         <div style="margin-left:8px">1. 파손, 오손, 변형 등 하자가 있는 물품</div>
         <div style="margin-left:8px">2. 규격, 수량, 제품 정보가 발주서와 상이한 물품</div>
         <div style="margin-left:8px">3. 정해진 납기일을 초과하거나 물품의 소비기한이 1개월 이내로 임박한 물품</div>
@@ -2869,7 +2874,8 @@ function genDraft(){
   </div>
 </div>`;
   const h=ld(K.H,[]);const brs=[...new Set(rows.map(r=>r.branch))];h.unshift({date:dt,branch:brs.join(', '),rows:rows.length,type:tp,total:gt,ts:Date.now()});sv(K.H,h.slice(0,50));
-  toast('s','발주서 생성',`${rows.length}건 / ${gt.toLocaleString()}원`);
+  toast('s',stockOnly?'납품 발주서 생성':'발주서 생성',
+    `${rows.length}건 / ${gt.toLocaleString()}원${stockOnly?' · 설치 없이 납품만':''}`);
   document.getElementById('draft-area').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
@@ -3829,6 +3835,7 @@ function buildDraftAmaData(){
   const dt=document.getElementById('draft-date').value||new Date().toISOString().substring(0,10);
   const tp=document.getElementById('draft-type').value||'신규';
   const total=rows.reduce((s,r)=>s+(r.price+r.install+r.extra)*r.qty,0);
+  const stockOnly=rows.every(r=>!r.install);   // 설치비 없음 = 재고 납품 건
   const branches=[...new Set(rows.map(r=>r.branch))];
   const[y,m]=dt.split('-').map(Number);
   const nm=m===12?`${y+1}-01-10`:`${y}-${String(m+1).padStart(2,'0')}-10`;
@@ -3841,10 +3848,12 @@ function buildDraftAmaData(){
     return`${b}\n   수량 : ${bQty}실\n   합계 : ${bTot.toLocaleString()}원 (VAT포함)`;
   });
   const r0=rows[0];
-  const priceInfo=r0?`도어락 ${r0.price.toLocaleString()}원, 설치비 ${r0.install.toLocaleString()}원${r0.extra?`, 자재비 ${r0.extra.toLocaleString()}원`:''}` :'';
+  const priceInfo=r0?(stockOnly
+    ?`도어락 ${r0.price.toLocaleString()}원 (납품만 · 설치비 별도)`
+    :`도어락 ${r0.price.toLocaleString()}원, 설치비 ${r0.install.toLocaleString()}원${r0.extra?`, 자재비 ${r0.extra.toLocaleString()}원`:''}`) :'';
   const itemDetail=brLines.join('\n\n')+(priceInfo?`\n\n\n산출내역 : ${priceInfo}`:'');
   const ym2=dt.substring(0,7).replace('-','년 ')+'월';
-  return{costName,costType:'구매비(집기류)',taxType:'과세',totalAmt:total,execDate:nm,vendor:'(주)솔리티',account:'집기계좌',itemDetail,purchaseReason:`${tp} 도어락 설치`,attach1:'집행처 사업자등록증',attach2:'집행처 통장 사본',attach3:'기타',attachOther:'발주서',draftNote:`${branches.join(',')} ${ym2} 솔리티 도어락 구매비용 상신의 건입니다.`,refLink:''};
+  return{costName,costType:'구매비(집기류)',taxType:'과세',totalAmt:total,execDate:nm,vendor:'(주)솔리티',account:'집기계좌',itemDetail,purchaseReason:stockOnly?'도어락 납품 (지점 재고)':`${tp} 도어락 설치`,attach1:'집행처 사업자등록증',attach2:'집행처 통장 사본',attach3:'기타',attachOther:'발주서',draftNote:`${branches.join(',')} ${ym2} 솔리티 도어락 ${stockOnly?'납품(지점 재고) ':''}구매비용 상신의 건입니다.`,refLink:''};
 }
 
 function buildOrderAmaData(){
