@@ -655,6 +655,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <input class="finp" id="fstk-m" type="month" onchange="renderStock()" style="max-width:150px">
           <button class="btn bp" onclick="openStkMo()" style="margin-left:auto">+ 재고 입고</button>
           <button class="btn bg" onclick="openOutMo()">재고에서 설치</button>
+          <button class="btn bo" onclick="openAdjMo()">실사 반영</button>
         </div>
         <div class="stk-wrap" id="stk-cards"></div>
         <div class="panel" style="margin-bottom:0">
@@ -1005,6 +1006,26 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
     <div style="margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:13px" id="stk-sum">—</div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-stk')">취소</button><button class="btn bp" onclick="saveStk()">입고 등록</button></div>
+</div>
+</div>
+
+<!-- 재고 실사 반영 -->
+<div class="mo" id="mo-adj">
+<div class="mb" style="max-width:640px">
+  <div class="mh"><span class="mt2">실사 반영</span><button class="mx" onclick="closeMo('mo-adj')">✕</button></div>
+  <div class="mbody">
+    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px">
+      지점에서 회신받은 <strong>실물 수량</strong>을 적으세요. 장부와 다른 지점만 조정 기록이 생깁니다.
+      조정은 <strong>수량만</strong> 움직이고 정산 금액에는 들어가지 않습니다.
+    </div>
+    <div class="fg" style="max-width:220px"><label>실사 기준일 <span class="req">*</span></label><input class="fi" id="adj-date" type="date"></div>
+    <div style="overflow-x:auto;margin-top:6px"><table class="tbl"><thead><tr>
+      <th>지점</th><th class="num-r">장부</th><th class="num-r" style="width:110px">실물</th><th class="num-r">차이</th>
+    </tr></thead><tbody id="adj-body"></tbody></table></div>
+    <div class="fg" style="margin-top:12px"><label>사유·메모</label><input class="fi" id="adj-note" placeholder="예: 9월 실사 — 긴급 교체 사용분"></div>
+    <div style="margin-top:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:13px" id="adj-sum">실물 수량을 입력하세요.</div>
+  </div>
+  <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-adj')">취소</button><button class="btn bp" onclick="saveAdj()">조정 등록</button></div>
 </div>
 </div>
 
@@ -1785,7 +1806,7 @@ function goP(p){
   });
   const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock};
   if(fns[p])fns[p]();
-  if(['receipt','order','install','monthly'].includes(p)){
+  if(['receipt','order','install','monthly','stock'].includes(p)){
     const tbr=document.getElementById('tb-r');
     const xlSvg=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>`;
     tbr.insertAdjacentHTML('beforeend',`<button class="btn bo bsm" onclick="exportToExcel('${p}')" style="display:inline-flex;align-items:center;gap:5px;color:#217346;border-color:#217346">${xlSvg} 엑셀 다운로드</button>`);
@@ -2163,6 +2184,10 @@ const mDoneOrs=()=>getOr().filter(o=>o.installed===true&&o.doneDate&&o.doneDate.
 function mLines(){
   const out=[];
   getOr().forEach(o=>{
+    /* 실사 조정은 수량만 움직이고 돈은 움직이지 않는다. 창고에서 2대가 사라진 것은
+       재고가 준 것이지 그 달에 2대를 사거나 판 것이 아니다. stkBal 에는 반영되고
+       정산에는 안 들어간다. (조정 라인은 금액이 전부 0이라 구버전 탭이 계산해도 0원이다.) */
+    if(o.adj)return;
     const q=Number(o.qty)||1;
     if(o.inv===true){                                   // ① 입고 라인 — 물건값만
       if(o.opening)return;                              // 기초재고는 수량만 잡고 정산 제외
@@ -3445,6 +3470,34 @@ function exportToExcel(type){
     fileName=`서비스요금_${fm||'전체'}_${today}.xlsx`;
   }
 
+  else if(type==='stock'){
+    /* 월 실사 양식. 지점이 '실물 수량'과 '사유'만 채워 회신하면 조달이
+       [실사 반영] 으로 차이를 조정한다. 차이 열은 수식이라 입력하면 바로 계산된다. */
+    const bv=document.getElementById('fstk-b')?.value||'';
+    let brs=getActiveBr().map(b=>b.name);
+    if(bv)brs=brs.filter(n=>n===bv);
+    const lastOf=(bn,fn)=>{
+      const ds=getOr().filter(o=>o.branch===bn&&fn(o)).map(o=>isStkIn(o)?(o.recvDate||''):(o.doneDate||'')).filter(Boolean).sort();
+      return ds.length?ds[ds.length-1]:'';
+    };
+    rows=[['지점','장부 수량','실물 수량(작성)','차이','사유·메모(작성)','최근 입고일','최근 출고일']];
+    brs.map(bn=>({bn,bal:stkBal(bn)})).filter(x=>x.bal!==0)
+       .sort((a,b)=>b.bal-a.bal||a.bn.localeCompare(b.bn,'ko'))
+       .forEach((x,i)=>{
+      const r=i+2;   // 헤더가 1행
+      rows.push([x.bn,x.bal,'',{f:`IF(C${r}="","",C${r}-B${r})`},'',
+                 lastOf(x.bn,isStkIn),lastOf(x.bn,isStkOut)]);
+    });
+    if(rows.length<=1){toast('w','재고 없음','보유 재고가 있는 지점이 없습니다.');return;}
+    rows.push([]);
+    rows.push(['※ 작성 방법']);
+    rows.push(['1. 창고의 실물 도어락 개수를 세어 [실물 수량] 칸에 적어주세요.']);
+    rows.push(['2. 장부와 다르면 [사유·메모] 에 아는 대로 적어주세요 (예: 긴급 교체에 사용, 파손 폐기).']);
+    rows.push(['3. 차이가 없어도 실물 수량은 꼭 채워서 회신해 주세요 — 확인했다는 기록이 됩니다.']);
+    rows.push([`기준일: ${today} · 장부 수량은 이 파일을 내려받은 시점 기준입니다.`]);
+    fileName=`재고실사_${bv||'전체지점'}_${today}.xlsx`;
+  }
+
   if(rows.length<=1){toast('w','데이터 없음','내보낼 데이터가 없습니다.');return;}
   const wb=XLSX.utils.book_new();
   const ws=XLSX.utils.aoa_to_sheet(rows);
@@ -3922,9 +3975,10 @@ function renderStock(){
     const lockd=mLocked(dt(o));
     return `<tr>
       <td>${dt(o)||'—'}</td>
-      <td><span class="chip ${inn?'ci':'co'}">${inn?'입고':'설치'}</span>${o.opening?'<span class="chip cg">기초</span>':''}</td>
+      <td>${o.adj?'<span class="chip cg">실사 조정</span>'
+        :`<span class="chip ${inn?'ci':'co'}">${inn?'입고':'설치'}</span>${o.opening?'<span class="chip cg">기초</span>':''}`}</td>
       <td>${o.branch||'—'}</td>
-      <td>${inn?(o.note||'—'):(o.room||'—')}</td>
+      <td>${(o.adj||inn)?(o.note||'—'):(o.room||'—')}</td>
       <td class="num-r">${inn?'+':'−'}${q}</td>
       <td class="num-r">${inn?(oLeft(o)<0
         ?`<span style="color:#dc2626;font-weight:700" title="다른 입고분까지 걸쳐 나갔습니다. 지점 잔량은 위 카드가 정확합니다">${oLeft(o)}</span>`
@@ -4118,6 +4172,85 @@ function saveOut(){
   };
   if(q>bal)ask(`${br} 현재 재고는 ${bal}개인데 ${q}개를 출고합니다. 입고 등록이 누락됐을 수 있습니다. 그래도 진행할까요?`,step2);
   else step2();
+}
+/* ── 월 실사 ──
+   지점에 엑셀(exportToExcel('stock'))을 보내 실물 수량을 받아 여기서 차이를 맞춘다.
+   조정 라인은 adj:true 라 mLines 가 건너뛴다 — 수량만 움직이고 금액은 0이다. */
+function openAdjMo(){
+  document.getElementById('adj-date').value=new Date().toISOString().substring(0,10);
+  document.getElementById('adj-note').value='';
+  const rows=getActiveBr().map(b=>({n:b.name,bal:stkBal(b.name)})).filter(x=>x.bal!==0)
+    .sort((a,b)=>b.bal-a.bal||a.n.localeCompare(b.n,'ko'));
+  const tb=document.getElementById('adj-body');
+  tb.innerHTML=rows.length?rows.map(x=>`<tr>
+      <td>${x.n}</td>
+      <td class="num-r" data-bal="${x.bal}">${x.bal}</td>
+      <td class="num-r"><input class="fi adj-in" type="number" min="0" data-br="${x.n}" data-bal="${x.bal}"
+           style="text-align:right;padding:5px 8px;height:auto" oninput="calcAdj()"></td>
+      <td class="num-r adj-d">—</td>
+    </tr>`).join('')
+    :`<tr><td colspan="4" style="text-align:center;padding:20px;color:var(--text3)">보유 재고가 있는 지점이 없습니다</td></tr>`;
+  calcAdj();openMo('mo-adj');
+}
+function calcAdj(){
+  let n=0,plus=0,minus=0;
+  document.querySelectorAll('#adj-body tr').forEach(tr=>{
+    const inp=tr.querySelector('.adj-in'),cell=tr.querySelector('.adj-d');
+    if(!inp||!cell)return;
+    if(inp.value===''){cell.textContent='—';cell.style.color='';return;}
+    const d=(parseInt(inp.value)||0)-(Number(inp.dataset.bal)||0);
+    cell.textContent=d>0?'+'+d:String(d);
+    cell.style.color=d===0?'var(--text3)':(d<0?'#dc2626':'var(--green)');
+    if(d>0){n++;plus+=d;} else if(d<0){n++;minus+=-d;}
+  });
+  const el=document.getElementById('adj-sum');
+  el.innerHTML=n?`조정 대상 <strong>${n}개 지점</strong> — 증가 ${plus}개 · 감소 ${minus}개<br>
+      <span style="color:var(--text3);font-size:12px">수량만 조정되고 정산 금액은 바뀌지 않습니다.</span>`
+    :'차이가 있는 지점이 없습니다. (입력한 지점이 없거나 전부 장부와 일치)';
+}
+function saveAdj(){
+  const d=document.getElementById('adj-date').value;
+  if(!d){toast('e','입력 오류','실사 기준일은 필수입니다.');return;}
+  if(mLocked(d)){toast('e','마감된 달',`${d.substring(0,7)} 는 이미 마감됐습니다. 다른 기준일을 쓰세요.`);return;}
+  const note=document.getElementById('adj-note').value.trim()||`실사조정 ${d}`;
+  const diffs=[];
+  document.querySelectorAll('#adj-body .adj-in').forEach(inp=>{
+    if(inp.value==='')return;
+    const df=(parseInt(inp.value)||0)-(Number(inp.dataset.bal)||0);
+    if(df!==0)diffs.push({br:inp.dataset.br,df});
+  });
+  if(!diffs.length){toast('i','조정 없음','장부와 차이가 있는 지점이 없습니다.');closeMo('mo-adj');return;}
+  const go=()=>{
+    const ors=getOr();let made=0;
+    diffs.forEach(({br,df})=>{
+      if(df>0){
+        // 실물이 더 많다 → 입고 조정 (금액 0)
+        ors.push({id:newOid(),receiptId:'',branch:br,room:'[실사조정]',qty:df,type:'교체',
+          price:0,install:0,extra:0,orderDate:d,openDate:'',doneDate:'',
+          installed:false,paid:false,note:`${note} (+${df})`,
+          inv:true,recvDate:d,vendor:'(주)솔리티',invNo:'',opening:false,adj:true});
+        made++;
+      }else{
+        // 실물이 더 적다 → 출고 조정. insOf 가 있어야 출고 라인으로 인식된다.
+        const src=getStkIn().filter(o=>o.branch===br).sort((a,b)=>(a.recvDate||'').localeCompare(b.recvDate||''))[0];
+        if(!src){toast('e','조정 불가',`${br} 에 입고 기록이 없어 감소 조정을 만들 수 없습니다.`);return;}
+        ors.push({id:newOid(),receiptId:'',branch:br,room:'[실사조정]',qty:-df,type:'교체',
+          price:0,install:0,extra:0,orderDate:d,openDate:'',doneDate:d,
+          installed:true,paid:false,note:`${note} (${df})`,
+          insOf:src.id,vendor:'(주)솔리티',invNo:'',adj:true});
+        made++;
+      }
+    });
+    if(!made)return;
+    sv(K.O,ors);
+    logAudit('재고실사',`${diffs.length}개 지점`,
+      diffs.map(x=>`${x.br} ${x.df>0?'+':''}${x.df}`).join(', ')+` · 기준일 ${d}`);
+    closeMo('mo-adj');renderStock();
+    toast('s','실사 반영',`${made}개 지점 조정 등록 (수량만 조정, 금액 영향 없음)`);
+  };
+  showCfm('📋','실사 반영',
+    `${diffs.length}개 지점의 재고를 조정합니다 — ${diffs.map(x=>`${x.br} ${x.df>0?'+':''}${x.df}`).join(', ')}. `
+    +`수량만 바뀌고 정산 금액은 그대로입니다. 진행할까요?`,go);
 }
 function delStk(id){
   const o=getOr().find(x=>x.id===id);if(!o)return;
