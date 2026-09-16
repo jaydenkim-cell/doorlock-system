@@ -931,12 +931,18 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
       <div class="fg"><label>객실번호 <span class="req">*</span></label><input class="fi" id="r-room" placeholder="예: 302호"></div>
     </div>
     <div class="fr2">
-      <div class="fg"><label>요청 유형</label><select class="fs" id="r-type"><option>신규 설치</option><option>교체(노후화)</option><option>교체(고장)</option><option>추가 설치</option></select></div>
+      <div class="fg"><label>요청 유형</label><select class="fs" id="r-type" onchange="onRType()"><option>신규 설치</option><option>교체(노후화)</option><option>교체(고장)</option><option>추가 설치</option><option value="재고 확보">📦 재고 확보 (설치 안 함)</option></select></div>
       <div class="fg"><label>수량 <span class="req">*</span></label><input class="fi" id="r-qty" type="number" value="1" min="1" placeholder="수량 입력"></div>
     </div>
-    <div class="fr2">
+    <div class="fr2" id="r-open-row">
       <div class="fg"><label>오픈예정일</label><input class="fi" id="r-open-date" type="date"></div>
       <div class="fg"></div>
+    </div>
+    <div class="fg" id="r-stk-hint" style="display:none">
+      <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);line-height:1.6">
+        지점 창고에 보관할 <strong>예비 도어락</strong>입니다. 객실에 달지 않으므로 <strong>설치비·자재비는 붙지 않습니다</strong>.<br>
+        물건값은 본사가 <strong>입고 확인</strong>한 뒤 계산서 날짜가 속한 달에 잡힙니다.
+      </div>
     </div>
     <div class="fg">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--red-l);border:1px solid #fecaca;border-radius:7px;cursor:pointer" onclick="toggleUrg()">
@@ -1046,6 +1052,30 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
     <div style="margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:13px" id="stk-sum">—</div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-stk')">취소</button><button class="btn bp" onclick="saveStk()">입고 등록</button></div>
+</div>
+</div>
+
+<!-- 재고 발주 입고 확인 -->
+<div class="mo" id="mo-recv">
+<div class="mb">
+  <div class="mh"><span class="mt2">📦 입고 확인</span><button class="mx" onclick="closeMo('mo-recv')">✕</button></div>
+  <div class="mbody">
+    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
+      <span id="recv-noti"></span><br>
+      물건이 실제로 들어온 날(=<strong>계산서 날짜</strong>)을 적으세요. 이 날짜가 속한 달 정산에 물건값이 잡히고 지점 재고가 늘어납니다.
+    </div>
+    <div class="fr2">
+      <div class="fg"><label>입고일 (계산서일) <span class="req">*</span></label><input class="fi" id="recv-date" type="date"></div>
+      <div class="fg"><label>수량 <span class="req">*</span></label><input class="fi" id="recv-qty" type="number" min="1" value="1" oninput="calcRecv()"></div>
+    </div>
+    <div class="fr2">
+      <div class="fg"><label>도어락 단가</label><input class="fi" id="recv-price" type="number" min="0" oninput="calcRecv()"></div>
+      <div class="fg"><label>계산서 번호</label><input class="fi" id="recv-invno" placeholder="선택"></div>
+    </div>
+    <div class="fg"><label>공급처</label><input class="fi" id="recv-vendor" value="(주)솔리티"></div>
+    <div style="margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:13px" id="recv-sum">—</div>
+  </div>
+  <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-recv')">취소</button><button class="btn bp" onclick="submitRecv()">입고 확인</button></div>
 </div>
 </div>
 
@@ -1452,7 +1482,9 @@ function repairOrders(){
   // 사용자가 지운 발주를 여기서 되살리면 안 된다. 삭제된 접수·재생성 금지 접수는 건너뛴다.
   const deadRc=tombSet(K.R),noRepair=tombSet(TS_NOREPAIR);
   let changed=false;
-  rcs.filter(r=>['발주','설치','결제'].includes(r.status)&&!deadRc.has(String(r.id))&&!noRepair.has(String(r.id))).forEach(r=>{
+  /* ★ 재고 확보 접수는 여기서 복구하지 않는다. 이 함수는 설치비가 붙은 정가 발주를 만들기 때문에,
+     입고 라인을 지우면 30초 뒤 설치 발주가 대신 생겨난다. */
+  rcs.filter(r=>['발주','설치','결제'].includes(r.status)&&!isStkRc(r)&&!deadRc.has(String(r.id))&&!noRepair.has(String(r.id))).forEach(r=>{
     if(!ors.find(o=>o.receiptId===r.id)){
       const b=getBr().find(x=>x.name===r.branch);
       const rQty=r.qty||1;
@@ -1488,6 +1520,10 @@ const getOr=()=>ld(K.O,[]);   // ★ 재고 라인이 섞여 있다. 발주 목�
    "현재 수량"을 어딘가에 저장하면 두 사람이 동시에 출고할 때 한 건이 조용히 사라진다 —
    sbSync 병합(:1122~)은 같은 id 를 서버판으로 덮으므로 로컬 수정이 탈락하기 때문이다.
    합산으로 도출하면 그 경로 자체가 없다(새 행 추가는 ID 합집합 병합에서 멱등). */
+/* 재고 확보 접수 — 객실에 달 것이 아니라 지점 창고에 쌓을 예비분이다.
+   설치 라인(물건값+설치비)이 아니라 입고 라인(물건값만)을 만들어야 한다. */
+const RC_STOCK='재고 확보';
+const isStkRc=r=>String(r&&r.type||'')===RC_STOCK;
 const isStkIn =o=>!!(o&&o.inv===true);        // 입고 라인 — 물건값만, installed:false
 const isStkOut=o=>!!(o&&o.insOf);             // 출고 라인 — 설치비만, price:0
 const isStkAny=o=>isStkIn(o)||isStkOut(o);
@@ -1496,10 +1532,32 @@ const getStkIn=()=>getOr().filter(isStkIn);
    지점 잔량의 정답은 언제나 stkBal 이다(여러 입고분에 걸쳐 나갈 수 있으므로). */
 const oUsed=inId=>getOr().reduce((n,o)=>o.insOf===inId?n+(Number(o.qty)||0):n,0);
 const oLeft=o=>(Number(o.qty)||0)-oUsed(o.id);
+
+/* ── 삭제 가드 공용 ──
+   지금까지 delStk·deleteR·deleteO·saveOrder 가 각자 다른 식으로 마감을 검사했고,
+   그래서 한 화면에서 막은 삭제가 다른 화면에서 그대로 통과했다(재고 화면은 '마감됨'이라
+   버튼도 안 그리는데 접수/발주 화면에서는 지워졌다). 판단을 한 곳으로 모은다.
+
+   귀속월: 입고=recvDate · 출고=doneDate · legacy 발주=설치완료된 경우의 doneDate.
+   legacy 를 installed 조건부로 두는 건 mLines 가 그때만 금액을 잡기 때문이다
+   (saveOrder 의 `o0.installed&&mLocked(o0.doneDate)` 와 같은 기준). */
+const oMonthOf=o=>!o?'':(isStkIn(o)?(o.recvDate||'')
+                        :isStkOut(o)?(o.doneDate||'')
+                        :(o.installed&&o.doneDate)?o.doneDate:'');
+/* 막아야 하면 사유 문자열, 괜찮으면 '' 를 돌려준다. */
+function delBlockReason(o){
+  if(!o)return '';
+  const m=oMonthOf(o);
+  if(mLocked(m))return `${String(m).substring(0,7)} 마감에 들어간 기록입니다. 마감을 취소한 뒤 삭제하세요.`;
+  if(isStkIn(o)&&oUsed(o.id)>0)return `이 입고분에서 이미 ${oUsed(o.id)}개가 나갔습니다. 출고 기록을 먼저 지우세요.`;
+  return '';
+}
 const stkBal=branch=>getOr().reduce((n,o)=>{
   if(o.branch!==branch)return n;
   const q=Number(o.qty)||0;
-  if(isStkIn(o))return n+q;
+  /* ★ 발주만 하고 아직 안 들어온 재고(recvDate 비어있음)는 잔량이 아니다.
+     잡으면 있지도 않은 물건으로 설치를 내보내게 된다. mLines 도 같은 기준으로 제외한다. */
+  if(isStkIn(o))return n+(o.recvDate?q:0);
   if(isStkOut(o))return n-q;
   return n;                                   // legacy 발주는 업체 직납이라 재고와 무관
 },0);
@@ -1949,12 +2007,14 @@ function renderR(){
       /* 재고가 있는데 새로 발주하면 재고는 남은 채로 비용이 또 나간다.
          접수 화면은 재고를 전혀 모르고 있었다 — 여기서 알려주고 한 번 물어본다.
          재고 수량은 관리자에게만 보인다(재고 화면이 관리자 전용인 것과 같은 기준). */
-      const _bal=stkBal(r.branch);
+      const _bal=isStkRc(r)?0:stkBal(r.branch);
       act=_bal>0
         ? `<button class="btn bo bsm" style="color:var(--yellow);border-color:var(--yellow)" onclick="advRCheck('${r.id}')">발주 처리 · 재고 ${_bal}</button>`
         : `<button class="btn bo bsm" onclick="advR('${r.id}','발주')">발주 처리</button>`;
     }
-    else if(isAdm()&&r.status==='발주')act=`<button class="btn bo bsm" style="color:var(--purple);border-color:var(--purple)" onclick="advR('${r.id}','설치')">설치 시작</button>`;
+    else if(isAdm()&&r.status==='발주')act=isStkRc(r)
+      ? `<button class="btn bo bsm" style="color:var(--accent);border-color:var(--accent)" onclick="openRecvMo('${r.id}')">📦 입고 확인</button>`
+      : `<button class="btn bo bsm" style="color:var(--purple);border-color:var(--purple)" onclick="advR('${r.id}','설치')">설치 시작</button>`;
     else if(r.status==='설치'){
       if(isAdm())act=`<button class="btn bp bsm" style="display:inline-flex;align-items:center;gap:4px" onclick="openExpDateMo('${r.id}')">${CI.calendar} 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button> <button class="btn bo bsm" style="color:var(--yellow);border-color:var(--yellow)" onclick="revertToOrder('${r.id}')">↩ 발주로</button>`;
       else act=r.expectedInstallDate?`<span style="color:var(--purple);font-size:12px;display:inline-flex;align-items:center;gap:3px">${CI.calendar} ${r.expectedInstallDate}</span>`:`<span style="color:var(--text3);font-size:12px">설치일정 확인중</span>`;
@@ -1964,7 +2024,7 @@ function renderR(){
       else act=`<span style="color:#ea580c;font-size:12px">결제 대기중</span>`;
     }
     const mgmt=isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="editR('${r.id}')">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteR('${r.id}')">삭제</button>`:'';
-    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td>${r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:11px">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span style="color:var(--red);display:inline-flex;align-items:center">${CI.bolt}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3)">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
+    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td>${isStkRc(r)?'<span class="chip ci">📦 재고 확보</span>':r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:11px">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span style="color:var(--red);display:inline-flex;align-items:center">${CI.bolt}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3)">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
   }).join('');
 }
 function setPipe(el,t){el.closest('.pipeline').querySelectorAll('.ps').forEach(s=>s.classList.remove('on'));el.classList.add('on');if(t==='r'){pipeR=el.dataset.s;renderR();}}
@@ -1999,6 +2059,8 @@ function renderLog(){
    버튼에서 한 겹 감싼다. 막지는 않는다 — 재고가 다른 용도로 잡혀 있을 수도 있다. */
 function advRCheck(id){
   const r=getRc().find(x=>x.id===id);if(!r)return;
+  // 재고를 더 사려는 접수다. 재고가 있다고 말릴 일이 아니다.
+  if(isStkRc(r)){advR(id,'발주');return;}
   const bal=stkBal(r.branch);
   if(bal>0){
     showCfm('📦','이 지점에 재고가 있습니다',
@@ -2028,8 +2090,46 @@ function advR(id,ns){
   sv(K.R,rc);
   logAudit('상태변경', `${r.branch} ${r.room} (${id})`, `${_prev||'—'} → ${ns}`);
 
+  /* ★ 재고 확보 접수 → 입고 라인을 만든다(발주 라인 아님).
+     설치비·자재비는 0, recvDate 는 일부러 비워둔다 — 아직 물건이 안 들어왔고
+     계산서도 안 왔기 때문이다. mLines 는 recvDate 없는 입고 라인을 정산에서 건너뛴다. */
+  if(ns==='발주'&&isStkRc(r)){
+    const ors=getOr();
+    const b=getBr().find(x=>x.name===r.branch);
+    const rQty=r.qty||1;
+    const ex=ors.find(o=>o.receiptId===id);
+    if(ex){
+      /* submitR(H1) 과 같은 이유로 여기도 막는다 — 이미 나간 만큼보다 적게 줄이면
+         잔량이 음수가 되고 물건값이 장부에서 사라진다. 마감월도 손대면 안 된다. */
+      const _u=oUsed(ex.id);
+      if(rQty<_u){
+        toast('e','수량 축소 불가',`이 입고분에서 이미 ${_u}개가 나갔습니다. 출고 기록을 먼저 정리하세요.`);
+        return;
+      }
+      if(ex.recvDate&&mLocked(ex.recvDate)){
+        toast('e','마감된 달',`이 입고는 ${String(ex.recvDate).substring(0,7)} 마감에 들어갔습니다. 마감을 취소한 뒤 수정하세요.`);
+        return;
+      }
+      ex.qty=rQty;sv(K.O,ors);
+      toast('i','재고 발주 업데이트',`${r.branch} 수량 ${rQty}개 반영됨`);
+    } else {
+      ors.push({
+        id:newOid(), receiptId:id, branch:r.branch, room:'[재고입고]', qty:rQty,
+        type:'교체',                       // 재고는 교체 전용 → 수선비·지점출금 6055
+        price:b?.lockPrice||132000,
+        install:0, extra:0,                  // ★ 설치비는 이 라인에 절대 안 들어간다
+        orderDate:new Date().toISOString().substring(0,10), openDate:'',
+        doneDate:'', installed:false, paid:false,
+        note:'접수→재고발주 ('+id+')',
+        inv:true, recvDate:'',               // ★ 입고 확인 전 — 정산·잔량 모두 미반영
+        vendor:'(주)솔리티', invNo:'', opening:false
+      });
+      sv(K.O,ors);
+      toast('s','재고 발주 등록',`${r.branch} ${rQty}개 — 입고 확인 대기`);
+    }
+  }
   // 접수→발주 전환 시 ORDERS에 자동 등록
-  if(ns==='발주'){
+  else if(ns==='발주'){
     const ors=getOr();
     const b=getBr().find(x=>x.name===r.branch);
     const rQty=r.qty||1;
@@ -2062,6 +2162,7 @@ function advR(id,ns){
   // 설치/결제 시 발주 레코드 없으면 자동 생성하는 헬퍼
   function ensureOrder(rid,receipt){
     const ors=getOr();
+    if(isStkRc(receipt))return ors;          // ★ 재고 건은 설치 발주를 만들면 안 된다
     if(ors.find(x=>x.receiptId===rid))return ors;
     const b=getBr().find(x=>x.name===receipt.branch);
     const rQty=receipt.qty||1;
@@ -2179,6 +2280,10 @@ function saveOrder(){
 }
 function deleteO(id){
   const o=getOr().find(x=>x.id===id);if(!o)return;
+  /* ★ 여기엔 가드가 전혀 없었다. UI 에서 재고 라인의 삭제 버튼을 가렸을 뿐이라,
+     마감된 달의 발주가 그대로 지워지고 확정 금액이 바뀌었다. */
+  const _blk=delBlockReason(o);
+  if(_blk){toast('e','삭제 불가',_blk);return;}
   showCfm(CI.trash,'발주 삭제',`${o.branch} ${o.room} 발주를 삭제하시겠습니까?`,()=>{
     const backup=JSON.parse(JSON.stringify(o)),rid=o.receiptId;
     // 툼스톤 먼저: 다른 브라우저의 병합 부활과 repairOrders 재생성을 동시에 막는다
@@ -2193,7 +2298,8 @@ function deleteO(id){
 
 /* ── INSTALL ── */
 function renderI(){
-  let list=getRc().filter(r=>['발주','설치','결제'].includes(r.status));
+  // 재고 확보 건은 객실 설치가 아니라 창고 입고다 — 설치 현황에 섞이면 설치 실적이 부풀려진다
+  let list=getRc().filter(r=>['발주','설치','결제'].includes(r.status)&&!isStkRc(r));
   if(S.role==='user'&&S.branch&&S.branch!=='본사')list=list.filter(r=>r.branch===S.branch);
   const bv=document.getElementById('fi-b')?.value;if(bv)list=list.filter(r=>r.branch===bv);
   const sv2=document.getElementById('fi-s')?.value.toLowerCase().trim();if(sv2)list=list.filter(r=>(r.id||'').toLowerCase().includes(sv2)||(r.room||'').toLowerCase().includes(sv2)||(r.branch||'').toLowerCase().includes(sv2));
@@ -3096,6 +3202,20 @@ function importOrdersToDraft(){
 }
 
 /* ── RECEIPT MODAL ── */
+/* 재고 확보 접수는 객실에 달지 않는다. 객실번호를 비우면 submitR 의 필수검증에 걸리고,
+   아무 호수나 넣으면 나중에 '110호에 2개 설치'처럼 기록이 남는다. 자동으로 [재고] 를 넣고 잠근다. */
+function onRType(){
+  const on=document.getElementById('r-type').value===RC_STOCK;
+  const room=document.getElementById('r-room');
+  room.readOnly=on;
+  room.style.background=on?'var(--bg2)':'';
+  room.style.color=on?'var(--text3)':'';
+  if(on)room.value='[재고]';
+  else if(room.value==='[재고]')room.value='';
+  const row=document.getElementById('r-open-row');if(row)row.style.display=on?'none':'';
+  const hint=document.getElementById('r-stk-hint');if(hint)hint.style.display=on?'':'none';
+  if(on)document.getElementById('r-open-date').value='';
+}
 function openRMo(){
   urgOn=false;
   document.getElementById('r-edit-id').value='';
@@ -3105,6 +3225,7 @@ function openRMo(){
   document.getElementById('r-room').value='';document.getElementById('r-qty').value='1';document.getElementById('r-open-date').value='';document.getElementById('r-memo').value='';
   if(S.branchLocked){document.getElementById('r-branch').value=S.branch;document.getElementById('r-branch').disabled=true;}
   else{document.getElementById('r-branch').disabled=false;document.getElementById('r-branch').value='';}
+  document.getElementById('r-type').value='신규 설치';onRType();
   openMo('mo-r');
 }
 function editR(id){
@@ -3121,6 +3242,7 @@ function editR(id){
   urgOn=r.urgent||false;
   document.getElementById('tgl').style.background=urgOn?'var(--red)':'var(--border2)';
   document.getElementById('tgld').style.transform=urgOn?'translateX(18px)':'translateX(0)';
+  onRType();
   openMo('mo-r');
 }
 function toastUndo(msg,undoCb){
@@ -3145,9 +3267,15 @@ function doUndo(uid){
 function deleteR(id){
   const rcs=getRc(),r=rcs.find(x=>x.id===id);if(!r)return;
   const linked=getOr().find(x=>x.receiptId===id);
+  /* ★ 연결된 라인이 재고든 legacy 발주든 똑같이 막는다.
+     재고만 막았을 때는 마감월 설치 발주가 접수 삭제로 그대로 지워졌다. */
+  const _blk=delBlockReason(linked);
+  if(_blk){toast('e','삭제 불가',_blk);return;}
   const msg=!linked?'이 접수건을 삭제하시겠습니까?'
     :(linked.insOf
       ?`이 접수는 재고에서 설치된 건입니다. 함께 삭제되면 재고 출고 기록(${linked.qty||1}개)도 사라지고 그만큼 잔량이 되돌아옵니다. 삭제하시겠습니까?`
+      :isStkIn(linked)
+      ?`이 접수의 재고 입고(${linked.qty||1}개${linked.recvDate?' · '+linked.recvDate:' · 입고 전'})도 함께 삭제되어 잔량이 그만큼 줄어듭니다. 삭제하시겠습니까?`
       :'이 접수건과 연결된 발주까지 함께 삭제됩니다. 삭제하시겠습니까?');
   showCfm(CI.trash,'접수 삭제',msg,()=>{
     const backup=JSON.parse(JSON.stringify(r));
@@ -3171,12 +3299,63 @@ function submitR(){
   const eid=document.getElementById('r-edit-id').value;
   if(eid){
     const rcs=getRc(),r=rcs.find(x=>x.id===eid);
+    /* ★ 라인이 만들어진 뒤에는 재고↔설치 전환을 막는다.
+       입고 라인(물건값만, install:0)과 설치 발주(물건값+설치비+자재비)는 모양이 다르다.
+       유형만 바꾸면 라인이 따라가지 못해, 재고→설치는 설치를 끝내도 0원으로 정산되고
+       설치→재고는 설치비가 남은 채 재고로 잡힌다. */
+    const _newT=document.getElementById('r-type').value;
+    const _o0=getOr().find(x=>x.receiptId===eid);
+    /* ★ 연결 라인이 마감된 달에 들어가 있으면 접수 수정 자체를 막는다.
+       아래에서 o.qty 를 접수 수량으로 맞추는데, qty 는 그대로 정산 금액이라
+       마감 확정액이 사후에 흔들린다(mFp/mDrift 파손). */
+    if(_o0){
+      const _lm=isStkIn(_o0)?(_o0.recvDate||''):(_o0.doneDate||'');
+      if(mLocked(_lm)){
+        toast('e','마감된 달',
+          `이 접수의 ${isStkIn(_o0)?'입고':'발주'}는 ${_lm.substring(0,7)} 마감에 들어갔습니다. `
+          +`마감을 취소한 뒤 수정하세요.`);
+        return;
+      }
+    }
+    /* 판정은 '라인이 있는가'가 아니라 '접수 단계를 벗어났는가'로 한다.
+       라인만 보면 delStk 로 입고 라인을 지운 뒤 유형을 설치로 바꿀 수 있고,
+       그러면 repairOrders 가 정가 발주를 새로 만들어낸다. */
+    if(r&&(_o0||r.status!=='접수')&&isStkRc(r)!==(_newT===RC_STOCK)){
+      toast('e','유형을 바꿀 수 없습니다',
+        `이 접수는 이미 ${isStkRc(r)?'재고 발주':'설치 발주'}가 등록됐습니다. `
+        +`재고↔설치 전환은 이 접수를 삭제하고 다시 등록하세요.`);
+      return;
+    }
+    /* ★ 이미 나간 입고분은 수량을 줄이거나 지점을 옮길 수 없다.
+       줄이면 oLeft 가 음수가 되어 잔량이 −N 으로 떨어지고 그만큼 물건값이 장부에서 사라진다
+       (10개 사서 8개 설치했는데 수량을 2로 고치면 9월 정산에서 1,056,000원이 조용히 증발한다).
+       지점을 옮기면 입고만 새 지점으로 가고 출고는 옛 지점에 남아 두 지점이 −8/+10 으로 갈린다.
+       submitRecv 의 `q<oUsed` 와 delBlockReason 에는 있는 검사가 이 경로에만 빠져 있었다.
+       반드시 r 을 변이하기 전에 본다 — 뒤에서 막으면 접수만 바뀌고 라인은 안 바뀐다. */
+    if(_o0&&isStkIn(_o0)){
+      const _used=oUsed(_o0.id);
+      const _newQty=Math.max(1,parseInt(document.getElementById('r-qty').value)||1);
+      if(_newQty<_used){
+        toast('e','수량 축소 불가',
+          `이 입고분에서 이미 ${_used}개가 나갔습니다. ${_used}개 미만으로 줄이려면 출고 기록을 먼저 정리하세요.`);
+        return;
+      }
+      if(_used>0&&_o0.branch!==br){
+        toast('e','지점 변경 불가',
+          `이 입고분에서 이미 ${_used}개가 ${_o0.branch} 에서 나갔습니다. `
+          +`지점을 옮기면 잔량이 두 지점으로 갈립니다. 출고 기록을 먼저 정리하세요.`);
+        return;
+      }
+    }
     if(r){r.branch=br;r.room=rm;r.type=document.getElementById('r-type').value;r.qty=Math.max(1,parseInt(document.getElementById('r-qty').value)||1);r.openDate=document.getElementById('r-open-date').value||'';r.urgent=urgOn;r.memo=document.getElementById('r-memo').value;}
     sv(K.R,rcs);
     // 발주 동기화
     const tmap={'신규 설치':'신규','교체(노후화)':'교체','교체(고장)':'교체','추가 설치':'추가'};
     const ors=getOr(),o=ors.find(x=>x.receiptId===eid);
-    if(o){o.branch=br;o.room=rm;o.qty=r.qty;o.type=tmap[r.type]||r.type||'신규';sv(K.O,ors);}
+    /* ★ 입고 라인은 room 이 '[재고입고]', type 이 '교체'(수선비 6055) 로 고정이다.
+       여기서 덮으면 재고가 설치 라인처럼 보이고 계정과목까지 틀어진다. 수량·지점만 따라간다. */
+    if(o&&isStkIn(o)){o.branch=br;o.qty=r.qty;sv(K.O,ors);}
+    else if(o){o.branch=br;o.room=rm;o.qty=r.qty;o.type=tmap[r.type]||r.type||'신규';sv(K.O,ors);}
     closeMo('mo-r');renderR();toast('s','수정 완료',`${br} ${rm} 접수 수정됨`);return;
   }
   function doCreate(){
@@ -3224,7 +3403,9 @@ function submitI(){
   const ors=getOr();
   const o=ors.find(x=>x.receiptId===instId);
   // 재고 출고 라인은 이미 installed:true 이고 doneDate 가 정산 인식월이다. 덮어쓰면 월이 바뀐다.
-  if(o&&!o.insOf){o.installed=true;o.doneDate=r.installDate||new Date().toISOString().substring(0,10);sv(K.O,ors);}
+  // 입고 라인(inv)은 설치가 아니다. installed/doneDate 를 찍으면 mLines 의 ② 가지를 타서
+  // 물건값이 recvDate 월과 doneDate 월에 각각 한 번씩, 두 번 잡힌다.
+  if(o&&!o.insOf&&!o.inv){o.installed=true;o.doneDate=r.installDate||new Date().toISOString().substring(0,10);sv(K.O,ors);}
   closeMo('mo-i');renderR();renderI();
   toast('s','설치 완료',`${r.branch} ${r.room} — 결제대기 상태로 전환`);
 }
@@ -3250,8 +3431,29 @@ function submitExpDate(){
   sendInstallDateDM(r,d);
 }
 // 결제완료 처리
+/* 마감된 달의 라인을 되돌리면 확정 금액이 흔들리고, 되돌린 뒤엔 가드에 막혀
+   전진도 삭제도 못 하는 상태에 갇힌다. 되돌리기 자체를 막는 게 맞다. */
+function revLocked(id){
+  const o=getOr().find(x=>x.receiptId===id);if(!o)return false;
+  const dt=isStkIn(o)?(o.recvDate||''):(o.doneDate||'');
+  if(!mLocked(dt))return false;
+  toast('e','마감된 달',`이 건은 ${dt.substring(0,7)} 마감에 들어갔습니다. 마감을 취소한 뒤 되돌리세요.`);
+  return true;
+}
 function revertToOrder(id){
   const rcs=getRc(),r=rcs.find(x=>x.id===id);if(!r||r.status!=='설치')return;
+  if(revLocked(id))return;
+  /* ★ 재고 라인은 여기서 되돌리면 안 된다. 아래 o.installed=false·o.doneDate='' 가
+     출고 라인에도 걸리는데, submitI 는 `!o.insOf` 로 출고 라인을 건너뛰므로
+     [완료 확인]을 다시 눌러도 doneDate 가 복구되지 않는다 → 설치비가 영구 소실된다.
+     재고 건의 수정은 재고 관리 화면에서 한다(발주 모달을 막아둔 것과 같은 기준). */
+  const _ro=getOr().find(x=>x.receiptId===id);
+  if(_ro&&isStkAny(_ro)){
+    toast('e','되돌릴 수 없습니다',
+      `이 접수는 재고에서 처리된 건입니다. 되돌리면 설치비 기록이 복구되지 않습니다. `
+      +`수정은 [재고 관리] 화면에서 하세요.`);
+    return;
+  }
   showCfm(CI.box,'발주로 되돌리기',`${r.branch} ${r.room}을 발주 상태로 되돌립니까?`,()=>{
     r.status='발주';r.expectedInstallDate='';r.installDate='';sv(K.R,rcs);
     const ors=getOr(),o=ors.find(x=>x.receiptId===id);
@@ -3262,6 +3464,7 @@ function revertToOrder(id){
 }
 function revertPayment(id){
   const rcs=getRc(),r=rcs.find(x=>x.id===id);if(!r||r.status!=='결제')return;
+  if(revLocked(id))return;
   showCfm(CI.box,'설치 상태로 되돌리기',`${r.branch} ${r.room}을 설치 상태로 되돌립니까?`,()=>{
     r.status='설치';r.paymentDone=false;sv(K.R,rcs);
     const ors=getOr(),o=ors.find(x=>x.receiptId===id);
@@ -3477,7 +3680,7 @@ function exportToExcel(type){
     fileName=`발주목록_${today}.xlsx`;
 
   }else if(type==='install'){
-    let list=getRc().filter(r=>['발주','설치','결제'].includes(r.status));
+    let list=getRc().filter(r=>['발주','설치','결제'].includes(r.status)&&!isStkRc(r));
     if(S.role==='user'&&S.branch&&S.branch!=='본사')list=list.filter(r=>r.branch===S.branch);
     const bv=document.getElementById('fi-b')?.value;if(bv)list=list.filter(r=>r.branch===bv);
     const sv2=document.getElementById('fi-s')?.value.toLowerCase().trim();if(sv2)list=list.filter(r=>(r.id||'').toLowerCase().includes(sv2)||(r.room||'').toLowerCase().includes(sv2)||(r.branch||'').toLowerCase().includes(sv2));
@@ -4670,13 +4873,14 @@ function renderStock(){
   if(!rows.length){tb.innerHTML=emp(9);return;}
   tb.innerHTML=rows.map(o=>{
     const inn=isStkIn(o),q=Number(o.qty)||0;
-    const amt=inn?(o.opening?0:(Number(o.price)||0)*q)
+    const pend=inn&&!o.recvDate;              // 발주는 했지만 아직 안 들어온 재고
+    const amt=inn?((o.opening||pend)?0:(Number(o.price)||0)*q)
                  :((Number(o.install)||0)+(Number(o.extra)||0))*q;
     const lockd=mLocked(dt(o));
     return `<tr>
-      <td>${dt(o)||'—'}</td>
+      <td>${dt(o)||(pend?'<span style="color:var(--text3)">입고 전</span>':'—')}</td>
       <td>${o.adj?'<span class="chip cg">실사 조정</span>'
-        :`<span class="chip ${inn?'ci':'co'}">${inn?'입고':'설치'}</span>${o.opening?'<span class="chip cg">기초</span>':''}`}</td>
+        :`<span class="chip ${inn?'ci':'co'}">${inn?'입고':'설치'}</span>${o.opening?'<span class="chip cg">기초</span>':''}${pend?'<span class="chip cg">입고대기</span>':''}`}</td>
       <td>${o.branch||'—'}</td>
       <td>${(o.adj||inn)?(o.note||'—'):(o.room||'—')}</td>
       <td class="num-r">${inn?'+':'−'}${q}</td>
@@ -4749,6 +4953,68 @@ function saveStk(){
   toast('s','입고 등록',`${br} ${q}개${op?' (기초재고)':''}`);
 }
 
+/* ── 재고 확보 접수의 입고 확인 ──
+   접수 → [발주 처리] 에서 입고 라인이 recvDate 없이 생겼고, 지금 물건이 들어왔다.
+   여기서 recvDate 를 채우는 순간 그 달 정산에 물건값이 잡히고 지점 잔량이 올라간다. */
+let recvId='';
+function openRecvMo(id){
+  const r=getRc().find(x=>x.id===id);if(!r)return;
+  const o=getOr().find(x=>x.receiptId===id&&isStkIn(x));
+  if(!o){toast('e','입고 라인 없음','이 접수의 재고 발주 라인을 찾지 못했습니다. 재고 관리 화면에서 확인하세요.');return;}
+  recvId=id;
+  document.getElementById('recv-noti').innerHTML=`<strong>${r.branch}</strong> · 접수 ${id} · 발주 ${o.qty||1}개`;
+  // 이미 입고 확인한 건을 다시 열면 그때 날짜를 보여준다(오늘로 덮으면 인식월이 조용히 바뀐다)
+  document.getElementById('recv-date').value=o.recvDate||new Date().toISOString().substring(0,10);
+  document.getElementById('recv-qty').value=o.qty||1;
+  document.getElementById('recv-price').value=o.price||132000;
+  document.getElementById('recv-vendor').value=o.vendor||'(주)솔리티';
+  document.getElementById('recv-invno').value=o.invNo||'';
+  calcRecv();openMo('mo-recv');
+}
+function calcRecv(){
+  const q=parseInt(document.getElementById('recv-qty').value)||0;
+  const p=parseInt(document.getElementById('recv-price').value)||0;
+  const el=document.getElementById('recv-sum');if(!el)return;
+  el.innerHTML=`물건값 <strong>${(p*q).toLocaleString()}원</strong> (${p.toLocaleString()} × ${q})<br>
+    <span style="color:var(--text3);font-size:12px">지점 재고 <strong>+${q}개</strong>. 설치비·자재비는 실제로 객실에 달 때 그 달에 잡힙니다.</span>`;
+}
+function submitRecv(){
+  const d=document.getElementById('recv-date').value;
+  const q=parseInt(document.getElementById('recv-qty').value)||0;
+  if(!d||q<1){toast('e','입력 오류','입고일과 수량은 필수입니다.');return;}
+  const _y=new Date().getFullYear(), _dy=Number(d.substring(0,4));
+  if(!(_dy>=_y-2&&_dy<=_y+1)){toast('e','입고일 확인',`입고일 ${d} 의 연도를 확인하세요.`);return;}
+  if(mLocked(d)){toast('e','마감된 달',`${d.substring(0,7)} 는 이미 마감됐습니다. 마감을 취소하거나 다른 날짜를 쓰세요.`);return;}
+  const rcs=getRc(),r=rcs.find(x=>x.id===recvId);if(!r)return;
+  const ors=getOr(),o=ors.find(x=>x.receiptId===recvId&&isStkIn(x));
+  if(!o){toast('e','입고 라인 없음','재고 관리 화면에서 확인하세요.');return;}
+  /* ★ 새 날짜만 보면 안 된다. 이 라인이 '지금 속해 있는 달'이 마감됐다면
+     날짜를 옮기는 순간 확정된 마감 금액에서 물건값이 빠져나간다(mFp/mDrift 파손).
+     saveOrder 가 수정 전·후 양쪽을 보는 것과 같은 이유다. */
+  if(o.recvDate&&mLocked(o.recvDate)){
+    toast('e','마감된 달',
+      `이 입고는 ${String(o.recvDate).substring(0,7)} 마감에 이미 들어갔습니다. `
+      +`마감을 취소한 뒤 수정하세요.`);
+    return;
+  }
+  // 이미 이 입고분에서 나간 만큼은 줄일 수 없다(잔량이 음수가 된다) — delStk 와 같은 기준
+  if(q<oUsed(o.id)){
+    toast('e','수량 축소 불가',`이 입고분에서 이미 ${oUsed(o.id)}개가 나갔습니다. 출고 기록을 먼저 정리하세요.`);
+    return;
+  }
+  o.recvDate=d;
+  o.qty=q;
+  o.price=parseInt(document.getElementById('recv-price').value)||0;
+  o.vendor=document.getElementById('recv-vendor').value||'(주)솔리티';
+  o.invNo=document.getElementById('recv-invno').value||'';
+  sv(K.O,ors);
+  r.qty=q;r.recvDate=d;r.status='결제';r.paymentDone=false;
+  sv(K.R,rcs);
+  logAudit('재고입고',`${r.branch} (${recvId})`,`${q}개 · 입고일 ${d} · ${(o.price*q).toLocaleString()}원`);
+  closeMo('mo-recv');renderR();renderI();
+  toast('s','입고 확인',`${r.branch} 재고 +${q}개 — 결제대기 상태로 전환`);
+}
+
 /* ── 출고(설치) ── */
 function openOutMo(){
   stkBrOpts('out-branch',document.getElementById('fstk-b')?.value||'');
@@ -4763,7 +5029,10 @@ function openOutMo(){
 function outRcList(br){
   if(!br)return [];
   const linked=new Set(getOr().filter(o=>o.insOf&&o.receiptId).map(o=>o.receiptId));
-  return getRc().filter(r=>r.branch===br&&r.status!=='결제'&&!linked.has(r.id))
+  /* ★ 재고 확보 접수는 설치 요청이 아니라 '창고에 쌓을 물건' 신청이다.
+     여기 연결하면 아래 dupe 로직이 그 접수의 입고 라인을 '정가 발주'로 오인해 지운다
+     → 물건값이 영구 소실되고 insOf 가 고아가 되어 잔량이 음수가 된다. */
+  return getRc().filter(r=>r.branch===br&&r.status!=='결제'&&!isStkRc(r)&&!linked.has(r.id))
                 .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
 }
 function onOutReceipt(){
@@ -4823,8 +5092,17 @@ function saveOut(){
   if(mLocked(d)){toast('e','마감된 달',`${d.substring(0,7)} 는 이미 마감됐습니다.`);return;}
   /* 출고 라인은 insOf 가 반드시 있어야 한다. 비어 있으면 isStkOut 이 false 가 되어
      legacy 발주로 취급되고, 재고 화면에도 안 뜨고 잔량도 안 깎인다. */
-  const ins=getStkIn().filter(o=>o.branch===br).sort((a,b)=>(a.recvDate||'').localeCompare(b.recvDate||''));
-  if(!ins.length){toast('e','입고 기록 없음',`${br} 에 재고 입고 기록이 없습니다. 먼저 [+ 재고 입고]로 등록하세요.`);return;}
+  // ★ recvDate 없는 라인 = 발주만 하고 아직 안 들어온 물건. 출고 출처가 될 수 없다(stkBal 과 같은 기준).
+  const ins=getStkIn().filter(o=>o.branch===br&&o.recvDate).sort((a,b)=>(a.recvDate||'').localeCompare(b.recvDate||''));
+  if(!ins.length){
+    // 발주는 됐는데 입고 확인만 안 된 경우 [+ 재고 입고]로 또 등록하면 물건값이 두 번 잡힌다
+    const _pend=getStkIn().filter(o=>o.branch===br&&!o.recvDate).reduce((n,o)=>n+(Number(o.qty)||0),0);
+    toast('e',_pend>0?'입고 확인 전':'입고 기록 없음',_pend>0
+      ?`${br} 에 발주된 재고 ${_pend}개가 아직 입고 확인 전입니다. 접수 화면에서 [📦 입고 확인]을 먼저 하세요. `
+       +`여기서 [+ 재고 입고]로 또 등록하면 물건값이 두 번 잡힙니다.`
+      :`${br} 에 재고 입고 기록이 없습니다. 먼저 [+ 재고 입고]로 등록하세요.`);
+    return;
+  }
   const src=ins.find(o=>oLeft(o)>0)||ins[ins.length-1];   // 오래된 입고분부터
   // 모달을 열어둔 사이 다른 사람이 빼갔을 수 있다(30초 동기화). 막지는 않고 알리기만 한다 —
   // 막으면 현장이 설치를 못 올려 정산이 더 늦어진다.
@@ -4870,7 +5148,8 @@ function saveOut(){
   /* 연결하려는 접수에 이미 정가 발주가 있으면 그대로 두면 이중계상이다
      (발주 132,000+55,000+자재 + 출고 설치비). 접수를 [발주 처리] 한 뒤 뒤늦게
      재고로 처리하는 순서가 오히려 자연스럽기 때문에 반드시 걸러야 한다. */
-  const dupe=rcId?getOr().find(o=>o.receiptId===rcId&&!o.insOf):null;
+  /* !isStkIn — 입고 라인은 '중복 정가 발주'가 아니다. 지우면 안 된다(이중 방어). */
+  const dupe=rcId?getOr().find(o=>o.receiptId===rcId&&!o.insOf&&!isStkIn(o)):null;
   const openRc=rcId?[]:outRcList(br).filter(r=>String(r.room||'').trim()===rm);
   const ask=(msg,next)=>showCfm('⚠️','확인',msg,next);
   const step2=()=>{
@@ -4959,7 +5238,8 @@ function saveAdj(){
         made++;
       }else{
         // 실물이 더 적다 → 출고 조정. insOf 가 있어야 출고 라인으로 인식된다.
-        const src=getStkIn().filter(o=>o.branch===br).sort((a,b)=>(a.recvDate||'').localeCompare(b.recvDate||''))[0];
+        // 아직 안 들어온 라인은 출처가 될 수 없다(stkBal·saveOut 과 같은 기준)
+        const src=getStkIn().filter(o=>o.branch===br&&o.recvDate).sort((a,b)=>(a.recvDate||'').localeCompare(b.recvDate||''))[0];
         if(!src){toast('e','조정 불가',`${br} 에 입고 기록이 없어 감소 조정을 만들 수 없습니다.`);return;}
         ors.push({id:newOid(),receiptId:'',branch:br,room:'[실사조정]',qty:-df,type:'교체',
           price:0,install:0,extra:0,orderDate:d,openDate:'',doneDate:d,
@@ -4981,11 +5261,14 @@ function saveAdj(){
 }
 function delStk(id){
   const o=getOr().find(x=>x.id===id);if(!o)return;
-  const dt=isStkIn(o)?(o.recvDate||''):(o.doneDate||'');
-  if(mLocked(dt)){toast('e','마감된 달','마감된 달의 기록은 삭제할 수 없습니다.');return;}
-  if(isStkIn(o)&&oUsed(o.id)>0){toast('e','삭제 불가',`이 입고분에서 이미 ${oUsed(o.id)}개가 나갔습니다. 출고 기록을 먼저 지우세요.`);return;}
+  const dt=isStkIn(o)?(o.recvDate||''):(o.doneDate||'');   // 감사로그 표시용
+  const _blk=delBlockReason(o);
+  if(_blk){toast('e','삭제 불가',_blk);return;}
   showCfm(CI.trash,'재고 기록 삭제',`${o.branch} ${isStkIn(o)?'입고':'설치'} ${o.qty}개 기록을 삭제할까요?`,()=>{
     markDel(K.O,id);                                  // 툼스톤 — 안 찍으면 30초 뒤 되살아난다
+    /* 접수에서 생긴 재고 라인이면 재생성도 막는다. 안 막으면 이 접수가 '발주/결제' 상태로
+       남아 있다가 repairOrders 가 설치비 붙은 정가 발주로 되살린다(deleteO 와 같은 기준). */
+    if(o.receiptId)markDel(TS_NOREPAIR,o.receiptId);
     sv(K.O,getOr().filter(x=>x.id!==id));
     logAudit('재고삭제',o.branch,`${isStkIn(o)?'입고':'설치'} ${o.qty}개 (${dt})`);
     renderStock();toast('s','삭제 완료','재고 기록이 삭제되었습니다.');
