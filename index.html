@@ -712,6 +712,24 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <div class="pb" style="padding-top:4px;font-size:11px;color:var(--text3)">※ 직방·H2O: 운영실수 기준 / 더엠알: 건물 전체 객실 기준 / 부가세 10% 자동 계산</div>
         </div>
         <!-- 항목 입력 -->
+        <!-- 자동 불러오기 (솔리티 + duck) -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt">⚡ 자동 불러오기</span>
+            <span style="font-size:11px;color:var(--text3)">솔리티 등록 객실을 빼서 직방·H2O 실수를 계산합니다 · 엑셀 불필요</span></div>
+          <div class="pb">
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <label style="font-size:11px;font-weight:600;color:var(--text2)">반영할 청구월</label>
+                <input class="fi" id="auto-month" type="month" style="width:140px">
+              </div>
+              <button class="btn bp" onclick="svcAutoFetch(false)">불러오기</button>
+              <button class="btn bo" onclick="svcAutoFetch(true)" title="캐시를 무시하고 솔리티·duck 을 새로 조회합니다">지금 새로 조회</button>
+              <span style="font-size:12px;color:var(--text3)" id="auto-status">지점 객실 수(duck)와 솔리티 등록 객실을 가져옵니다.</span>
+            </div>
+            <div id="auto-preview" style="margin-top:14px"></div>
+          </div>
+        </div>
+
         <!-- YOLO 도어락 목록 업로드 -->
         <div class="panel" style="margin-bottom:16px">
           <div class="ph"><span class="pt">📥 YOLO 도어락 목록 올리기</span>
@@ -3593,6 +3611,172 @@ async function doRestoreBackup(data,keys){
 const SVC_BRANDS=['직방','H2O','더엠알'];
 const SVC_DEF_PRICES={'직방':2000,'H2O':3000,'더엠알':3000};
 function getSvc(){return ld(K.SV,{brandPrices:{...SVC_DEF_PRICES},records:[]});}
+
+/* ══════════ 자동 불러오기 (솔리티 + duck) ══════════
+   산식: 직방·H2O 실수 = duck 판매객실 − 솔리티 등록 객실.
+   YOLO 는 지점별로만 내려받을 수 있어 파일이 여러 개인데, 솔리티는 한 번에 전 지점을 준다.
+   그래서 이쪽이 주 경로이고 엑셀 업로드는 대안·교차검증용으로 남겨둔다.
+
+   자격증명은 Supabase Edge Function 시크릿에만 있다 — 이 정적 HTML 은 솔리티를
+   직접 부를 수 없고(공개 저장소·CORS) 불러서도 안 된다. 게이트웨이가 대신 부른다. */
+let AUTO={rows:[],updatedAt:'',solitiAt:'',err:''};
+const SVC_NONE='_없음';
+function svcBranchBrand(name){
+  const d=getSvc();
+  return (d.branchBrand||{})[name]||'';
+}
+function svcSetBranchBrand(name,brand){
+  const d=getSvc();
+  d.branchBrand=d.branchBrand||{};
+  if(brand)d.branchBrand[name]=brand; else delete d.branchBrand[name];
+  saveSvc(d);svcAutoPreview();
+}
+/* 지점 email 의 @ 앞이 솔리티 계정 id 다 (가평 urbanstay_33@handys.co.kr ↔ solitiEmailId urbanstay_33).
+   29개 지점이 모두 같은 형식이라 별도 매핑표를 만들 필요가 없다. */
+const svcSolitiId=b=>String(b&&b.email||'').split('@')[0].trim();
+
+async function svcAutoFetch(force){
+  const st=document.getElementById('auto-status');
+  const mInp=document.getElementById('auto-month');
+  if(!mInp.value)mInp.value=(document.getElementById('svc-inp-month')?.value)||new Date().toISOString().substring(0,7);
+  AUTO={rows:[],updatedAt:'',solitiAt:'',err:''};
+  try{
+    st.textContent='지점 객실 수(duck) 가져오는 중...';
+    const duck=await kvFn('duck_rooms',force?{force:true}:{});
+    if(!duck)throw new Error('로그인이 필요합니다');
+    await syncDuckRooms();                     // kv → 지점 마스터(b.rooms) 반영
+    AUTO.updatedAt=duck.updatedAt||'';
+
+    st.textContent='솔리티 등록 객실 가져오는 중... (30여 회 조회라 10~20초 걸립니다)';
+    const sol=await kvFn('soliti_rooms',force?{force:true}:{});
+    if(!sol)throw new Error('로그인이 필요합니다');
+    if(sol.error&&!sol.accounts)throw new Error(sol.error==='secret_missing'
+      ?'솔리티 계정이 등록되지 않았습니다 (Supabase 시크릿 SOLITI_ID/SOLITI_PW 확인)'
+      :String(sol.error));
+    AUTO.solitiAt=sol.updatedAt||'';
+    const acc=sol.accounts||{};
+
+    AUTO.rows=getActiveBr().map(b=>{
+      const sid=svcSolitiId(b);
+      const solRooms=Array.isArray(acc[sid])?acc[sid]:null;
+      const total=Number(b.rooms)||0;
+      const soliti=solRooms?solRooms.length:0;
+      /* ★ brand 는 여기 박아두지 않는다. 지정은 K.SV 에 저장되므로 화면·반영 모두
+         그때그때 svcBranchBrand() 로 읽는다. 스냅샷에 넣으면 지정해도 표가 안 바뀐다. */
+      return{branch:b.name,solitiId:sid,total,soliti,
+             target:Math.max(0,total-soliti),
+             noAccount:!solRooms};
+    }).filter(r=>r.total>0||r.soliti>0);
+    st.textContent=`duck ${(AUTO.updatedAt||'').substring(0,16).replace('T',' ')} · 솔리티 ${(AUTO.solitiAt||'').substring(0,16).replace('T',' ')}`
+      +(sol.stale?' · ⚠ 솔리티 조회 실패로 이전 값 사용':'');
+  }catch(e){
+    AUTO.err=String(e&&e.message||e);
+    st.textContent='실패: '+AUTO.err;
+  }
+  svcAutoPreview();
+}
+
+function svcAutoPreview(){
+  const el=document.getElementById('auto-preview');if(!el)return;
+  el.innerHTML='';
+  if(AUTO.err){
+    const d=document.createElement('div');
+    d.style.cssText='color:#dc2626;font-size:12.5px';d.textContent=AUTO.err;
+    el.appendChild(d);return;
+  }
+  if(!AUTO.rows.length)return;
+  const mv=document.getElementById('auto-month').value||'';
+  const cur=getSvc().records.filter(r=>r.month===mv);
+  const prices=getSvc().brandPrices||SVC_DEF_PRICES;
+
+  const tw=document.createElement('div');
+  tw.style.cssText='overflow-x:auto';
+  const tb=document.createElement('table');tb.className='tbl';
+  tb.innerHTML=`<thead><tr><th>지점</th><th>브랜드</th>
+    <th class="num-r">판매객실(duck)</th><th class="num-r">솔리티</th>
+    <th class="num-r">요금대상</th><th class="num-r">현재입력</th><th class="num-r">차이</th></tr></thead>`;
+  const body=document.createElement('tbody');
+  let money=0, unset=0;
+  AUTO.rows.forEach(r=>{
+    const tr=document.createElement('tr');
+    const td=(txt,cls,style)=>{const c=document.createElement('td');
+      if(cls)c.className=cls; if(style)c.style.cssText=style; c.textContent=txt; return c;};
+    tr.appendChild(td(r.branch + (r.noAccount?' ⚠':''),'',r.noAccount?'color:var(--text3)':''));
+    // 브랜드 지정
+    const bc=document.createElement('td');
+    const sel=document.createElement('select');
+    sel.className='fsel';sel.style.cssText='width:120px;padding:3px 6px;height:auto;font-size:12px';
+    [['','— 지정 —'],['직방','직방'],['H2O','H2O'],['더엠알','더엠알'],[SVC_NONE,'대상 아님']]
+      .forEach(([v,t])=>sel.appendChild(new Option(t,v)));
+    const rBrand=svcBranchBrand(r.branch);   // 저장소에서 매번 읽는다
+    sel.value=rBrand||'';
+    sel.addEventListener('change',()=>svcSetBranchBrand(r.branch,sel.value));
+    bc.appendChild(sel);tr.appendChild(bc);
+    tr.appendChild(td(String(r.total),'num-r'));
+    tr.appendChild(td(r.noAccount?'—':String(r.soliti),'num-r'));
+    tr.appendChild(td(String(r.target),'num-r'));
+    const billable=rBrand&&rBrand!==SVC_NONE;
+    const now=billable?cur.filter(x=>x.branch===r.branch&&x.brand===rBrand).reduce((s,x)=>s+(Number(x.rooms)||0),0):0;
+    tr.appendChild(td(billable?(now||'—').toString():'—','num-r','color:var(--text3)'));
+    const diff=billable?r.target-now:0;
+    tr.appendChild(td(billable?(diff>0?'+':'')+diff:'—','num-r',
+      `font-weight:700;color:${diff===0?'var(--text3)':(diff<0?'var(--green)':'#dc2626')}`));
+    if(billable)money+=diff*(prices[rBrand]||SVC_DEF_PRICES[rBrand]||0);
+    if(!rBrand)unset++;
+    body.appendChild(tr);
+  });
+  tb.appendChild(body);tw.appendChild(tb);el.appendChild(tw);
+
+  const foot=document.createElement('div');
+  foot.style.cssText='margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap';
+  const btn=document.createElement('button');
+  btn.className='btn bp';btn.textContent=`${mv||'월 선택'} 청구 항목에 반영`;
+  btn.addEventListener('click',svcApplyAuto);
+  foot.appendChild(btn);
+  const note=document.createElement('span');
+  note.style.cssText='font-size:12.5px;color:var(--text2)';
+  note.textContent=unset
+    ? `브랜드를 지정하지 않은 지점이 ${unset}곳 있습니다 — 지정한 지점만 반영됩니다.`
+    : `반영하면 월 요금이 ${money>0?'+':''}${money.toLocaleString()}원 달라집니다 (부가세 별도).`;
+  foot.appendChild(note);
+  el.appendChild(foot);
+
+  if(AUTO.rows.some(r=>r.noAccount)){
+    const w=document.createElement('div');
+    w.style.cssText='margin-top:8px;font-size:12px;color:var(--text3)';
+    w.textContent='⚠ 표시된 지점은 솔리티에 해당 계정이 없어 솔리티 0실로 계산됩니다. '
+      +'지점 관리의 이메일이 솔리티 계정과 맞는지 확인하세요.';
+    el.appendChild(w);
+  }
+}
+
+function svcApplyAuto(){
+  const mv=document.getElementById('auto-month').value;
+  if(!mv){toast('e','오류','반영할 청구월을 선택하세요.');return;}
+  const use=AUTO.rows.map(r=>({...r,brand:svcBranchBrand(r.branch)}))
+                     .filter(r=>r.brand&&r.brand!==SVC_NONE&&r.target>0);
+  if(!use.length){toast('e','반영할 항목 없음','브랜드를 지정한 지점이 없습니다.');return;}
+  const d=getSvc();
+  showCfm('⚡','자동 반영',
+    `${mv} 서비스요금을 솔리티·duck 기준으로 덮어씁니다. 대상 ${use.length}개 지점 — `
+    +`${use.slice(0,4).map(r=>`${r.branch} ${r.brand} ${r.target}실`).join(', ')}`
+    +`${use.length>4?` 외 ${use.length-4}곳`:''}. 진행할까요?`,
+    ()=>{
+      const keys=new Set(use.map(r=>r.branch+'|'+r.brand));
+      const keep=d.records.filter(r=>!(r.month===mv&&keys.has(r.branch+'|'+r.brand)));
+      let nid=keep.length>0?Math.max(...keep.map(r=>Number(r.id)||0))+1:1;
+      use.forEach(r=>{
+        keep.push({id:nid++,month:mv,branch:r.branch,brand:r.brand,rooms:r.target,
+          unitPrice:d.brandPrices[r.brand]||SVC_DEF_PRICES[r.brand]||0,
+          note:`자동 반영 · duck ${r.total}실 − 솔리티 ${r.soliti}실`,
+          createdAt:new Date().toISOString()});
+      });
+      d.records=keep;saveSvc(d);
+      logAudit('서비스요금 자동반영',mv,use.map(r=>`${r.branch} ${r.brand} ${r.target}실`).join(', '));
+      renderSvc();svcAutoPreview();
+      toast('s','반영 완료',`${mv} · ${use.length}개 지점 갱신되었습니다.`);
+    });
+}
 
 /* ══════════ YOLO 통합 도어락 목록 업로드 ══════════
    YOLO 는 지점별로만 내려받을 수 있어 파일이 여러 개 온다. 그래서 다중 선택을 받고,
