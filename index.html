@@ -3803,7 +3803,8 @@ function yoBrandOf(raw){
   const d=getSvc(), al=d.brandAlias||{}, k=yoNorm(raw);
   if(k in al)return al[k];
   if(k.includes('직방')||k.includes('zipbang')||k.includes('zigbang'))return '직방';
-  if(k.includes('h2o')||k.includes('에이치투오'))return 'H2O';
+  // imgate = H2O 의 YOLO 표기 (2026-09-16 Jayden 확인). 실제 파일에서 가장 많이 나온다
+  if(k.includes('h2o')||k.includes('에이치투오')||k.includes('imgate')||k.includes('아이엠게이트'))return 'H2O';
   if(k.includes('더엠알')||k.includes('엠알'))return '더엠알';
   if(k.includes('솔리티')||k.includes('solity'))return '_없음';   // 서비스요금 대상 아님
   if(k.includes('헤이홈')||k.includes('heyhome'))return '_없음';
