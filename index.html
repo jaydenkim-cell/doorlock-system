@@ -3622,7 +3622,7 @@ function getSvc(){return ld(K.SV,{brandPrices:{...SVC_DEF_PRICES},records:[]});}
 
    자격증명은 Supabase Edge Function 시크릿에만 있다 — 이 정적 HTML 은 솔리티를
    직접 부를 수 없고(공개 저장소·CORS) 불러서도 안 된다. 게이트웨이가 대신 부른다. */
-let AUTO={rows:[],updatedAt:'',solitiAt:'',err:''};
+let AUTO={rows:[],updatedAt:'',solitiAt:'',err:'',orphan:[]};
 let svcShowAll=false;                 // 기본은 요금 대상 지점만 — 29곳 전부 보면 고를 게 없다
 const SVC_NONE='_없음';
 
@@ -3646,13 +3646,29 @@ function svcSetBranchBrand(name,brand){
 }
 /* 지점 email 의 @ 앞이 솔리티 계정 id 다 (가평 urbanstay_33@handys.co.kr ↔ solitiEmailId urbanstay_33).
    29개 지점이 모두 같은 형식이라 별도 매핑표를 만들 필요가 없다. */
-const svcSolitiId=b=>String(b&&b.email||'').split('@')[0].trim();
+const svcSolitiId=b=>String(b&&b.email||'').split('@')[0].trim().toLowerCase();
+
+/* 솔리티 계정 id 형식이 계정마다 다르다 — 대부분 'urbanstay_02' 인데
+   'urbanstay_18@handys.co.kr' 처럼 전체 이메일인 것이 섞여 있다(실측: 웨이브파크점).
+   그대로 비교하면 그 지점만 '계정 없음'이 되어 솔리티 2실이 요금 대상에 그대로 남는다.
+   양쪽 다 @ 앞만 떼어 소문자로 맞춘다. 개인 계정(jayden.kim 등)은 어느 지점과도
+   안 맞아 자연히 빠지고, 같은 id 가 두 형식으로 있으면 객실을 합친다. */
+function svcSolitiMap(accounts){
+  const m=new Map();
+  Object.entries(accounts||{}).forEach(([k,v])=>{
+    const id=String(k).split('@')[0].trim().toLowerCase();
+    if(!id)return;
+    const rooms=Array.isArray(v)?v:[];
+    m.set(id,(m.get(id)||[]).concat(rooms));
+  });
+  return m;
+}
 
 async function svcAutoFetch(force){
   const st=document.getElementById('auto-status');
   const mInp=document.getElementById('auto-month');
   if(!mInp.value)mInp.value=(document.getElementById('svc-inp-month')?.value)||new Date().toISOString().substring(0,7);
-  AUTO={rows:[],updatedAt:'',solitiAt:'',err:''};
+  AUTO={rows:[],updatedAt:'',solitiAt:'',err:'',orphan:[]};
   try{
     st.textContent='지점 객실 수(duck) 가져오는 중...';
     const duck=await kvFn('duck_rooms',force?{force:true}:{});
@@ -3667,11 +3683,13 @@ async function svcAutoFetch(force){
       ?'솔리티 계정이 등록되지 않았습니다 (Supabase 시크릿 SOLITI_ID/SOLITI_PW 확인)'
       :String(sol.error));
     AUTO.solitiAt=sol.updatedAt||'';
-    const acc=sol.accounts||{};
+    const accMap=svcSolitiMap(sol.accounts);
+    const usedIds=new Set();
 
     AUTO.rows=getActiveBr().map(b=>{
       const sid=svcSolitiId(b);
-      const solRooms=Array.isArray(acc[sid])?acc[sid]:null;
+      const solRooms=accMap.has(sid)?accMap.get(sid):null;
+      if(solRooms)usedIds.add(sid);
       const total=Number(b.rooms)||0;
       const soliti=solRooms?solRooms.length:0;
       /* ★ brand 는 여기 박아두지 않는다. 지정은 K.SV 에 저장되므로 화면·반영 모두
@@ -3686,6 +3704,8 @@ async function svcAutoFetch(force){
       const b=svcBranchBrand(r.branch);
       return r.total>0||r.soliti>0||(b&&b!==SVC_NONE);
     });
+    AUTO.orphan=[...accMap].filter(([id,r])=>r.length>0&&!usedIds.has(id))
+                           .map(([id,r])=>`${id} (${r.length}실)`);
     st.textContent=`duck ${(AUTO.updatedAt||'').substring(0,16).replace('T',' ')} · 솔리티 ${(AUTO.solitiAt||'').substring(0,16).replace('T',' ')}`
       +(sol.stale?' · ⚠ 솔리티 조회 실패로 이전 값 사용':'');
   }catch(e){
@@ -3810,6 +3830,13 @@ function svcAutoPreview(){
     w.textContent=`duck 에서 객실 수를 못 찾은 지점 ${noDucks.length}곳 — `
       +`${noDucks.map(r=>r.branch).join(', ')}. 지점명이 duck 과 다르면 DUCK_NAME_MAP 매핑이 필요합니다. `
       +`이대로 반영하면 그 지점 요금이 0원이 됩니다.`;
+    el.appendChild(w);
+  }
+  if(AUTO.orphan&&AUTO.orphan.length){
+    const w=document.createElement('div');
+    w.style.cssText='margin-top:8px;font-size:12px;color:var(--text3)';
+    w.textContent='어느 지점과도 연결되지 않은 솔리티 계정: '+AUTO.orphan.join(', ')
+      +'. 지점 계정이면 지점 관리의 이메일을 맞춰주세요 (개인·테스트 계정이면 무시).';
     el.appendChild(w);
   }
   if(shown.some(r=>r.noAccount)){
