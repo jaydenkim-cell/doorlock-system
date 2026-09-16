@@ -3620,10 +3620,20 @@ function getSvc(){return ld(K.SV,{brandPrices:{...SVC_DEF_PRICES},records:[]});}
    자격증명은 Supabase Edge Function 시크릿에만 있다 — 이 정적 HTML 은 솔리티를
    직접 부를 수 없고(공개 저장소·CORS) 불러서도 안 된다. 게이트웨이가 대신 부른다. */
 let AUTO={rows:[],updatedAt:'',solitiAt:'',err:''};
+let svcShowAll=false;                 // 기본은 요금 대상 지점만 — 29곳 전부 보면 고를 게 없다
 const SVC_NONE='_없음';
+
+/* 서비스요금을 내는 지점과 브랜드 (2026-09-16 Jayden 확인).
+   솔리티 지점은 서비스요금이 없으므로 대상이 아니다 — 솔리티 전환의 목적이 이 요금 제거다.
+   화면에서 바꾸면 K.SV.branchBrand 의 값이 이 기본값을 이긴다(새 지점·전환 완료 대응). */
+const SVC_BRAND_DEFAULT={
+  '웨이브파크점':'직방','속초자이엘라더비치':'직방','제주공항점':'직방','양양브라운스톤':'직방',
+  '스타즈울산점':'H2O','부산역점':'H2O','강남예전시그니티점':'H2O','부티크익선점':'H2O','속초등대해변점':'H2O',
+};
 function svcBranchBrand(name){
-  const d=getSvc();
-  return (d.branchBrand||{})[name]||'';
+  const m=getSvc().branchBrand||{};
+  if(name in m)return m[name];         // 사람이 지정한 값이 언제나 우선
+  return SVC_BRAND_DEFAULT[name]||'';
 }
 function svcSetBranchBrand(name,brand){
   const d=getSvc();
@@ -3666,7 +3676,13 @@ async function svcAutoFetch(force){
       return{branch:b.name,solitiId:sid,total,soliti,
              target:Math.max(0,total-soliti),
              noAccount:!solRooms};
-    }).filter(r=>r.total>0||r.soliti>0);
+    /* ★ 요금 대상으로 지정된 지점은 duck 실수가 0이어도 남긴다.
+       빼버리면 duck 이름이 안 맞아 못 찾은 지점이 조용히 사라지고, 그 지점 요금이
+       통째로 빠지는데 화면에는 아무 표시가 없다. 0실인 이유를 보여주는 편이 낫다. */
+    }).filter(r=>{
+      const b=svcBranchBrand(r.branch);
+      return r.total>0||r.soliti>0||(b&&b!==SVC_NONE);
+    });
     st.textContent=`duck ${(AUTO.updatedAt||'').substring(0,16).replace('T',' ')} · 솔리티 ${(AUTO.solitiAt||'').substring(0,16).replace('T',' ')}`
       +(sol.stale?' · ⚠ 솔리티 조회 실패로 이전 값 사용':'');
   }catch(e){
@@ -3689,6 +3705,16 @@ function svcAutoPreview(){
   const cur=getSvc().records.filter(r=>r.month===mv);
   const prices=getSvc().brandPrices||SVC_DEF_PRICES;
 
+  /* 기본은 과금 대상만 보여준다. 솔리티 전용 지점까지 29줄을 늘어놓으면
+     정작 봐야 할 9줄이 묻힌다. 새 지점을 지정하려면 토글로 전체를 연다. */
+  const shown=svcShowAll?AUTO.rows
+    :AUTO.rows.filter(r=>{const b=svcBranchBrand(r.branch);return b&&b!==SVC_NONE;});
+  if(!shown.length&&!svcShowAll){
+    const d=document.createElement('div');
+    d.style.cssText='font-size:13px;color:var(--text3);margin-bottom:10px';
+    d.textContent='요금 대상으로 지정된 지점이 없습니다. [전체 지점 보기]에서 브랜드를 지정하세요.';
+    el.appendChild(d);
+  }
   const tw=document.createElement('div');
   tw.style.cssText='overflow-x:auto';
   const tb=document.createElement('table');tb.className='tbl';
@@ -3697,11 +3723,12 @@ function svcAutoPreview(){
     <th class="num-r">요금대상</th><th class="num-r">현재입력</th><th class="num-r">차이</th></tr></thead>`;
   const body=document.createElement('tbody');
   let money=0, unset=0;
-  AUTO.rows.forEach(r=>{
+  shown.forEach(r=>{
     const tr=document.createElement('tr');
     const td=(txt,cls,style)=>{const c=document.createElement('td');
       if(cls)c.className=cls; if(style)c.style.cssText=style; c.textContent=txt; return c;};
-    tr.appendChild(td(r.branch + (r.noAccount?' ⚠':''),'',r.noAccount?'color:var(--text3)':''));
+    const noDuck=r.total===0;
+    tr.appendChild(td(r.branch,'',noDuck?'color:#dc2626;font-weight:600':''));
     // 브랜드 지정
     const bc=document.createElement('td');
     const sel=document.createElement('select');
@@ -3712,8 +3739,10 @@ function svcAutoPreview(){
     sel.value=rBrand||'';
     sel.addEventListener('change',()=>svcSetBranchBrand(r.branch,sel.value));
     bc.appendChild(sel);tr.appendChild(bc);
-    tr.appendChild(td(String(r.total),'num-r'));
-    tr.appendChild(td(r.noAccount?'—':String(r.soliti),'num-r'));
+    tr.appendChild(td(noDuck?'못 찾음':String(r.total),'num-r',
+      noDuck?'color:#dc2626;font-weight:700':''));
+    tr.appendChild(td(r.noAccount?'계정 없음':String(r.soliti),'num-r',
+      r.noAccount?'color:var(--text3);font-size:11.5px':''));
     tr.appendChild(td(String(r.target),'num-r'));
     const billable=rBrand&&rBrand!==SVC_NONE;
     const now=billable?cur.filter(x=>x.branch===r.branch&&x.brand===rBrand).reduce((s,x)=>s+(Number(x.rooms)||0),0):0;
@@ -3733,19 +3762,33 @@ function svcAutoPreview(){
   btn.className='btn bp';btn.textContent=`${mv||'월 선택'} 청구 항목에 반영`;
   btn.addEventListener('click',svcApplyAuto);
   foot.appendChild(btn);
+  const tog=document.createElement('button');
+  tog.className='btn bo';
+  tog.textContent=svcShowAll?`요금 대상만 보기`:`전체 지점 보기 (${AUTO.rows.length}곳)`;
+  tog.addEventListener('click',()=>{svcShowAll=!svcShowAll;svcAutoPreview();});
+  foot.appendChild(tog);
   const note=document.createElement('span');
   note.style.cssText='font-size:12.5px;color:var(--text2)';
-  note.textContent=unset
+  note.textContent=(svcShowAll&&unset)
     ? `브랜드를 지정하지 않은 지점이 ${unset}곳 있습니다 — 지정한 지점만 반영됩니다.`
     : `반영하면 월 요금이 ${money>0?'+':''}${money.toLocaleString()}원 달라집니다 (부가세 별도).`;
   foot.appendChild(note);
   el.appendChild(foot);
 
-  if(AUTO.rows.some(r=>r.noAccount)){
+  const noDucks=shown.filter(r=>r.total===0);
+  if(noDucks.length){
     const w=document.createElement('div');
-    w.style.cssText='margin-top:8px;font-size:12px;color:var(--text3)';
-    w.textContent='⚠ 표시된 지점은 솔리티에 해당 계정이 없어 솔리티 0실로 계산됩니다. '
-      +'지점 관리의 이메일이 솔리티 계정과 맞는지 확인하세요.';
+    w.style.cssText='margin-top:8px;font-size:12.5px;color:#dc2626;font-weight:600';
+    w.textContent=`duck 에서 객실 수를 못 찾은 지점 ${noDucks.length}곳 — `
+      +`${noDucks.map(r=>r.branch).join(', ')}. 지점명이 duck 과 다르면 DUCK_NAME_MAP 매핑이 필요합니다. `
+      +`이대로 반영하면 그 지점 요금이 0원이 됩니다.`;
+    el.appendChild(w);
+  }
+  if(shown.some(r=>r.noAccount)){
+    const w=document.createElement('div');
+    w.style.cssText='margin-top:6px;font-size:12px;color:var(--text3)';
+    w.textContent='‘계정 없음’은 솔리티에 그 지점 계정이 없다는 뜻이고, 솔리티 0실로 계산됩니다. '
+      +'솔리티 도어락이 한 대도 없는 지점이면 정상입니다. 있는데 0으로 나오면 지점 관리의 이메일을 확인하세요.';
     el.appendChild(w);
   }
 }
@@ -3753,8 +3796,10 @@ function svcAutoPreview(){
 function svcApplyAuto(){
   const mv=document.getElementById('auto-month').value;
   if(!mv){toast('e','오류','반영할 청구월을 선택하세요.');return;}
+  /* duck 실수를 못 찾은 지점(total 0)은 반영하지 않는다 — 0실로 덮어쓰면
+     그 지점 요금이 사라지고, 다음 달 대사에서야 드러난다. */
   const use=AUTO.rows.map(r=>({...r,brand:svcBranchBrand(r.branch)}))
-                     .filter(r=>r.brand&&r.brand!==SVC_NONE&&r.target>0);
+                     .filter(r=>r.brand&&r.brand!==SVC_NONE&&r.total>0&&r.target>0);
   if(!use.length){toast('e','반영할 항목 없음','브랜드를 지정한 지점이 없습니다.');return;}
   const d=getSvc();
   showCfm('⚡','자동 반영',
