@@ -3753,10 +3753,12 @@ function svcAutoPreview(){
   const tb=document.createElement('table');tb.className='tbl';
   tb.innerHTML=`<thead><tr><th>지점</th><th>브랜드</th>
     <th class="num-r">판매객실(duck)</th><th class="num-r">솔리티</th>
-    <th class="num-r">요금대상</th><th class="num-r">단가</th><th class="num-r">금액(별도)</th>
+    <th class="num-r">요금대상</th><th class="num-r">단가</th>
+    <th class="num-r">공급가액</th><th class="num-r">부가세</th><th class="num-r">합계(포함)</th>
     <th class="num-r">현재입력</th><th class="num-r">차이</th></tr></thead>`;
   const body=document.createElement('tbody');
-  let money=0, unset=0, sumRooms=0, sumAmt=0;
+  let money=0, unset=0, sumRooms=0, sumAmt=0, sumVat=0;
+  const byBrand=new Map();      // 브랜드별 소계 — 청구는 브랜드(업체)별로 나가므로 합계도 그 단위여야 한다
   shown.forEach(r=>{
     const tr=document.createElement('tr');
     const td=(txt,cls,style)=>{const c=document.createElement('td');
@@ -3784,9 +3786,19 @@ function svcAutoPreview(){
     const unit=billable?(prices[rBrand]||SVC_DEF_PRICES[rBrand]||0):0;
     const amt=billable?r.target*unit:0;
     tr.appendChild(td(billable?unit.toLocaleString():'—','num-r','color:var(--text3)'));
+    /* 부가세는 svcVat(건별 반올림) — 기존 서비스요금 표·엑셀과 같은 기준이라 합계가 어긋나지 않는다 */
+    const vat=billable?svcVat(amt):0;
     tr.appendChild(td(billable?amt.toLocaleString():'—','num-r',
-      billable?'font-weight:700':'color:var(--text3)'));
-    sumRooms+=billable?r.target:0; sumAmt+=amt;
+      billable?'font-weight:600':'color:var(--text3)'));
+    tr.appendChild(td(billable?vat.toLocaleString():'—','num-r','color:var(--text3);font-size:12px'));
+    tr.appendChild(td(billable?(amt+vat).toLocaleString():'—','num-r',
+      billable?'font-weight:700;color:var(--accent)':'color:var(--text3)'));
+    sumRooms+=billable?r.target:0; sumAmt+=amt; sumVat+=vat;
+    if(billable){
+      const b=byBrand.get(rBrand)||{rooms:0,amt:0,vat:0,cnt:0};
+      b.rooms+=r.target; b.amt+=amt; b.vat+=vat; b.cnt++;
+      byBrand.set(rBrand,b);
+    }
     const now=billable?cur.filter(x=>x.branch===r.branch&&x.brand===rBrand).reduce((s,x)=>s+(Number(x.rooms)||0),0):0;
     tr.appendChild(td(billable?(now||'—').toString():'—','num-r','color:var(--text3)'));
     const diff=billable?r.target-now:0;
@@ -3799,18 +3811,31 @@ function svcAutoPreview(){
   tb.appendChild(body);
   if(sumRooms){
     const tf=document.createElement('tfoot');
-    const tr=document.createElement('tr');
-    tr.style.cssText='font-weight:700;background:var(--bg2)';
-    const c1=document.createElement('td');c1.colSpan=4;
-    c1.style.cssText='text-align:right';c1.textContent='합계 (요금 대상)';
-    tr.appendChild(c1);
-    const add=(t,st)=>{const c=document.createElement('td');c.className='num-r';
-      if(st)c.style.cssText=st;c.textContent=t;tr.appendChild(c);};
-    add(sumRooms.toLocaleString()+'실');
-    add('');
-    add(sumAmt.toLocaleString(),'color:var(--accent)');
-    add('');add('');
-    tf.appendChild(tr);tb.appendChild(tf);
+    /* 세금계산서가 업체별로 오므로 소계도 브랜드 단위여야 대사가 된다.
+       맨 아래 전체 합계에는 부가세 포함 금액을 함께 적는다 — 실제 지급액이 그것이다. */
+    const mkRow=(label,rooms,amt,vat,cnt,strong)=>{
+      const tr=document.createElement('tr');
+      tr.style.cssText=strong
+        ? 'font-weight:700;background:var(--bg2);border-top:2px solid var(--bd)'
+        : 'font-weight:600;background:var(--bg2)';
+      const c1=document.createElement('td');c1.colSpan=4;
+      c1.style.cssText='text-align:right';
+      c1.textContent=cnt==null?label:`${label} (${cnt}곳)`;
+      tr.appendChild(c1);
+      const add=(t,st)=>{const c=document.createElement('td');c.className='num-r';
+        if(st)c.style.cssText=st;c.textContent=t;tr.appendChild(c);};
+      add(rooms.toLocaleString()+'실');
+      add('');
+      add(amt.toLocaleString());
+      add(vat.toLocaleString(),'color:var(--text3);font-size:12px');
+      add((amt+vat).toLocaleString(),'color:var(--accent)');
+      add('');add('');
+      return tr;
+    };
+    [...byBrand].sort((a,b)=>b[1].amt-a[1].amt)
+      .forEach(([brand,v])=>tf.appendChild(mkRow(`${brand} 소계`,v.rooms,v.amt,v.vat,v.cnt,false)));
+    if(byBrand.size>1)tf.appendChild(mkRow('전체 합계',sumRooms,sumAmt,sumVat,null,true));
+    tb.appendChild(tf);
   }
   tw.appendChild(tb);el.appendChild(tw);
 
