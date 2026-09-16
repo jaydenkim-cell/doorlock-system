@@ -3653,6 +3653,16 @@ const svcSolitiId=b=>String(b&&b.email||'').split('@')[0].trim().toLowerCase();
    그대로 비교하면 그 지점만 '계정 없음'이 되어 솔리티 2실이 요금 대상에 그대로 남는다.
    양쪽 다 @ 앞만 떼어 소문자로 맞춘다. 개인 계정(jayden.kim 등)은 어느 지점과도
    안 맞아 자연히 빠지고, 같은 id 가 두 형식으로 있으면 객실을 합친다. */
+/* 지점 계정의 도어락을 개인 계정에 복사해둔 경우가 있다(mathew.park 25실 — Jayden 확인).
+   같은 물리 도어락이 두 계정에 올라가 있으므로 **합치면 이중 계상**이고, 지금처럼 빼는 게 맞다.
+   다만 정상인데 매달 같은 안내가 뜨면 진짜 경고까지 무시하게 된다 → 한 번 끄면 기억한다. */
+function svcSolitiIgnored(id){return !!(getSvc().solitiIgnore||{})[String(id).toLowerCase()];}
+function svcIgnoreSoliti(id,on){
+  const d=getSvc();
+  d.solitiIgnore=d.solitiIgnore||{};
+  if(on)d.solitiIgnore[String(id).toLowerCase()]=true; else delete d.solitiIgnore[String(id).toLowerCase()];
+  saveSvc(d);svcAutoPreview();
+}
 function svcSolitiMap(accounts){
   const m=new Map();
   Object.entries(accounts||{}).forEach(([k,v])=>{
@@ -3705,7 +3715,7 @@ async function svcAutoFetch(force){
       return r.total>0||r.soliti>0||(b&&b!==SVC_NONE);
     });
     AUTO.orphan=[...accMap].filter(([id,r])=>r.length>0&&!usedIds.has(id))
-                           .map(([id,r])=>`${id} (${r.length}실)`);
+                           .map(([id,r])=>({id,n:r.length}));
     st.textContent=`duck ${(AUTO.updatedAt||'').substring(0,16).replace('T',' ')} · 솔리티 ${(AUTO.solitiAt||'').substring(0,16).replace('T',' ')}`
       +(sol.stale?' · ⚠ 솔리티 조회 실패로 이전 값 사용':'');
   }catch(e){
@@ -3833,11 +3843,37 @@ function svcAutoPreview(){
     el.appendChild(w);
   }
   if(AUTO.orphan&&AUTO.orphan.length){
+    const live=AUTO.orphan.filter(o=>!svcSolitiIgnored(o.id));
+    const hid=AUTO.orphan.length-live.length;
     const w=document.createElement('div');
-    w.style.cssText='margin-top:8px;font-size:12px;color:var(--text3)';
-    w.textContent='어느 지점과도 연결되지 않은 솔리티 계정: '+AUTO.orphan.join(', ')
-      +'. 지점 계정이면 지점 관리의 이메일을 맞춰주세요 (개인·테스트 계정이면 무시).';
-    el.appendChild(w);
+    w.style.cssText='margin-top:8px;font-size:12px;color:var(--text3);display:flex;gap:8px;align-items:center;flex-wrap:wrap';
+    if(live.length){
+      const lab=document.createElement('span');
+      lab.textContent='어느 지점과도 연결되지 않은 솔리티 계정 — 지점 계정이면 지점 관리의 이메일을 맞춰주세요:';
+      w.appendChild(lab);
+      live.forEach(o=>{
+        const chip=document.createElement('span');
+        chip.style.cssText='display:inline-flex;align-items:center;gap:5px;border:1px solid var(--bd);border-radius:20px;padding:2px 6px 2px 10px';
+        const t=document.createElement('span');t.textContent=`${o.id} (${o.n}실)`;
+        const b=document.createElement('button');
+        b.className='btn bo bsm';b.style.cssText='padding:1px 7px;font-size:11px';
+        b.textContent='무시';b.title='지점 계정의 도어락을 복사해둔 계정 등, 정상인 경우 끕니다';
+        b.addEventListener('click',()=>svcIgnoreSoliti(o.id,true));
+        chip.appendChild(t);chip.appendChild(b);w.appendChild(chip);
+      });
+    }
+    if(hid){
+      const s2=document.createElement('span');
+      s2.textContent=`무시 중인 계정 ${hid}개`;
+      const b2=document.createElement('button');
+      b2.className='btn bo bsm';b2.style.cssText='padding:1px 7px;font-size:11px;margin-left:6px';
+      b2.textContent='다시 보기';
+      b2.addEventListener('click',()=>{
+        const d=getSvc();d.solitiIgnore={};saveSvc(d);svcAutoPreview();
+      });
+      s2.appendChild(b2);w.appendChild(s2);
+    }
+    if(w.childNodes.length)el.appendChild(w);
   }
   if(shown.some(r=>r.noAccount)){
     const w=document.createElement('div');
