@@ -3603,10 +3603,15 @@ function getSvc(){return ld(K.SV,{brandPrices:{...SVC_DEF_PRICES},records:[]});}
    모르는 값은 화면에 그대로 띄워 사용자가 한 번 지정하게 하고, 그 매핑을 K.SV 에 저장해
    다음 달부터는 자동으로 붙는다. 조용히 틀리게 매칭하는 것보다 물어보는 편이 낫다. */
 let YOLO={rows:[],files:[],err:[]};
+/* ★ 순서가 곧 우선순위다. 열 이름이 서로 겹치기 때문에 나열만 해서는 안 된다.
+   실제 YOLO 양식 헤더: 객실번호 | 객실타입 | 도어락 종류 | 마스터키 | …
+   '타입'을 브랜드 키워드에 넣어두면 '객실타입'이 '도어락 종류'보다 먼저 잡혀
+   브랜드 대신 객실타입(스튜디오·스튜디오 랜덤…)을 읽는다.
+   그래서 키워드를 하나씩 순회하며 그 키워드에 맞는 열을 찾는다(열을 순회하며 아무 키워드나 찾지 않는다). */
 const YO_COL={
-  branch:['지점','사업장','점명','지점명','숙소','호텔','branch','site'],
-  room:['객실','호실','호수','room','방번호','객실번호','객실명'],
-  brand:['브랜드','제조','기기','모델','도어락','종류','타입','기종','vendor','maker','제조사','도어락종류'],
+  branch:['지점명','사업장','지점','점명','숙소','호텔','branch','site'],
+  room:['객실번호','호실','객실명','room','호수','방번호','객실'],
+  brand:['도어락','잠금장치','기기종류','기기','제조사','제조','브랜드','모델','기종','vendor','maker','종류'],
 };
 const yoNorm=v=>String(v==null?'':v).replace(/\s+/g,'').toLowerCase();
 /* 저장된 별칭 + 기본 추정. 기본 추정이 틀려도 화면에서 바꿀 수 있고, 바꾼 값이 저장된다. */
@@ -3619,6 +3624,16 @@ function yoBrandOf(raw){
   if(k.includes('솔리티')||k.includes('solity'))return '_없음';   // 서비스요금 대상 아님
   if(k.includes('헤이홈')||k.includes('heyhome'))return '_없음';
   return '';                                                      // 모름 → 사용자에게 묻는다
+}
+/* 행의 최종 지점. 지점 열이 있는 파일은 행 값으로, 없는 파일은 그 파일에 지정된 지점으로. */
+function yoRowBranch(r){
+  const f=YOLO.files[r.fi];
+  if(!f)return '';
+  return f.hasBranchCol?yoBranchOf(r.rawBranch):(f.branch||'');
+}
+function yoSetFileBranch(fi,name){
+  if(YOLO.files[fi])YOLO.files[fi].branch=name;
+  svcYoloPreview();
 }
 function yoBranchOf(raw){
   const d=getSvc(), al=d.branchAlias||{}, k=yoNorm(raw);
@@ -3649,7 +3664,10 @@ async function svcHandleYolo(ev){
       const sh=wb.Sheets[wb.SheetNames[0]];
       const aoa=XLSX.utils.sheet_to_json(sh,{header:1,raw:false,defval:''});
       const got=yoParse(aoa,f.name);
-      YOLO.files.push({name:f.name,rows:got.rows.length,cols:got.cols,branchSrc:got.branchSrc});
+      const fi=YOLO.files.length;
+      YOLO.files.push({name:f.name,rows:got.rows.length,branchSrc:got.branchSrc,
+                       hasBranchCol:got.hasBranchCol,branch:got.fileBranch});
+      got.rows.forEach(r=>{r.fi=fi;});          // 어느 파일에서 왔는지 — 지점 지정의 단위
       YOLO.rows.push(...got.rows);
     }catch(e){YOLO.err.push(`${f.name}: ${e.message}`);}
   }
@@ -3663,18 +3681,30 @@ function yoParse(aoa,fname){
   let hi=-1,cols={};
   for(let i=0;i<Math.min(aoa.length,15);i++){
     const row=(aoa[i]||[]).map(yoNorm);
-    const find=keys=>row.findIndex(c=>c&&keys.some(k=>c.includes(yoNorm(k))));
+    // 키워드를 바깥 루프로 — 먼저 적은 키워드가 이긴다
+    const find=(keys,skip)=>{
+      for(const k of keys){
+        const j=row.findIndex((c,ci)=>c&&ci!==skip&&c.includes(yoNorm(k)));
+        if(j>=0)return j;
+      }
+      return -1;
+    };
     const r=find(YO_COL.room);
-    if(r>=0){hi=i;cols={room:r,branch:find(YO_COL.branch),brand:find(YO_COL.brand)};break;}
+    if(r>=0){hi=i;cols={room:r,branch:find(YO_COL.branch,r),brand:find(YO_COL.brand,r)};break;}
   }
   if(hi<0)throw new Error('객실 열을 찾지 못했습니다');
-  // 지점: 열이 없으면 파일명에서 찾는다 (지점별로 받은 파일이라 파일명에 들어 있는 경우가 많다)
+  /* 지점: 열이 있으면 행마다 읽고, 없으면 파일명에서 찾아본다.
+     ★ 실제 YOLO 양식(room-conditions-YYYYMMDD.xlsx)에는 지점 열도 없고 파일명에도 지점이 없다.
+       객실타입('스튜디오' 등)도 지점마다 같아서 내용으로 추론할 수 없다.
+       그래서 못 찾으면 추측하지 말고 **파일 단위로** 사용자가 지정하게 한다 —
+       예전처럼 빈 지점을 하나로 뭉치면 올린 파일 전부가 같은 지점으로 들어간다. */
+  const hasBranchCol=cols.branch>=0;
   let fileBranch='',branchSrc='열';
-  if(cols.branch<0){
+  if(!hasBranchCol){
     const base=fname.replace(/\.[^.]+$/,'');
     const hit=getActiveBr().find(b=>yoNorm(base).includes(yoNorm(b.name)));
     fileBranch=hit?hit.name:'';
-    branchSrc=hit?'파일명':'미확인';
+    branchSrc=hit?'파일명':'지정 필요';
   }
   const rows=[];
   for(let i=hi+1;i<aoa.length;i++){
@@ -3688,7 +3718,7 @@ function yoParse(aoa,fname){
       file:fname,
     });
   }
-  return{rows,cols,branchSrc};
+  return{rows,cols,branchSrc,hasBranchCol,fileBranch};
 }
 function saveSvc(d){sv(K.SV,d);}
 
@@ -3716,10 +3746,18 @@ function svcYoloPreview(){
   // 미인식 값 수집 — 추측하지 않고 물어본다
   const unkBrand=new Map(), unkBranch=new Map();
   YOLO.rows.forEach(r=>{
-    if(!yoBrandOf(r.rawBrand))unkBrand.set(yoNorm(r.rawBrand),(unkBrand.get(yoNorm(r.rawBrand))||{raw:r.rawBrand||'(빈값)',n:0})),
-      unkBrand.get(yoNorm(r.rawBrand)).n++;
-    if(!yoBranchOf(r.rawBranch))unkBranch.set(yoNorm(r.rawBranch),(unkBranch.get(yoNorm(r.rawBranch))||{raw:r.rawBranch||'(빈값)',n:0})),
-      unkBranch.get(yoNorm(r.rawBranch)).n++;
+    const bk=yoNorm(r.rawBrand);
+    if(!yoBrandOf(r.rawBrand)){
+      if(!unkBrand.has(bk))unkBrand.set(bk,{raw:r.rawBrand||'(빈값)',n:0});
+      unkBrand.get(bk).n++;
+    }
+    // 지점 열이 없는 파일은 아래 '파일별 지점 지정'에서 다루므로 여기서 세지 않는다
+    const f=YOLO.files[r.fi];
+    if(f&&f.hasBranchCol&&!yoBranchOf(r.rawBranch)){
+      const nk=yoNorm(r.rawBranch);
+      if(!unkBranch.has(nk))unkBranch.set(nk,{raw:r.rawBranch||'(빈값)',n:0});
+      unkBranch.get(nk).n++;
+    }
   });
   /* ★ 업로드 파일의 셀 값(지점명·브랜드 표기)과 파일명은 우리가 만든 문자열이 아니다.
      onchange="yoSetAlias('brand','${k}')" 처럼 속성을 문자열로 조립하면 값에 작은따옴표가
@@ -3749,6 +3787,35 @@ function svcYoloPreview(){
     return box;
   };
   const warnEls=[];
+  /* 파일별 지점 지정 — 실제 YOLO 양식은 지점 열도 파일명도 없어 이게 주 경로다.
+     파일이 여러 개면 각각 따로 골라야 한다(예전처럼 뭉치면 전부 같은 지점이 된다). */
+  const needPick=YOLO.files.map((f,i)=>({f,i})).filter(x=>!x.f.hasBranchCol);
+  if(needPick.length){
+    const box=document.createElement('div');
+    const undone=needPick.filter(x=>!x.f.branch).length;
+    box.style.cssText=`background:${undone?'rgba(220,38,38,.06)':'var(--bg2)'};border:1px solid ${undone?'rgba(220,38,38,.25)':'var(--bd)'};border-radius:8px;padding:12px 14px;margin-bottom:10px`;
+    const h=document.createElement('div');
+    h.style.cssText=`font-weight:700;color:${undone?'#dc2626':'var(--text2)'};font-size:13px;margin-bottom:8px`;
+    h.textContent=undone?`파일별 지점을 지정하세요 (${undone}/${needPick.length}개 남음) — 지정 전까지 반영에서 제외됩니다`
+                        :`파일별 지점 (${needPick.length}개 지정 완료)`;
+    box.appendChild(h);
+    needPick.forEach(({f,i})=>{
+      const row=document.createElement('div');
+      row.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:5px;font-size:12.5px';
+      const lab=document.createElement('span');
+      lab.style.cssText='min-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      lab.textContent=`${f.name} (${f.rows}실)`;
+      lab.title=f.name;
+      const sel=document.createElement('select');
+      sel.className='fsel'; sel.style.width='200px';
+      sel.appendChild(new Option('— 지점 선택 —',''));
+      getActiveBr().forEach(b=>sel.appendChild(new Option(b.name,b.name)));
+      sel.value=f.branch||'';
+      sel.addEventListener('change',()=>yoSetFileBranch(i,sel.value));
+      row.appendChild(lab); row.appendChild(sel); box.appendChild(row);
+    });
+    warnEls.push(box);
+  }
   if(unkBranch.size)warnEls.push(mapBlock(
     `지점을 못 찾은 항목 ${unkBranch.size}종 — 지정 전까지 반영에서 제외됩니다`,
     'rgba(220,38,38,.06)','rgba(220,38,38,.25)','#dc2626',[...unkBranch],'branch',
@@ -3761,7 +3828,7 @@ function svcYoloPreview(){
   // 집계 — 지점 × 과금브랜드
   const agg=new Map(), skip=new Map();
   YOLO.rows.forEach(r=>{
-    const bn=yoBranchOf(r.rawBranch), bd=yoBrandOf(r.rawBrand);
+    const bn=yoRowBranch(r), bd=yoBrandOf(r.rawBrand);
     if(!bn||!bd)return;
     if(bd==='_없음'){skip.set(bn,(skip.get(bn)||0)+1);return;}
     const k=bn+'|'+bd; agg.set(k,(agg.get(k)||0)+1);
@@ -3776,7 +3843,7 @@ function svcYoloPreview(){
   const money=rows.reduce((s,r)=>s+r.diff*(getSvc().brandPrices[r.bd]||SVC_DEF_PRICES[r.bd]||0),0);
   el.innerHTML=`
     <div style="font-size:12px;color:var(--text3);margin-bottom:8px">
-      ${YOLO.files.map(f=>`${escLog(f.name)} — ${f.rows}건 (지점: ${escLog(f.branchSrc)})`).join(' &nbsp;·&nbsp; ')}
+      ${YOLO.files.map(f=>`${escLog(f.name)} — ${f.rows}실 (${escLog(f.hasBranchCol?'지점 열 사용':(f.branch||'지점 미지정'))})`).join(' &nbsp;·&nbsp; ')}
     </div>
     ${rows.length?`<div style="overflow-x:auto"><table class="tbl"><thead><tr>
       <th>지점</th><th>브랜드</th><th class="num-r">YOLO 기준</th><th class="num-r">현재 입력</th><th class="num-r">차이</th><th>비고</th>
@@ -3801,7 +3868,7 @@ function svcApplyYolo(){
   if(!mv){toast('e','오류','반영할 청구월을 선택하세요.');return;}
   const agg=new Map(), skip=new Map();
   YOLO.rows.forEach(r=>{
-    const bn=yoBranchOf(r.rawBranch), bd=yoBrandOf(r.rawBrand);
+    const bn=yoRowBranch(r), bd=yoBrandOf(r.rawBrand);
     if(!bn||!bd)return;
     if(bd==='_없음'){skip.set(bn,(skip.get(bn)||0)+1);return;}
     agg.set(bn+'|'+bd,(agg.get(bn+'|'+bd)||0)+1);
