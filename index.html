@@ -712,6 +712,25 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           <div class="pb" style="padding-top:4px;font-size:11px;color:var(--text3)">※ 직방·H2O: 운영실수 기준 / 더엠알: 건물 전체 객실 기준 / 부가세 10% 자동 계산</div>
         </div>
         <!-- 항목 입력 -->
+        <!-- YOLO 도어락 목록 업로드 -->
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt">📥 YOLO 도어락 목록 올리기</span>
+            <span style="font-size:11px;color:var(--text3)">게스트 서비스 관리 › 통합 도어락 관리 › 엑셀 다운로드 · 지점별 파일 여러 개를 한 번에</span></div>
+          <div class="pb">
+            <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <label style="font-size:11px;font-weight:600;color:var(--text2)">반영할 청구월</label>
+                <input class="fi" id="yolo-month" type="month" style="width:140px">
+              </div>
+              <input type="file" id="yolo-files" accept=".xlsx,.xls,.csv" multiple style="display:none" onchange="svcHandleYolo(event)">
+              <button class="btn bp" onclick="document.getElementById('yolo-files').click()">파일 선택 (여러 개)</button>
+              <button class="btn bo" onclick="svcResetYolo()">지우기</button>
+              <span style="font-size:12px;color:var(--text3)" id="yolo-status">지점별로 받은 파일을 한꺼번에 선택하세요.</span>
+            </div>
+            <div id="yolo-preview" style="margin-top:14px"></div>
+          </div>
+        </div>
+
         <div class="panel" style="margin-bottom:16px">
           <div class="ph"><span class="pt">➕ 청구 항목 입력</span></div>
           <!-- 신규 추가 -->
@@ -3574,7 +3593,215 @@ async function doRestoreBackup(data,keys){
 const SVC_BRANDS=['직방','H2O','더엠알'];
 const SVC_DEF_PRICES={'직방':2000,'H2O':3000,'더엠알':3000};
 function getSvc(){return ld(K.SV,{brandPrices:{...SVC_DEF_PRICES},records:[]});}
+
+/* ══════════ YOLO 통합 도어락 목록 업로드 ══════════
+   YOLO 는 지점별로만 내려받을 수 있어 파일이 여러 개 온다. 그래서 다중 선택을 받고,
+   파일에 지점 열이 없는 경우(이미 그 지점만 걸러져 있으므로 흔하다)를 대비해
+   지점을 ①지점 열 ②파일명 순으로 찾는다. 둘 다 실패하면 사용자가 직접 지정한다.
+
+   브랜드 표기(직방 / ZIPBANG / 직방도어락 …)는 미리 다 알 수 없으므로 추측하지 않는다.
+   모르는 값은 화면에 그대로 띄워 사용자가 한 번 지정하게 하고, 그 매핑을 K.SV 에 저장해
+   다음 달부터는 자동으로 붙는다. 조용히 틀리게 매칭하는 것보다 물어보는 편이 낫다. */
+let YOLO={rows:[],files:[],err:[]};
+const YO_COL={
+  branch:['지점','사업장','점명','지점명','숙소','호텔','branch','site'],
+  room:['객실','호실','호수','room','방번호','객실번호','객실명'],
+  brand:['브랜드','제조','기기','모델','도어락','종류','타입','기종','vendor','maker','제조사','도어락종류'],
+};
+const yoNorm=v=>String(v==null?'':v).replace(/\s+/g,'').toLowerCase();
+/* 저장된 별칭 + 기본 추정. 기본 추정이 틀려도 화면에서 바꿀 수 있고, 바꾼 값이 저장된다. */
+function yoBrandOf(raw){
+  const d=getSvc(), al=d.brandAlias||{}, k=yoNorm(raw);
+  if(k in al)return al[k];
+  if(k.includes('직방')||k.includes('zipbang')||k.includes('zigbang'))return '직방';
+  if(k.includes('h2o')||k.includes('에이치투오'))return 'H2O';
+  if(k.includes('더엠알')||k.includes('엠알'))return '더엠알';
+  if(k.includes('솔리티')||k.includes('solity'))return '_없음';   // 서비스요금 대상 아님
+  if(k.includes('헤이홈')||k.includes('heyhome'))return '_없음';
+  return '';                                                      // 모름 → 사용자에게 묻는다
+}
+function yoBranchOf(raw){
+  const d=getSvc(), al=d.branchAlias||{}, k=yoNorm(raw);
+  if(!k)return '';
+  if(k in al)return al[k];
+  const hit=getActiveBr().find(b=>yoNorm(b.name)===k)
+         || getActiveBr().find(b=>yoNorm(b.name).includes(k)||k.includes(yoNorm(b.name)));
+  return hit?hit.name:'';
+}
+function svcResetYolo(){
+  YOLO={rows:[],files:[],err:[]};
+  document.getElementById('yolo-files').value='';
+  document.getElementById('yolo-status').textContent='지점별로 받은 파일을 한꺼번에 선택하세요.';
+  document.getElementById('yolo-preview').innerHTML='';
+}
+async function svcHandleYolo(ev){
+  const files=[...(ev.target.files||[])];
+  ev.target.value='';
+  if(!files.length)return;
+  const mInp=document.getElementById('yolo-month');
+  if(!mInp.value)mInp.value=(document.getElementById('svc-inp-month')?.value)||new Date().toISOString().substring(0,7);
+  document.getElementById('yolo-status').textContent=`${files.length}개 파일 읽는 중...`;
+  YOLO={rows:[],files:[],err:[]};
+  for(const f of files){
+    try{
+      const buf=await f.arrayBuffer();
+      const wb=XLSX.read(buf,{type:'array'});
+      const sh=wb.Sheets[wb.SheetNames[0]];
+      const aoa=XLSX.utils.sheet_to_json(sh,{header:1,raw:false,defval:''});
+      const got=yoParse(aoa,f.name);
+      YOLO.files.push({name:f.name,rows:got.rows.length,cols:got.cols,branchSrc:got.branchSrc});
+      YOLO.rows.push(...got.rows);
+    }catch(e){YOLO.err.push(`${f.name}: ${e.message}`);}
+  }
+  document.getElementById('yolo-status').textContent=
+    `${YOLO.files.length}개 파일 · 객실 ${YOLO.rows.length}건 읽음` + (YOLO.err.length?` · 실패 ${YOLO.err.length}건`:'');
+  svcYoloPreview();
+}
+/* 헤더 행을 찾아 열을 매핑한다. 상단에 제목·조회조건이 몇 줄 있는 양식이 흔해서
+   첫 줄을 헤더로 단정하지 않고, 객실 열이 보이는 첫 줄을 헤더로 삼는다. */
+function yoParse(aoa,fname){
+  let hi=-1,cols={};
+  for(let i=0;i<Math.min(aoa.length,15);i++){
+    const row=(aoa[i]||[]).map(yoNorm);
+    const find=keys=>row.findIndex(c=>c&&keys.some(k=>c.includes(yoNorm(k))));
+    const r=find(YO_COL.room);
+    if(r>=0){hi=i;cols={room:r,branch:find(YO_COL.branch),brand:find(YO_COL.brand)};break;}
+  }
+  if(hi<0)throw new Error('객실 열을 찾지 못했습니다');
+  // 지점: 열이 없으면 파일명에서 찾는다 (지점별로 받은 파일이라 파일명에 들어 있는 경우가 많다)
+  let fileBranch='',branchSrc='열';
+  if(cols.branch<0){
+    const base=fname.replace(/\.[^.]+$/,'');
+    const hit=getActiveBr().find(b=>yoNorm(base).includes(yoNorm(b.name)));
+    fileBranch=hit?hit.name:'';
+    branchSrc=hit?'파일명':'미확인';
+  }
+  const rows=[];
+  for(let i=hi+1;i<aoa.length;i++){
+    const r=aoa[i]||[];
+    const room=String(r[cols.room]==null?'':r[cols.room]).trim();
+    if(!room)continue;
+    rows.push({
+      rawBranch: cols.branch>=0?String(r[cols.branch]||'').trim():fileBranch,
+      room,
+      rawBrand: cols.brand>=0?String(r[cols.brand]||'').trim():'',
+      file:fname,
+    });
+  }
+  return{rows,cols,branchSrc};
+}
 function saveSvc(d){sv(K.SV,d);}
+
+/* 사용자가 지정한 매핑을 기억한다 — 다음 달부터는 자동으로 붙는다. */
+function yoSetAlias(kind,key,val){
+  const d=getSvc();
+  const box=kind==='brand'?(d.brandAlias=d.brandAlias||{}):(d.branchAlias=d.branchAlias||{});
+  if(val)box[key]=val; else delete box[key];
+  saveSvc(d);svcYoloPreview();
+}
+function svcYoloPreview(){
+  const el=document.getElementById('yolo-preview');if(!el)return;
+  if(!YOLO.rows.length){el.innerHTML=YOLO.err.length?`<div style="color:#dc2626;font-size:12px">${YOLO.err.join('<br>')}</div>`:'';return;}
+  const mv=document.getElementById('yolo-month').value||'';
+
+  // 미인식 값 수집 — 추측하지 않고 물어본다
+  const unkBrand=new Map(), unkBranch=new Map();
+  YOLO.rows.forEach(r=>{
+    if(!yoBrandOf(r.rawBrand))unkBrand.set(yoNorm(r.rawBrand),(unkBrand.get(yoNorm(r.rawBrand))||{raw:r.rawBrand||'(빈값)',n:0})),
+      unkBrand.get(yoNorm(r.rawBrand)).n++;
+    if(!yoBranchOf(r.rawBranch))unkBranch.set(yoNorm(r.rawBranch),(unkBranch.get(yoNorm(r.rawBranch))||{raw:r.rawBranch||'(빈값)',n:0})),
+      unkBranch.get(yoNorm(r.rawBranch)).n++;
+  });
+  const brOpts=v=>['','직방','H2O','더엠알','_없음'].map(o=>
+    `<option value="${o}"${o===v?' selected':''}>${o===''?'— 지정 —':(o==='_없음'?'요금 없음(솔리티 등)':o)}</option>`).join('');
+  const bnOpts=v=>['',...getActiveBr().map(b=>b.name)].map(o=>
+    `<option value="${o}"${o===v?' selected':''}>${o===''?'— 지정 —':o}</option>`).join('');
+
+  let warn='';
+  if(unkBranch.size)warn+=`<div style="background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.25);border-radius:8px;padding:12px 14px;margin-bottom:10px">
+    <div style="font-weight:700;color:#dc2626;font-size:13px;margin-bottom:8px">지점을 못 찾은 항목 ${unkBranch.size}종 — 지정 전까지 반영에서 제외됩니다</div>
+    ${[...unkBranch].map(([k,v])=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:5px;font-size:12.5px">
+      <span style="min-width:180px">${v.raw} <span style="color:var(--text3)">(${v.n}건)</span></span>
+      <select class="fsel" style="width:200px" onchange="yoSetAlias('branch','${k}',this.value)">${bnOpts('')}</select></div>`).join('')}
+  </div>`;
+  if(unkBrand.size)warn+=`<div style="background:rgba(180,120,20,.07);border:1px solid rgba(180,120,20,.3);border-radius:8px;padding:12px 14px;margin-bottom:10px">
+    <div style="font-weight:700;color:#8a5d18;font-size:13px;margin-bottom:8px">처음 보는 도어락 표기 ${unkBrand.size}종 — 한 번만 지정하면 다음부터 자동입니다</div>
+    ${[...unkBrand].map(([k,v])=>`<div style="display:flex;gap:8px;align-items:center;margin-bottom:5px;font-size:12.5px">
+      <span style="min-width:180px">${v.raw} <span style="color:var(--text3)">(${v.n}건)</span></span>
+      <select class="fsel" style="width:200px" onchange="yoSetAlias('brand','${k}',this.value)">${brOpts('')}</select></div>`).join('')}
+  </div>`;
+
+  // 집계 — 지점 × 과금브랜드
+  const agg=new Map(), skip=new Map();
+  YOLO.rows.forEach(r=>{
+    const bn=yoBranchOf(r.rawBranch), bd=yoBrandOf(r.rawBrand);
+    if(!bn||!bd)return;
+    if(bd==='_없음'){skip.set(bn,(skip.get(bn)||0)+1);return;}
+    const k=bn+'|'+bd; agg.set(k,(agg.get(k)||0)+1);
+  });
+  const cur=getSvc().records.filter(r=>r.month===mv);
+  const rows=[...agg].map(([k,n])=>{
+    const[bn,bd]=k.split('|');
+    const now=cur.filter(r=>r.branch===bn&&r.brand===bd).reduce((s,r)=>s+(Number(r.rooms)||0),0);
+    return{bn,bd,n,now,diff:n-now};
+  }).sort((a,b)=>a.bn.localeCompare(b.bn,'ko')||a.bd.localeCompare(b.bd));
+
+  const money=rows.reduce((s,r)=>s+r.diff*(getSvc().brandPrices[r.bd]||SVC_DEF_PRICES[r.bd]||0),0);
+  el.innerHTML=warn+`
+    <div style="font-size:12px;color:var(--text3);margin-bottom:8px">
+      ${YOLO.files.map(f=>`${f.name} — ${f.rows}건 (지점: ${f.branchSrc})`).join(' &nbsp;·&nbsp; ')}
+    </div>
+    ${rows.length?`<div style="overflow-x:auto"><table class="tbl"><thead><tr>
+      <th>지점</th><th>브랜드</th><th class="num-r">YOLO 기준</th><th class="num-r">현재 입력</th><th class="num-r">차이</th><th>비고</th>
+    </tr></thead><tbody>${rows.map(r=>`<tr>
+      <td>${r.bn}</td><td>${r.bd}</td>
+      <td class="num-r">${r.n}</td>
+      <td class="num-r" style="color:var(--text3)">${r.now||'—'}</td>
+      <td class="num-r" style="font-weight:700;color:${r.diff===0?'var(--text3)':(r.diff<0?'var(--green)':'#dc2626')}">${r.diff>0?'+':''}${r.diff||0}</td>
+      <td style="font-size:11.5px;color:var(--text3)">${skip.get(r.bn)?`요금 없는 도어락 ${skip.get(r.bn)}실 제외`:''}</td>
+    </tr>`).join('')}</tbody></table></div>
+    <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+      <button class="btn bp" onclick="svcApplyYolo()">${mv||'월 선택'} 청구 항목에 반영</button>
+      <span style="font-size:12.5px;color:var(--text2)">
+        반영하면 월 요금이 <strong style="color:${money===0?'inherit':(money<0?'var(--green)':'#dc2626')}">${money>0?'+':''}${money.toLocaleString()}원</strong> 달라집니다 (부가세 별도).
+      </span>
+    </div>`
+    :`<div style="color:var(--text3);font-size:13px">반영할 항목이 없습니다. 위 지정을 먼저 채워주세요.</div>`}`;
+}
+function svcApplyYolo(){
+  const mv=document.getElementById('yolo-month').value;
+  if(!mv){toast('e','오류','반영할 청구월을 선택하세요.');return;}
+  const agg=new Map(), skip=new Map();
+  YOLO.rows.forEach(r=>{
+    const bn=yoBranchOf(r.rawBranch), bd=yoBrandOf(r.rawBrand);
+    if(!bn||!bd)return;
+    if(bd==='_없음'){skip.set(bn,(skip.get(bn)||0)+1);return;}
+    agg.set(bn+'|'+bd,(agg.get(bn+'|'+bd)||0)+1);
+  });
+  if(!agg.size){toast('e','반영할 항목 없음','지점·브랜드 지정을 먼저 채워주세요.');return;}
+  const d=getSvc();
+  const touched=[...agg].map(([k])=>k.split('|'));
+  showCfm('📥','YOLO 기준으로 반영',
+    `${mv} 의 서비스요금을 YOLO 도어락 목록 기준으로 덮어씁니다. 대상 ${agg.size}건 — `
+    +`${touched.slice(0,4).map(([a,b])=>a+' '+b).join(', ')}${touched.length>4?` 외 ${touched.length-4}건`:''}. 진행할까요?`,
+    ()=>{
+      // 대상 지점×브랜드의 그 달 레코드를 지우고 새로 넣는다 (부분 갱신은 중복을 남긴다)
+      const keep=d.records.filter(r=>!(r.month===mv&&agg.has(r.branch+'|'+r.brand)));
+      let nid=keep.length>0?Math.max(...keep.map(r=>Number(r.id)||0))+1:1;
+      [...agg].forEach(([k,n])=>{
+        const[branch,brand]=k.split('|');
+        keep.push({id:nid++,month:mv,branch,brand,rooms:n,
+          unitPrice:d.brandPrices[brand]||SVC_DEF_PRICES[brand]||0,
+          note:`YOLO 기준 자동 반영${skip.get(branch)?` · 요금 없는 도어락 ${skip.get(branch)}실 제외`:''}`,
+          createdAt:new Date().toISOString()});
+      });
+      d.records=keep;saveSvc(d);
+      logAudit('서비스요금 YOLO반영',mv,
+        [...agg].map(([k,n])=>k.replace('|',' ')+' '+n+'실').join(', '));
+      svcResetYolo();renderSvc();
+      toast('s','반영 완료',`${mv} · ${agg.size}건 갱신되었습니다.`);
+    });
+}
 function svcVat(amt){return Math.round(amt*0.1);}
 /* 서비스요금 집계 — 청구 1건(레코드)별로 반올림한 뒤 합산(bottom-up).
    월마감정산(mSettle)과 같은 기준이라 합계 부가세가 항상 부가세 열의 합과 일치한다.
