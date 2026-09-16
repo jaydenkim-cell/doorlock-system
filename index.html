@@ -1018,6 +1018,13 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
       <div class="fg"><label>지점 <span class="req">*</span></label><select class="fi" id="out-branch" onchange="onOutChange()"></select></div>
       <div class="fg"><label>설치 완료일 <span class="req">*</span></label><input class="fi" id="out-date" type="date"></div>
     </div>
+    <div class="fg"><label>연결할 접수</label>
+      <select class="fi" id="out-receipt" onchange="onOutReceipt()"></select>
+      <div style="font-size:11.5px;color:var(--text3);margin-top:5px">
+        지점 요청으로 설치하는 경우 반드시 연결하세요. 연결하면 그 접수가 <strong>설치 완료</strong>로 처리되어,
+        같은 건이 발주로 한 번 더 잡히는 일이 없습니다.
+      </div>
+    </div>
     <div class="fr2">
       <div class="fg"><label>이번에 설치한 수량 <span class="req">*</span></label><input class="fi" id="out-qty" type="number" min="1" value="1" oninput="onOutChange()"></div>
       <div class="fg"><label>객실번호 <span class="req">*</span></label><input class="fi" id="out-room" placeholder="예: 302,303,305"></div>
@@ -1922,6 +1929,16 @@ function renderLog(){
 function advR(id,ns){
   const rc=getRc();const r=rc.find(x=>x.id===id);
   if(!r)return;
+  /* ★ 재고에서 이미 설치한 접수는 여기서 더 진행시키지 않는다.
+     진행시키면 아래 '접수→발주 자동등록'이 정가 발주(물건값+설치비+자재비)를 새로 만들고,
+     그 발주가 설치완료 처리되는 순간 같은 설치 한 건이 정산에 두 번 잡힌다. */
+  const stkOut=getOr().find(o=>o.insOf&&o.receiptId===id);
+  if(stkOut){
+    toast('e','재고에서 설치된 건',
+      `${r.branch} ${r.room} 은 재고에서 설치됐습니다(${stkOut.qty||1}개, ${stkOut.doneDate||''}). `
+      +`발주를 새로 만들면 같은 설치가 두 번 정산됩니다. 수정은 재고 관리 화면에서 하세요.`);
+    return;
+  }
   const _prev=r.status;
   r.status=ns;
   sv(K.R,rc);
@@ -3034,7 +3051,10 @@ function doUndo(uid){
 function deleteR(id){
   const rcs=getRc(),r=rcs.find(x=>x.id===id);if(!r)return;
   const linked=getOr().find(x=>x.receiptId===id);
-  const msg=linked?'이 접수건과 연결된 발주까지 함께 삭제됩니다. 삭제하시겠습니까?':'이 접수건을 삭제하시겠습니까?';
+  const msg=!linked?'이 접수건을 삭제하시겠습니까?'
+    :(linked.insOf
+      ?`이 접수는 재고에서 설치된 건입니다. 함께 삭제되면 재고 출고 기록(${linked.qty||1}개)도 사라지고 그만큼 잔량이 되돌아옵니다. 삭제하시겠습니까?`
+      :'이 접수건과 연결된 발주까지 함께 삭제됩니다. 삭제하시겠습니까?');
   showCfm(CI.trash,'접수 삭제',msg,()=>{
     const backup=JSON.parse(JSON.stringify(r));
     const oBackup=linked?JSON.parse(JSON.stringify(linked)):null;
@@ -3109,7 +3129,8 @@ function submitI(){
   // ORDERS 연동: 설치 완료 (결제는 별도 처리)
   const ors=getOr();
   const o=ors.find(x=>x.receiptId===instId);
-  if(o){o.installed=true;o.doneDate=r.installDate||new Date().toISOString().substring(0,10);sv(K.O,ors);}
+  // 재고 출고 라인은 이미 installed:true 이고 doneDate 가 정산 인식월이다. 덮어쓰면 월이 바뀐다.
+  if(o&&!o.insOf){o.installed=true;o.doneDate=r.installDate||new Date().toISOString().substring(0,10);sv(K.O,ors);}
   closeMo('mo-i');renderR();renderI();
   toast('s','설치 완료',`${r.branch} ${r.room} — 결제대기 상태로 전환`);
 }
@@ -3981,10 +4002,36 @@ function openOutMo(){
   document.getElementById('out-qty').value=1;
   document.getElementById('out-room').value='';
   document.getElementById('out-vendor').value='(주)솔리티';
+  const rcSel=document.getElementById('out-receipt');if(rcSel)rcSel.value='';
   onOutChange();openMo('mo-out');
+}
+/* 그 지점의 아직 안 끝난 접수 목록. 이미 재고 출고가 연결된 접수는 뺀다(중복 연결 방지). */
+function outRcList(br){
+  if(!br)return [];
+  const linked=new Set(getOr().filter(o=>o.insOf&&o.receiptId).map(o=>o.receiptId));
+  return getRc().filter(r=>r.branch===br&&r.status!=='결제'&&!linked.has(r.id))
+                .sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+}
+function onOutReceipt(){
+  const rid=document.getElementById('out-receipt').value;
+  if(!rid)return;
+  const r=getRc().find(x=>x.id===rid);
+  if(!r)return;
+  document.getElementById('out-room').value=r.room||'';
+  document.getElementById('out-qty').value=Math.max(1,Number(r.qty)||1);
+  onOutChange();
 }
 function onOutChange(){
   const br=document.getElementById('out-branch').value;
+  // 접수 목록 갱신 (선택값은 유지)
+  const rcSel=document.getElementById('out-receipt');
+  if(rcSel){
+    const keep=rcSel.value;
+    const list=outRcList(br);
+    rcSel.innerHTML='<option value="">연결 안 함 (예비분 사용 등)</option>'
+      +list.map(r=>`<option value="${r.id}">${r.id} · ${r.room} · ${r.type||''} (${r.status})</option>`).join('');
+    if(list.some(r=>r.id===keep))rcSel.value=keep;
+  }
   const q=parseInt(document.getElementById('out-qty').value)||0;
   const vd=document.getElementById('out-vendor').value;
   const b=getBr().find(x=>x.name===br);
@@ -4024,10 +4071,26 @@ function saveOut(){
   // 모달을 열어둔 사이 다른 사람이 빼갔을 수 있다(30초 동기화). 막지는 않고 알리기만 한다 —
   // 막으면 현장이 설치를 못 올려 정산이 더 늦어진다.
   const bal=stkBal(br);
+  const rcId=document.getElementById('out-receipt')?.value||'';
   const go=()=>{
+    /* 접수를 연결하면 그 접수를 여기서 끝낸다(설치 완료 = 결제대기).
+       안 그러면 접수가 열린 채 남아 누군가 '발주 처리'를 누르고, advR 이 정가 발주를
+       새로 만들어 같은 설치가 두 번 정산된다. receiptId 를 채우는 것도 같은 이유다 —
+       repairOrders 가 receiptId 로 매칭하므로 유령 발주 자동 생성까지 함께 막힌다. */
+    if(rcId){
+      const rcs=getRc(),r=rcs.find(x=>x.id===rcId);
+      if(r){
+        r.status='결제';r.paymentDone=false;
+        r.installDate=d;
+        r.installMemo=(r.installMemo?r.installMemo+' / ':'')+'재고에서 설치';
+        sv(K.R,rcs);
+        markDel(TS_NOREPAIR,rcId);   // repairOrders 재생성 금지 (이중 방어)
+        logAudit('재고설치완료',`${br} ${rm} (${rcId})`,`${q}개 · 설치일 ${d}`);
+      }
+    }
     const ors=getOr();
     ors.push({
-      id:newOid(),receiptId:'',branch:br,room:rm,qty:q,
+      id:newOid(),receiptId:rcId,branch:br,room:rm,qty:q,
       type:'교체',                                  // 입고 라인에서 상속 → 계정과목이 갈라질 수 없다
       price:0,                                      // ★ 물건값은 입고월에 이미 인식했다
       install:parseInt(document.getElementById('out-install').value)||0,
@@ -4040,12 +4103,21 @@ function saveOut(){
       invNo:''
     });
     sv(K.O,ors);
-    logAudit('재고출고',`${br} ${rm}`,`${q}개 · 설치일 ${d} · 설치처 ${document.getElementById('out-vendor').value}`);
+    logAudit('재고출고',`${br} ${rm}`,`${q}개 · 설치일 ${d} · 설치처 ${document.getElementById('out-vendor').value}${rcId?' · 접수 '+rcId+' 연결':''}`);
     closeMo('mo-out');renderStock();
-    toast('s','설치 등록',`${br} ${rm} ${q}개 — 잔량 ${stkBal(br)}개`);
+    if(typeof renderR==='function'&&document.getElementById('r-body'))renderR();
+    toast('s','설치 등록',rcId?`${br} ${rm} ${q}개 — 접수 ${rcId} 완료 처리 · 잔량 ${stkBal(br)}개`
+                          :`${br} ${rm} ${q}개 — 잔량 ${stkBal(br)}개`);
   };
-  if(q>bal)showCfm('⚠️','잔량 초과',`${br} 현재 재고는 ${bal}개인데 ${q}개를 출고합니다. 입고 등록이 누락됐을 수 있습니다. 그래도 진행할까요?`,go);
-  else go();
+  const openRc=rcId?[]:outRcList(br).filter(r=>String(r.room||'').trim()===rm);
+  const ask=(msg,next)=>showCfm('⚠️','확인',msg,next);
+  const step2=()=>{
+    if(openRc.length)
+      ask(`${br} ${rm} 에 아직 안 끝난 접수(${openRc.map(r=>r.id).join(', ')})가 있는데 연결하지 않았습니다. 연결하지 않으면 그 접수를 나중에 발주 처리할 때 같은 설치가 두 번 잡힙니다. 그래도 진행할까요?`,go);
+    else go();
+  };
+  if(q>bal)ask(`${br} 현재 재고는 ${bal}개인데 ${q}개를 출고합니다. 입고 등록이 누락됐을 수 있습니다. 그래도 진행할까요?`,step2);
+  else step2();
 }
 function delStk(id){
   const o=getOr().find(x=>x.id===id);if(!o)return;
