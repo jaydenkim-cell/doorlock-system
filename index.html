@@ -1116,11 +1116,17 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
       도어락 <strong>커버·모듈</strong>은 솔리티에서 무상으로 받는 품목입니다. 신청하면 본사에서 확인 후 발송하고,
       발송 시 <strong>슬랙으로 알려드립니다</strong>. 비용은 발생하지 않습니다.
     </div>
-    <div class="fr2">
-      <div class="fg"><label>지점 <span class="req">*</span></label><select class="fs" id="ptq-branch"></select></div>
-      <div class="fg"><label>품목 <span class="req">*</span></label><select class="fs" id="ptq-item"><option>커버</option><option>모듈</option></select></div>
+    <div class="fg"><label>지점 <span class="req">*</span></label><select class="fs" id="ptq-branch"></select></div>
+    <div class="fg">
+      <label>필요한 수량 <span class="req">*</span></label>
+      <div class="fr2">
+        <div class="fg" style="margin:0"><label style="font-size:12px;color:var(--text3)">커버</label>
+          <input class="fi" id="ptq-qty-커버" type="number" min="0" value="0" placeholder="0"></div>
+        <div class="fg" style="margin:0"><label style="font-size:12px;color:var(--text3)">모듈</label>
+          <input class="fi" id="ptq-qty-모듈" type="number" min="0" value="0" placeholder="0"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">필요한 품목만 수량을 넣으세요. 0은 신청되지 않습니다.</div>
     </div>
-    <div class="fg" style="max-width:220px"><label>수량 <span class="req">*</span></label><input class="fi" id="ptq-qty" type="number" min="1" value="1"></div>
     <div class="fg"><label>메모</label><input class="fi" id="ptq-note" placeholder="예: 302호 커버 파손"></div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-pt-req')">취소</button><button class="btn bp" onclick="submitPtReq()">신청</button></div>
@@ -3697,16 +3703,20 @@ function openPtReqMo(){
     // 지점 계정은 자기 지점 고정
     if(S.branchLocked){sel.value=S.branch;sel.disabled=true;}else{sel.disabled=false;}
   }
-  document.getElementById('ptq-item').value='커버';
-  document.getElementById('ptq-qty').value=1;
+  PT_ITEMS.forEach(it=>{const el=document.getElementById('ptq-qty-'+it);if(el)el.value=0;});
   document.getElementById('ptq-note').value='';
   openMo('mo-pt-req');
 }
 function submitPtReq(){
   const br=document.getElementById('ptq-branch').value;
-  const item=document.getElementById('ptq-item').value;
-  const q=parseInt(document.getElementById('ptq-qty').value)||0;
-  if(!br||!PT_ITEMS.includes(item)||q<1){toast('e','입력 오류','지점·품목·수량을 확인하세요.');return;}
+  /* 한 번에 여러 품목을 받되, 저장은 품목별로 나눈다.
+     한 건에 여러 품목을 담으면 '커버는 있는데 모듈은 없다'일 때 부분 발송을 못 한다.
+     나눠 두면 보유 계산·발송·삭제·슬랙 DM 이 종전 로직 그대로 동작한다. */
+  const want=PT_ITEMS.map(it=>({item:it,qty:parseInt((document.getElementById('ptq-qty-'+it)||{}).value)||0}))
+                     .filter(x=>x.qty>0);
+  if(!br||!want.length){toast('e','입력 오류','지점을 고르고 품목 수량을 1개 이상 넣으세요.');return;}
+  const bad=want.find(x=>x.qty>9999);
+  if(bad){toast('e','수량 확인',`${bad.item} 수량 ${bad.qty}개를 확인하세요.`);return;}
   /* ★ select 의 값이라도 그대로 믿지 않는다. 이 배열은 Supabase 로 동기화돼 다른 사람
      브라우저(특히 관리자 화면)에서 렌더되므로, 임의 문자열이 들어오면 저장형 XSS 가 된다.
      렌더 쪽도 escH 로 막았지만 애초에 저장하지 않는 것이 맞다. */
@@ -3714,14 +3724,16 @@ function submitPtReq(){
   // 모달의 disabled 는 표시일 뿐이다 — 지점 계정이 값을 바꿔 남의 지점으로 신청하지 못하게 한다
   if(S.branchLocked&&br!==S.branch){toast('e','권한 없음','다른 지점으로는 신청할 수 없습니다.');return;}
   const arr=getPt();
-  arr.push({id:newOid(),kind:'req',item,qty:q,branch:br,status:'신청',
+  const today=new Date().toISOString().substring(0,10);
+  const note=document.getElementById('ptq-note').value||'';
+  want.forEach(x=>arr.push({id:newOid(),kind:'req',item:x.item,qty:x.qty,branch:br,status:'신청',
     reqBy:S.name||S.id||'unknown',reqEmail:S.email||S.id||'',
-    reqDate:new Date().toISOString().substring(0,10),sentDate:'',
-    note:document.getElementById('ptq-note').value||''});
+    reqDate:today,sentDate:'',note}));
   sv(K.P,arr);
-  logAudit('부자재신청',br,`${item} ${q}개`);
+  const label=want.map(x=>`${x.item} ${x.qty}개`).join(' · ');
+  logAudit('부자재신청',br,label);
   closeMo('mo-pt-req');renderParts();
-  toast('s','신청 완료',`${br} ${item} ${q}개 — 본사 발송을 기다려 주세요`);
+  toast('s','신청 완료',`${br} ${label} — 본사 발송을 기다려 주세요`);
 }
 
 function openPtInMo(){
