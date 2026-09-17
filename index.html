@@ -1141,11 +1141,17 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
       솔리티에서 <strong>무상</strong>으로 받은 수량입니다. 금액은 어디에도 잡히지 않고 <strong>보유 수량만</strong> 늘어납니다.
     </div>
-    <div class="fr2">
-      <div class="fg"><label>품목 <span class="req">*</span></label><select class="fs" id="pti-item"><option>커버</option><option>모듈</option></select></div>
-      <div class="fg"><label>입고일 <span class="req">*</span></label><input class="fi" id="pti-date" type="date"></div>
+    <div class="fg" style="max-width:220px"><label>입고일 <span class="req">*</span></label><input class="fi" id="pti-date" type="date"></div>
+    <div class="fg">
+      <label>받은 수량 <span class="req">*</span></label>
+      <div class="fr2">
+        <div class="fg" style="margin:0"><label style="font-size:12px;color:var(--text3)">커버</label>
+          <input class="fi" id="pti-qty-커버" type="number" min="0" value="0" placeholder="0"></div>
+        <div class="fg" style="margin:0"><label style="font-size:12px;color:var(--text3)">모듈</label>
+          <input class="fi" id="pti-qty-모듈" type="number" min="0" value="0" placeholder="0"></div>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">받은 품목만 수량을 넣으세요. 0은 등록되지 않습니다.</div>
     </div>
-    <div class="fg" style="max-width:220px"><label>수량 <span class="req">*</span></label><input class="fi" id="pti-qty" type="number" min="1" value="1"></div>
     <div class="fg"><label>메모</label><input class="fi" id="pti-note" placeholder="예: 9월 정기 공급"></div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-pt-in')">취소</button><button class="btn bp" onclick="submitPtIn()">입고 등록</button></div>
@@ -3738,26 +3744,31 @@ function submitPtReq(){
 
 function openPtInMo(){
   if(!isAdm()){toast('e','권한 없음','관리자만 등록할 수 있습니다.');return;}
-  document.getElementById('pti-item').value='커버';
   document.getElementById('pti-date').value=new Date().toISOString().substring(0,10);
-  document.getElementById('pti-qty').value=1;
+  PT_ITEMS.forEach(it=>{const el=document.getElementById('pti-qty-'+it);if(el)el.value=0;});
   document.getElementById('pti-note').value='';
   openMo('mo-pt-in');
 }
 function submitPtIn(){
   if(!isAdm())return;
-  const item=document.getElementById('pti-item').value;
   const d=document.getElementById('pti-date').value;
-  const q=parseInt(document.getElementById('pti-qty').value)||0;
-  if(!PT_ITEMS.includes(item)||!d||q<1){toast('e','입력 오류','품목·입고일·수량을 확인하세요.');return;}
+  /* 신청과 같은 방식 — 한 번에 여러 품목을 받되 저장은 품목별로 나눈다.
+     품목은 폼에서 읽지 않고 PT_ITEMS 로 만들어 그 값만 저장한다. */
+  const got=PT_ITEMS.map(it=>({item:it,qty:parseInt((document.getElementById('pti-qty-'+it)||{}).value)||0}))
+                    .filter(x=>x.qty>0);
+  if(!d||!got.length){toast('e','입력 오류','입고일을 넣고 품목 수량을 1개 이상 넣으세요.');return;}
+  const over=got.find(x=>x.qty>9999);
+  if(over){toast('e','수량 확인',`${over.item} 수량 ${over.qty}개를 확인하세요.`);return;}
   const _y=new Date().getFullYear(), _dy=Number(d.substring(0,4));
   if(!(_dy>=_y-2&&_dy<=_y+1)){toast('e','입고일 확인',`입고일 ${d} 의 연도를 확인하세요.`);return;}
   const arr=getPt();
-  arr.push({id:newOid(),kind:'in',item,qty:q,date:d,note:document.getElementById('pti-note').value||''});
+  const note=document.getElementById('pti-note').value||'';
+  got.forEach(x=>arr.push({id:newOid(),kind:'in',item:x.item,qty:x.qty,date:d,note}));
   sv(K.P,arr);
-  logAudit('부자재입고','본사',`${item} ${q}개 (${d})`);
+  const label=got.map(x=>`${x.item} ${x.qty}개`).join(' · ');
+  logAudit('부자재입고','본사',`${label} (${d})`);
   closeMo('mo-pt-in');renderParts();
-  toast('s','입고 등록',`${item} ${q}개 — 보유 ${ptStock(item)}개`);
+  toast('s','입고 등록',`${label} — 보유 ${got.map(x=>`${x.item} ${ptStock(x.item)}개`).join(' · ')}`);
 }
 
 /* 발송 처리 — 보유 차감은 status 로만 이뤄진다(수량을 따로 저장하지 않는다).
