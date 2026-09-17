@@ -1552,6 +1552,12 @@ function delBlockReason(o){
   if(isStkIn(o)&&oUsed(o.id)>0)return `이 입고분에서 이미 ${oUsed(o.id)}개가 나갔습니다. 출고 기록을 먼저 지우세요.`;
   return '';
 }
+/* ★ 재고 화면은 getActiveBr() 를 쓰면 안 된다. 지점을 종료해도 창고의 물건은 사라지지
+   않는데, 종료 순간 잔량 카드·실사·엑셀에서 통째로 빠져 회수·이전 대상이 눈에서 사라진다
+   (재고 목록의 행은 isStkAny 로 걸러서 그대로 보이므로, 행은 있는데 집계만 없는 상태가 된다).
+   운영중 지점 + 잔량이 0이 아닌 종료 지점. 잔량 0 인 종료 지점은 그대로 숨긴다.
+   getActiveBr 은 !closed, 아래는 closed 라 서로 겹치지 않는다. */
+const getStkBr=()=>getActiveBr().concat(getBr().filter(b=>b.closed&&stkBal(b.name)!==0));
 const stkBal=branch=>getOr().reduce((n,o)=>{
   if(o.branch!==branch)return n;
   const q=Number(o.qty)||0;
@@ -3746,7 +3752,7 @@ function exportToExcel(type){
     /* 월 실사 양식. 지점이 '실물 수량'과 '사유'만 채워 회신하면 조달이
        [실사 반영] 으로 차이를 조정한다. 차이 열은 수식이라 입력하면 바로 계산된다. */
     const bv=document.getElementById('fstk-b')?.value||'';
-    let brs=getActiveBr().map(b=>b.name);
+    let brs=getStkBr().map(b=>b.name);   // 종료 지점도 재고가 남았으면 실사 대상이다
     if(bv)brs=brs.filter(n=>n===bv);
     const lastOf=(bn,fn)=>{
       const ds=getOr().filter(o=>o.branch===bn&&fn(o)).map(o=>isStkIn(o)?(o.recvDate||''):(o.doneDate||'')).filter(Boolean).sort();
@@ -4844,23 +4850,28 @@ let stkShow=false;   // 발주 목록에서 재고 라인을 함께 볼지
 /* ══════════ 재고 관리 ══════════
    관리자 전용 화면. 지점 계정에는 메뉴도 안 보이고 goP 에서도 막힌다.
    지점이 재고를 꺼내 쓴 것은 월 실사로 맞춘다(실사 엑셀은 아직 없다 — 다음 단계). */
-function stkBrOpts(sel,cur){
+/* incClosed: 재고가 남은 종료 지점도 넣는다. 출고(처분·이전 기록)는 넣어야 하고,
+   새 입고는 넣으면 안 된다 — 닫힌 지점에 새로 들일 일은 없다. */
+function stkBrOpts(sel,cur,incClosed){
   const el=document.getElementById(sel);if(!el)return;
-  el.innerHTML='<option value="">선택</option>'+getActiveBr().map(b=>`<option value="${b.name}">${b.name}</option>`).join('');
+  el.innerHTML='<option value="">선택</option>'+(incClosed?getStkBr():getActiveBr())
+    .map(b=>`<option value="${b.name}">${b.name}${b.closed?' (종료)':''}</option>`).join('');
   if(cur)el.value=cur;
 }
 function renderStock(){
   const bSel=document.getElementById('fstk-b');
-  if(bSel&&bSel.options.length===1)getActiveBr().forEach(b=>bSel.appendChild(new Option(b.name,b.name)));
+  if(bSel&&bSel.options.length===1)getStkBr().forEach(b=>bSel.appendChild(new Option(b.name+(b.closed?' (종료)':''),b.name)));
   const bv=bSel?document.getElementById('fstk-b').value:'';
   const mv=document.getElementById('fstk-m')?.value||'';
 
   // 지점별 잔량 — 저장하지 않고 매번 합산한다
-  const bals=getActiveBr().map(b=>({name:b.name,n:stkBal(b.name)})).filter(x=>x.n!==0).sort((a,b)=>b.n-a.n);
+  const bals=getStkBr().map(b=>({name:b.name,n:stkBal(b.name),closed:!!b.closed})).filter(x=>x.n!==0).sort((a,b)=>b.n-a.n);
   const tot=bals.reduce((s,x)=>s+x.n,0);
   const cards=document.getElementById('stk-cards');
   if(cards)cards.innerHTML=bals.length
-    ? bals.map(x=>`<div class="stk-card${x.n<0?' neg':''}"><div class="stk-b">${x.name}</div><div class="stk-n">${x.n}</div>${x.n<0?'<div class="stk-w">입고 등록 누락</div>':''}</div>`).join('')
+    ? bals.map(x=>`<div class="stk-card${x.n<0?' neg':''}"><div class="stk-b">${x.name}${x.closed?' <span class="chip cg">종료</span>':''}</div><div class="stk-n">${x.n}</div>${
+        x.n<0?'<div class="stk-w">입고 등록 누락</div>'
+        :x.closed?'<div class="stk-w" style="color:var(--yellow)">종료 지점 — 회수·이전 필요</div>':''}</div>`).join('')
       +`<div class="stk-card tot"><div class="stk-b">전체 보유</div><div class="stk-n">${tot}</div></div>`
     : `<div style="padding:16px;color:var(--text3);font-size:13px">보유 재고가 없습니다. [+ 재고 입고] 로 등록하세요.</div>`;
 
@@ -5017,7 +5028,7 @@ function submitRecv(){
 
 /* ── 출고(설치) ── */
 function openOutMo(){
-  stkBrOpts('out-branch',document.getElementById('fstk-b')?.value||'');
+  stkBrOpts('out-branch',document.getElementById('fstk-b')?.value||'',true);
   document.getElementById('out-date').value=new Date().toISOString().substring(0,10);
   document.getElementById('out-qty').value=1;
   document.getElementById('out-room').value='';
@@ -5185,11 +5196,11 @@ function saveOut(){
 function openAdjMo(){
   document.getElementById('adj-date').value=new Date().toISOString().substring(0,10);
   document.getElementById('adj-note').value='';
-  const rows=getActiveBr().map(b=>({n:b.name,bal:stkBal(b.name)})).filter(x=>x.bal!==0)
+  const rows=getStkBr().map(b=>({n:b.name,bal:stkBal(b.name),closed:!!b.closed})).filter(x=>x.bal!==0)
     .sort((a,b)=>b.bal-a.bal||a.n.localeCompare(b.n,'ko'));
   const tb=document.getElementById('adj-body');
   tb.innerHTML=rows.length?rows.map(x=>`<tr>
-      <td>${x.n}</td>
+      <td>${x.n}${x.closed?' <span class="chip cg">종료</span>':''}</td>
       <td class="num-r" data-bal="${x.bal}">${x.bal}</td>
       <td class="num-r"><input class="fi adj-in" type="number" min="0" data-br="${x.n}" data-bal="${x.bal}"
            style="text-align:right;padding:5px 8px;height:auto" oninput="calcAdj()"></td>
