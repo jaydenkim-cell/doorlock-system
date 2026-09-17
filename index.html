@@ -1291,9 +1291,12 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 'use strict';
 /* ── localStorage keys (기존 그대로 유지) ── */
 const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close',MCS:'doorlock_monthly_snap',SV:'doorlock_svc',LOG:'doorlock_audit',TS:'doorlock_tombstones',P:'doorlock_parts'};
+/* HTML 이스케이프. ' 까지 막아 작은따옴표 속성값에서도 안전하다.
+   escLog 는 파일 뒤쪽에 정의된 const 라 이 위치에서는 참조할 수 없어 따로 둔다. */
+const escH=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const getSlackProfile=(email)=>{const sp=ld(K.SP,{});return sp[(email||'').toLowerCase()]||null;};
 const getUserEmailByName=(name)=>{if(!name)return null;const users=ld(K.U,[]);const u=users.find(u=>u.name===name);return u?.email||null;};
-const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${p.avatar}" alt="${p.name||name||''}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${p.name||name||email||'—'}`;const initials=(name||email||'?').charAt(0).toUpperCase();return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${name||email||'—'}</span>`;};
+const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${escH(p.avatar)}" alt="${escH(p.name||name||'')}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${escH(p.name||name||email||'—')}`;const initials=escH((name||email||'?').charAt(0).toUpperCase());return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${escH(name||email||'—')}</span>`;};
 const DATA_VERSION='v4';
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}};
 const sv=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));localStorage.removeItem('__init__'+k);sbSet(k,v);};
@@ -3647,13 +3650,13 @@ function renderParts(){
       : `<button class="btn bp bsm" onclick="sendPt(${x.id})">발송 처리</button>`);
     const del=(a||(mine&&x.status!=='발송'))?`<button class="btn br2 bsm" style="margin-left:2px" onclick="delPt(${x.id})">삭제</button>`:'';
     return `<tr>
-      <td>${x.reqDate||'—'}</td>
-      <td style="font-weight:500">${x.branch||'—'}</td>
-      <td>${x.item||'—'}</td>
+      <td>${escH(x.reqDate||'—')}</td>
+      <td style="font-weight:500">${escH(x.branch||'—')}</td>
+      <td>${escH(x.item||'—')}</td>
       <td class="num-r">${Number(x.qty)||0}</td>
       <td>${st}</td>
       <td style="font-size:12px">${slackAvatar(x.reqEmail,x.reqBy)}</td>
-      <td style="color:var(--green)">${x.sentDate||'—'}</td>
+      <td style="color:var(--green)">${escH(x.sentDate||'—')}</td>
       <td style="color:var(--text3);font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escLog(x.note||'')}</td>
       <td style="white-space:nowrap">${act}${del}</td>
     </tr>`;
@@ -3664,7 +3667,7 @@ function renderParts(){
     const ins=getPt().filter(x=>isPtIn(x)&&!dead.has(String(x.id)))
       .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')));
     itb.innerHTML=ins.length?ins.map(x=>`<tr>
-      <td>${x.date||'—'}</td><td>${x.item||'—'}</td><td class="num-r">+${Number(x.qty)||0}</td>
+      <td>${escH(x.date||'—')}</td><td>${escH(x.item||'—')}</td><td class="num-r">+${Number(x.qty)||0}</td>
       <td style="color:var(--text3);font-size:11px">${escLog(x.note||'')}</td>
       <td><button class="btn br2 bsm" onclick="delPt(${x.id})">삭제</button></td>
     </tr>`).join(''):emp(5);
@@ -3688,6 +3691,12 @@ function submitPtReq(){
   const item=document.getElementById('ptq-item').value;
   const q=parseInt(document.getElementById('ptq-qty').value)||0;
   if(!br||!PT_ITEMS.includes(item)||q<1){toast('e','입력 오류','지점·품목·수량을 확인하세요.');return;}
+  /* ★ select 의 값이라도 그대로 믿지 않는다. 이 배열은 Supabase 로 동기화돼 다른 사람
+     브라우저(특히 관리자 화면)에서 렌더되므로, 임의 문자열이 들어오면 저장형 XSS 가 된다.
+     렌더 쪽도 escH 로 막았지만 애초에 저장하지 않는 것이 맞다. */
+  if(!getActiveBr().some(b=>b.name===br)){toast('e','지점 오류','유효하지 않은 지점입니다.');return;}
+  // 모달의 disabled 는 표시일 뿐이다 — 지점 계정이 값을 바꿔 남의 지점으로 신청하지 못하게 한다
+  if(S.branchLocked&&br!==S.branch){toast('e','권한 없음','다른 지점으로는 신청할 수 없습니다.');return;}
   const arr=getPt();
   arr.push({id:newOid(),kind:'req',item,qty:q,branch:br,status:'신청',
     reqBy:S.name||S.id||'unknown',reqEmail:S.email||S.id||'',
