@@ -2083,7 +2083,10 @@ function goP(p){
       el.dataset.fsave='1';
     }
   });
-  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock};
+  /* 메뉴로 들어올 때 그리는 목록. 30초 새로고침용 PAGE_RENDER(맨 아래)와 따로 있어서
+     서비스요금·부자재가 그쪽에만 들어가 있었다 → 들어가면 빈 화면이고 필터를 바꾸거나
+     30초를 기다려야 채워졌다. 새 페이지를 만들면 두 곳 모두에 넣을 것. */
+  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:renderSvc,parts:renderParts,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock};
   if(fns[p])fns[p]();
   if(['receipt','order','install','monthly','stock'].includes(p)){
     const tbr=document.getElementById('tb-r');
@@ -5984,6 +5987,7 @@ function delStk(id){
   });
 }
 
+// 30초 새로고침 목록 — 메뉴 진입 때 쓰는 goP 의 fns 와 짝이다(한쪽에만 넣으면 진입 시 빈 화면)
 const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:()=>typeof renderR==='function'&&renderR(),order:()=>typeof renderO==='function'&&renderO(),install:()=>typeof renderI==='function'&&renderI(),monthly:()=>typeof renderM==='function'&&renderM(),svc:()=>typeof renderSvc==='function'&&renderSvc(),stock:()=>typeof renderStock==='function'&&renderStock(),parts:()=>typeof renderParts==='function'&&renderParts()};
 setInterval(async()=>{
   if(!S)return; // 로그인 전엔 동기화 안 함
