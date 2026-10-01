@@ -1709,6 +1709,9 @@ const PT_ST=['접수','확인','발송'];
 /* 보내는 사람(본사). 지점 관리에 '핸디즈' 로 등록해 두고 택배 라벨에 쓴다.
    신청받는 지점이 아니므로 드롭다운·검증에서는 빼야 한다. */
 const PT_HQ='핸디즈';
+/* 화면에 그려진 묶음 목록. 버튼이 넘기는 건 이 배열의 번호(숫자)뿐이라
+   지점명 같은 문자열이 onclick 속성에 들어갈 일이 없다. renderParts 가 매번 다시 만든다. */
+let PT_G=[];
 const getPt=()=>ld(K.P,[]);
 const ptBranches=()=>getActiveBr().filter(b=>b.name!==PT_HQ);
 const ptHqBr=()=>getBr().find(b=>b.name===PT_HQ)||null;
@@ -3751,33 +3754,60 @@ function renderParts(){
   if(sv2)rows=rows.filter(x=>ptSt(x)===sv2);
   rows.sort((x,y)=>String(y.reqDate||'').localeCompare(String(x.reqDate||'')));
 
+  /* ── 묶음 ──
+     커버·모듈을 한 번에 신청하면 저장은 품목별로 나뉜다(부분 발송을 위해 일부러 그렇게 뒀다).
+     화면까지 나뉘면 같은 박스 하나 보내는데 확인 2번·발송 2번을 누르고 슬랙 DM 도 2통 간다.
+     그래서 저장 구조는 그대로 두고 '한 번에 신청한 건'(지점·신청일·신청자가 같음)만 한 줄로 묶는다.
+     품목별로 상태가 갈려 있어도 한 줄에 그대로 보여주고, 버튼은 처리할 수 있는 것만 처리한다. */
+  PT_G=[];
+  {
+    const gm=new Map();
+    rows.forEach(x=>{
+      const k=[x.branch||'',x.reqDate||'',x.reqEmail||''].join('\u0001');
+      let g=gm.get(k);
+      if(!g){g={branch:x.branch,reqDate:x.reqDate,reqBy:x.reqBy,reqEmail:x.reqEmail,items:[],ids:[]};gm.set(k,g);PT_G.push(g);}
+      g.items.push(x);g.ids.push(x.id);
+    });
+  }
+
   const tb=document.getElementById('pt-body');
-  if(tb)tb.innerHTML=rows.length?rows.map(x=>{
-    const s=ptSt(x);
-    const st=s==='발송' ? '<span class="chip co">✓ 발송</span>'
-           : s==='확인' ? '<span class="chip ci">● 본사확인</span>'
-           :              '<span class="chip cg">○ 접수</span>';
-    /* onclick 에는 id(숫자)만 넣는다. 지점명·메모 같은 문자열을 속성에 끼워 넣으면
+  if(tb)tb.innerHTML=PT_G.length?PT_G.map((g,gi)=>{
+    const sts=g.items.map(ptSt);
+    const nRec=sts.filter(s=>s==='접수').length,
+          nCon=sts.filter(s=>s==='확인').length,
+          nSnt=sts.filter(s=>s==='발송').length;
+    const mixed=new Set(sts).size>1;
+    const chip=[];
+    if(nRec)chip.push(`<span class="chip cg">○ 접수${mixed?' '+nRec:''}</span>`);
+    if(nCon)chip.push(`<span class="chip ci">● 본사확인${mixed?' '+nCon:''}</span>`);
+    if(nSnt)chip.push(`<span class="chip co">✓ 발송${mixed?' '+nSnt:''}</span>`);
+    const itemTxt=g.items.map(x=>`${x.item} ${Number(x.qty)||0}개${mixed?`(${ptSt(x)})`:''}`).join(' · ');
+    const qtySum=g.items.reduce((n,x)=>n+(Number(x.qty)||0),0);
+    const sentD=g.items.map(x=>x.sentDate).filter(Boolean).sort().pop()||'';
+    const memo=[...new Set(g.items.map(x=>x.note).filter(Boolean))].join(' / ');
+
+    /* onclick 에는 묶음 번호(숫자)만 넣는다. 지점명·메모 같은 문자열을 속성에 끼워 넣으면
        따옴표 하나로 탈출돼 저장형 XSS 가 된다(2026-09-16 YOLO 업로드 사고와 같은 경로). */
     let act='';
     if(a){
-      if(s==='접수')      act=`<button class="btn bp bsm" onclick="confirmPt(${x.id})">확인 처리</button>`;
-      else if(s==='확인') act=`<button class="btn bo bsm" onclick="printPtLabel(${x.id})">라벨</button>`
-                             +`<button class="btn bp bsm" style="margin-left:2px" onclick="sendPt(${x.id})">발송 처리</button>`
-                             +`<button class="btn bo bsm" style="margin-left:2px" title="접수로 되돌리기" onclick="undoPtConfirm(${x.id})">↩</button>`;
-      else                act=`<button class="btn bo bsm" onclick="undoPtSend(${x.id})">↩ 발송취소</button>`;
+      if(nRec)act+=`<button class="btn bp bsm" onclick="confirmPtG(${gi})">확인 처리${nRec>1?` ${nRec}건`:''}</button>`;
+      if(nCon)act+=`<button class="btn bo bsm" style="margin-left:2px" onclick="printPtLabelG(${gi})">라벨</button>`
+                 +`<button class="btn bp bsm" style="margin-left:2px" onclick="sendPtG(${gi})">발송 처리${nCon>1?` ${nCon}건`:''}</button>`
+                 +`<button class="btn bo bsm" style="margin-left:2px" title="접수로 되돌리기" onclick="undoPtConfirmG(${gi})">↩</button>`;
+      if(nSnt&&!nRec&&!nCon)act=`<button class="btn bo bsm" onclick="undoPtSendG(${gi})">↩ 발송취소${nSnt>1?` ${nSnt}건`:''}</button>`;
     }
-    // 지점 계정은 아직 본사가 손대기 전(접수)인 자기 신청만 지울 수 있다
-    const del=(a||(mine&&s==='접수'))?`<button class="btn br2 bsm" style="margin-left:2px" onclick="delPt(${x.id})">삭제</button>`:'';
+    // 지점 계정은 아직 본사가 손대기 전(전부 접수)인 자기 신청만 지울 수 있다
+    const del=(a||(mine&&nRec===g.items.length))
+      ?`<button class="btn br2 bsm" style="margin-left:2px" onclick="delPtG(${gi})">삭제</button>`:'';
     return `<tr>
-      <td>${escH(x.reqDate||'—')}</td>
-      <td style="font-weight:500">${escH(x.branch||'—')}</td>
-      <td>${escH(x.item||'—')}</td>
-      <td class="num-r">${Number(x.qty)||0}</td>
-      <td>${st}</td>
-      <td style="font-size:12px">${slackAvatar(x.reqEmail,x.reqBy)}</td>
-      <td style="color:var(--green)">${escH(x.sentDate||'—')}</td>
-      <td style="color:var(--text3);font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escLog(x.note||'')}</td>
+      <td>${escH(g.reqDate||'—')}</td>
+      <td style="font-weight:500">${escH(g.branch||'—')}</td>
+      <td>${escH(itemTxt||'—')}</td>
+      <td class="num-r">${qtySum}</td>
+      <td style="white-space:nowrap">${chip.join('')}</td>
+      <td style="font-size:12px">${slackAvatar(g.reqEmail,g.reqBy)}</td>
+      <td style="color:var(--green)">${escH(sentD||'—')}</td>
+      <td style="color:var(--text3);font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escLog(memo)}</td>
       <td style="white-space:nowrap">${act}${del}</td>
     </tr>`;
   }).join(''):emp(9);
@@ -4016,6 +4046,109 @@ th{background:#f2f2f2;font-weight:700;}
   setTimeout(()=>{try{w.print();}catch(e){}},300);
 }
 
+/* ══════════ 묶음 처리 ══════════
+   한 줄(=한 번에 신청한 건) 전체를 한 번에 넘긴다. 슬랙 DM 도 묶어서 1통만 간다. */
+const ptG=gi=>PT_G[gi]||null;
+const ptGPick=(g,state)=>{const arr=getPt();
+  return {arr,t:arr.filter(x=>isPtReq(x)&&g.ids.indexOf(x.id)>=0&&ptSt(x)===state)};};
+const ptGLabel=t=>t.map(x=>`${x.item} ${Number(x.qty)||0}개`).join(' · ');
+
+function confirmPtG(gi){
+  if(!isAdm())return;
+  const g=ptG(gi);if(!g)return;
+  const {arr,t}=ptGPick(g,'접수');
+  if(!t.length)return;
+  t.forEach(x=>{x.status='확인';});
+  sv(K.P,arr);
+  logAudit('부자재확인',g.branch,ptGLabel(t));
+  renderParts();
+  const lack=t.filter(x=>(Number(x.qty)||0)>ptStock(x.item));
+  if(lack.length)toast('w','보유보다 많습니다',
+    lack.map(x=>`${x.item} 보유 ${ptStock(x.item)}개 · 확인 ${x.qty}개`).join(' / ')+' — 솔리티 입고 등록이 빠졌을 수 있습니다.');
+  else toast('s','확인 처리',`${g.branch} ${ptGLabel(t)} — 라벨을 뽑고 발송 처리하세요.`);
+}
+
+function undoPtConfirmG(gi){
+  if(!isAdm())return;
+  const g=ptG(gi);if(!g)return;
+  const {arr,t}=ptGPick(g,'확인');
+  if(!t.length)return;
+  t.forEach(x=>{x.status='접수';});
+  sv(K.P,arr);
+  logAudit('부자재확인취소',g.branch,ptGLabel(t));
+  renderParts();toast('s','되돌리기 완료',`${g.branch} ${ptGLabel(t)} — 접수`);
+}
+
+function sendPtG(gi){
+  if(!isAdm())return;
+  const g=ptG(gi);if(!g)return;
+  const {arr,t}=ptGPick(g,'확인');
+  if(!t.length){toast('i','발송할 건 없음','확인 처리된 건이 없습니다. 먼저 확인 처리하세요.');return;}
+  const today=new Date().toISOString().substring(0,10);
+  const go=()=>{
+    t.forEach(x=>{x.status='발송';x.sentDate=today;});
+    sv(K.P,arr);
+    logAudit('부자재발송',g.branch,ptGLabel(t)+` · 잔여 ${[...new Set(t.map(x=>x.item))].map(i=>`${i} ${ptStock(i)}개`).join(' · ')}`);
+    renderParts();
+    toast('s','발송 처리',`${g.branch} ${ptGLabel(t)}`);
+    sendPartsDMG(g,t,today);           // 묶음당 DM 1통
+  };
+  // 보유 확인은 발송에서만 한다(확인 단계는 수량을 건드리지 않는다)
+  const over=t.filter(x=>(Number(x.qty)||0)>ptStock(x.item));
+  if(over.length){
+    showCfm('📦','보유보다 많습니다',
+      over.map(x=>`${x.item} 보유 ${ptStock(x.item)}개 · 발송 ${x.qty}개`).join(' / ')
+      +' — 솔리티 입고 등록이 빠졌을 수 있습니다. 그래도 진행할까요?',go);
+    return;
+  }
+  go();
+}
+
+function undoPtSendG(gi){
+  if(!isAdm())return;
+  const g=ptG(gi);if(!g)return;
+  const {arr,t}=ptGPick(g,'발송');
+  if(!t.length)return;
+  showCfm(CI.box,'발송 취소',`${g.branch} ${ptGLabel(t)} 발송을 취소하고 확인 단계로 되돌립니까?`,()=>{
+    t.forEach(x=>{x.status='확인';x.sentDate='';});
+    sv(K.P,arr);
+    logAudit('부자재발송취소',g.branch,ptGLabel(t));
+    renderParts();toast('s','되돌리기 완료',`${g.branch} ${ptGLabel(t)} — 확인 단계`);
+  });
+}
+
+function delPtG(gi){
+  const g=ptG(gi);if(!g)return;
+  const arr=getPt();
+  const t=arr.filter(x=>isPtReq(x)&&g.ids.indexOf(x.id)>=0);
+  if(!t.length)return;
+  if(!isAdm()&&!(g.branch===S.branch&&t.every(x=>ptSt(x)==='접수'))){
+    toast('e','권한 없음','본사가 확인한 건이나 다른 지점 건은 지울 수 없습니다.');return;
+  }
+  showCfm(CI.trash,'삭제',`${g.branch} ${ptGLabel(t)} 신청을 삭제할까요?`,()=>{
+    t.forEach(x=>markDel(K.P,x.id));
+    const keep=getPt().filter(v=>t.every(x=>x.id!==v.id));
+    sv(K.P,keep);
+    logAudit('부자재삭제',g.branch,ptGLabel(t));
+    renderParts();toast('s','삭제 완료','기록이 삭제되었습니다.');
+  });
+}
+
+function printPtLabelG(gi){
+  const g=ptG(gi);if(!g)return;
+  ptPrintLabels(g.branch);
+}
+
+/* 묶음 DM — 품목이 몇 개든 신청자에게 한 통만 보낸다. */
+async function sendPartsDMG(g,items,date){
+  const lines=items.map(x=>` · ${x.item} ${Number(x.qty)||0}개`).join('\n');
+  const memo=[...new Set(items.map(x=>x.note).filter(Boolean))].join(' / ');
+  const msg=`📦 부자재 발송 알림\n\n안녕하세요 ${g.reqBy||g.reqEmail}님!\n`
+    +`신청하신 아래 품목을 ${date} 에 발송했습니다.\n${lines}\n지점: ${g.branch}`
+    +(memo?`\n메모: ${memo}`:'');
+  await ptSlackDM(g.reqEmail,msg);
+}
+
 function undoPtSend(id){
   if(!isAdm())return;
   const arr=getPt(),x=arr.find(v=>v.id===id);
@@ -4045,17 +4178,24 @@ function delPt(id){
 
 /* 신청자에게 DM. sendInstallDateDM 과 같은 경로(lookupByEmail → conversations.open → postMessage). */
 async function sendPartsDM(x){
-  if(!x.reqEmail){toast('w','신청자 이메일 없음','이 신청에는 이메일 정보가 없어 DM을 보낼 수 없습니다.');return;}
-  const token=getSlackBot();
-  if(!token){toast('w','Token 미설정','지점관리 > Slack 설정에서 User Token을 저장해주세요.');return;}
   const msg=`📦 부자재 발송 알림\n\n안녕하세요 ${x.reqBy||x.reqEmail}님!\n`
     +`신청하신 ${x.item} ${x.qty}개를 ${x.sentDate} 에 발송했습니다.\n지점: ${x.branch}`
     +(x.note?`\n메모: ${x.note}`:'');
+  await ptSlackDM(x.reqEmail,msg);
+}
+
+/* 슬랙 DM 전송 공용부 (lookupByEmail → conversations.open → postMessage).
+   단건·묶음이 같은 경로를 쓴다. 실패해도 발송 자체는 되돌리지 않는다 —
+   알림 때문에 업무가 막히면 안 된다. */
+async function ptSlackDM(email,msg){
+  if(!email){toast('w','신청자 이메일 없음','이 신청에는 이메일 정보가 없어 DM을 보낼 수 없습니다.');return;}
+  const token=getSlackBot();
+  if(!token){toast('w','Token 미설정','지점관리 > Slack 설정에서 User Token을 저장해주세요.');return;}
   try{
     const lu=await(await fetch('https://slack.com/api/users.lookupByEmail',{
-      method:'POST',body:new URLSearchParams({token,email:x.reqEmail})
+      method:'POST',body:new URLSearchParams({token,email})
     })).json();
-    if(!lu.ok||!lu.user?.id){toast('w','신청자 조회 실패',`${lu.error||'알 수 없는 오류'} (${x.reqEmail})`);return;}
+    if(!lu.ok||!lu.user?.id){toast('w','신청자 조회 실패',`${lu.error||'알 수 없는 오류'} (${email})`);return;}
     const conv=await(await fetch('https://slack.com/api/conversations.open',{
       method:'POST',body:new URLSearchParams({token,users:lu.user.id})
     })).json();
@@ -4063,7 +4203,7 @@ async function sendPartsDM(x){
     const md=await(await fetch('https://slack.com/api/chat.postMessage',{
       method:'POST',body:new URLSearchParams({token,channel:conv.channel.id,text:msg})
     })).json();
-    if(md.ok)toast('s','발송 알림 전송',`${x.reqBy||x.reqEmail}님 Slack에 알림을 보냈습니다.`);
+    if(md.ok)toast('s','발송 알림 전송',`${email} 님 Slack에 알림을 보냈습니다.`);
     else toast('w','메시지 전송 실패',md.error||'알 수 없는 오류');
   }catch(e){
     console.warn('부자재 DM 전송 실패:',e);
