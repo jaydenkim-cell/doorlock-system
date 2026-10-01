@@ -1313,7 +1313,18 @@ const getUserEmailByName=(name)=>{if(!name)return null;const users=ld(K.U,[]);co
 const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${escH(p.avatar)}" alt="${escH(p.name||name||'')}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${escH(p.name||name||email||'—')}`;const initials=escH((name||email||'?').charAt(0).toUpperCase());return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${escH(name||email||'—')}</span>`;};
 const DATA_VERSION='v4';
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}};
-const sv=(k,v)=>{localStorage.setItem(k,JSON.stringify(v));localStorage.removeItem('__init__'+k);sbSet(k,v);};
+/* ★ 서버와 한 번이라도 맞춰봤는가. 이게 false 인 동안에는 씨앗 데이터를 서버로 올리지 않는다.
+   2026-10-01 사고: localStorage 가 빈 브라우저가 앱을 열면 initData 가 INIT_BRANCHES(29건)를 심고,
+   지점관리 화면의 syncDuckRooms 가 객실수를 갱신하며 sv(K.B,...) 를 부른다. 예전 sv 는 그 자리에서
+   __init__ 표시를 지우고 그대로 올려버려서, 정식명칭으로 바꿔둔 32개 지점이 초기값으로 덮였다.
+   사람이 아무것도 안 눌러도 '열기만 하면' 일어난다. */
+let SB_SYNCED=false;
+const sv=(k,v)=>{
+  localStorage.setItem(k,JSON.stringify(v));
+  if(!SB_SYNCED&&localStorage.getItem('__init__'+k))return;   // 첫 동기화 전 씨앗은 올리지 않는다
+  localStorage.removeItem('__init__'+k);
+  sbSet(k,v);
+};
 
 /* ── 삭제 툼스톤 ──
    삭제는 "로컬 배열에서 빼기"만으로는 지워지지 않는다. sbSync 병합은
@@ -1510,11 +1521,14 @@ async function sbSync(){
         // 설정 데이터 → 로컬 유지, Supabase에 동기화
         try{
           const localVal=JSON.parse(local);
-          if(JSON.stringify(localVal)!==JSON.stringify(sbVal))sbSet(row.key,localVal);
+          // 아직 서버값을 받아보지 못한 씨앗이면 올리지 않는다(위 sv() 주석 참조)
+          if(!isInit&&JSON.stringify(localVal)!==JSON.stringify(sbVal))sbSet(row.key,localVal);
         }catch{}
       }
     });
-    // localStorage → Supabase (최초 마이그레이션)
+    // 여기까지 왔으면 서버값을 한 번은 받아 반영했다. 이제부터는 로컬 변경을 올려도 안전하다.
+    SB_SYNCED=true;
+    // localStorage → Supabase (최초 마이그레이션) — 서버에 그 키가 아예 없을 때만
     const migrKeys=[K.B,K.O,K.R,K.U,K.A,K.SA,K.SP,K.SV];
     for(const k of migrKeys){
       if(!sbKeys.has(k)){const v=localStorage.getItem(k);if(v)await sbSet(k,JSON.parse(v));}
@@ -1524,53 +1538,53 @@ async function sbSync(){
 
 /* ── 초기 데이터: 29개 지점 (엑셀 발주시트 기준) ── */
 const INIT_BRANCHES=[
-{id:1,name:"서면점",short:"서면",addr:"부산시 부산진구 부전동 129-1 어반스테이 서면 지하1층",loc:"부산시 부산진구",recipient:"핸디즈 서면",phone:"010-3518-7694",email:"urbanstay_02@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:2,name:"명동점",short:"명동",addr:"서울시 중구 충무로 24, 남산 센트럴뷰 스위트 지하1층 A108호",loc:"서울시 중구",recipient:"핸디즈 명동",phone:"010-3857-7694",email:"urbanstay_04@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:3,name:"제주공항점",short:"제주공항",addr:"제주 제주시 연동 6길 5, 1515호",loc:"제주 제주시",recipient:"핸디즈 제주공항",phone:"010-3868-7694",email:"urbanstay_05@handys.co.kr",lockOld:"직방",lockNew:"직방",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:4,name:"부산역점",short:"부산역",addr:"부산시 동구 충장대로160, 협성마리나 G7 B304호",loc:"부산시 동구",recipient:"핸디즈 부산역",phone:"010-4186-7694",email:"urbanstay_06@handys.co.kr",lockOld:"H2O",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:5,name:"송도달빛공원점",short:"송도달빛공원",addr:"인천시 연수구 아트센터대로 168번길 101",loc:"인천시 연수구",recipient:"핸디즈 송도달빛공원",phone:"010-3585-7694",email:"urbanstay_07@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:6,name:"속초해변C점",short:"속초해변C",addr:"강원도 속초시 해오름로 195 (조양동) 한라리센C동 508호",loc:"강원도 속초시",recipient:"핸디즈 속초해변C",phone:"010-5061-7694",email:"urbanstay_08@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:22000,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:7,name:"속초등대해변점",short:"속초등대해변",addr:"강원도 속초시 영랑해안8길 11, 속초 써밋베이 상가 201호",loc:"강원도 속초시",recipient:"핸디즈 속초등대",phone:"010-3681-7694",email:"urbanstay_10@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:8,name:"부산시청점",short:"부산시청",addr:"부산광역시 연제구 중앙대로 1116-8, 지하 1층 핸디즈 사무실",loc:"부산광역시 연제구",recipient:"핸디즈 부산시청",phone:"010-4138-7694",email:"urbanstay_11@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:9,name:"부산기장점",short:"부산기장",addr:"부산광역시 기장군 동부산관광7로 17, 103동 1층상가",loc:"부산광역시 기장군",recipient:"핸디즈 부산기장",phone:"010-4139-7694",email:"urbanstay_12@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:1,name:"어반스테이 부산서면",short:"서면",addr:"부산시 부산진구 부전동 129-1 어반스테이 서면 지하1층",loc:"부산시 부산진구",recipient:"핸디즈 서면",phone:"010-3518-7694",email:"urbanstay_02@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:2,name:"어반스테이 명동",short:"명동",addr:"서울시 중구 충무로 24, 남산 센트럴뷰 스위트 지하1층 A108호",loc:"서울시 중구",recipient:"핸디즈 명동",phone:"010-3857-7694",email:"urbanstay_04@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:3,name:"어반스테이 제주공항",short:"제주공항",addr:"제주 제주시 연동 6길 5, 1515호",loc:"제주 제주시",recipient:"핸디즈 제주공항",phone:"010-3868-7694",email:"urbanstay_05@handys.co.kr",lockOld:"직방",lockNew:"직방",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:4,name:"르컬렉티브 부산역",short:"부산역",addr:"부산시 동구 충장대로160, 협성마리나 G7 B304호",loc:"부산시 동구",recipient:"핸디즈 부산역",phone:"010-4186-7694",email:"urbanstay_06@handys.co.kr",lockOld:"H2O",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:5,name:"어반스테이 송도달빛공원",short:"송도달빛공원",addr:"인천시 연수구 아트센터대로 168번길 101",loc:"인천시 연수구",recipient:"핸디즈 송도달빛공원",phone:"010-3585-7694",email:"urbanstay_07@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:6,name:"어반스테이 속초해변C",short:"속초해변C",addr:"강원도 속초시 해오름로 195 (조양동) 한라리센C동 508호",loc:"강원도 속초시",recipient:"핸디즈 속초해변C",phone:"010-5061-7694",email:"urbanstay_08@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:22000,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:7,name:"어반스테이 속초등대해변",short:"속초등대해변",addr:"강원도 속초시 영랑해안8길 11, 속초 써밋베이 상가 201호",loc:"강원도 속초시",recipient:"핸디즈 속초등대",phone:"010-3681-7694",email:"urbanstay_10@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:8,name:"어반스테이 부산시청",short:"부산시청",addr:"부산광역시 연제구 중앙대로 1116-8, 지하 1층 핸디즈 사무실",loc:"부산광역시 연제구",recipient:"핸디즈 부산시청",phone:"010-4138-7694",email:"urbanstay_11@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:9,name:"르컬렉티브 부산기장",short:"부산기장",addr:"부산광역시 기장군 동부산관광7로 17, 103동 1층상가",loc:"부산광역시 기장군",recipient:"핸디즈 부산기장",phone:"010-4139-7694",email:"urbanstay_12@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
 {id:10,name:"부티크남포BIFF점",short:"부티크남포BIFF",addr:"부산광역시 중구 구덕로 52-1, 어반스테이 남포 건물 2층",loc:"부산광역시 중구",recipient:"핸디즈 남포BIFF",phone:"010-4582-7694",email:"urbanstay_13@handys.co.kr",lockOld:"더엠알",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
 {id:11,name:"스타즈울산점",short:"스타즈울산",addr:"울산광역시 남구 남중로 65 울산 스타즈 호텔 5층 사무실",loc:"울산광역시 남구",recipient:"핸디즈 울산스타즈호텔",phone:"010-3805-7694",email:"urbanstay_14@handys.co.kr",lockOld:"H2O",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:12,name:"강남예전시그니티점",short:"강남예전시그니티",addr:"서울시 서초구 서초3동 1595-1 지젤시그니티 지하3층 304호",loc:"서울시 서초구",recipient:"핸디즈 강남SAC시그니티",phone:"010-5216-7694",email:"urbanstay_15@handys.co.kr",lockOld:"H2O",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:12,name:"르컬렉티브 강남예전시그니티",short:"강남예전시그니티",addr:"서울시 서초구 서초3동 1595-1 지젤시그니티 지하3층 304호",loc:"서울시 서초구",recipient:"핸디즈 강남SAC시그니티",phone:"010-5216-7694",email:"urbanstay_15@handys.co.kr",lockOld:"H2O",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
 {id:13,name:"부티크익선점",short:"부티크익선",addr:"서울시 종로구 돈화문로11나길 53, 2층 핸디즈 사무실",loc:"서울시 종로구",recipient:"핸디즈 부티크익선",phone:"010-3571-7694",email:"urbanstay_17@handys.co.kr",lockOld:"H2O",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:14,name:"웨이브파크점",short:"웨이브파크",addr:"경기 시흥시 거북섬로 135 푸르지오시티, 4층 로비 뒷편",loc:"경기 시흥시",recipient:"핸디즈 시흥 웨이브파크",phone:"010-3801-7694",email:"urbanstay_18@handys.co.kr",lockOld:"직방",lockNew:"직방",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:15,name:"부산송도해변점",short:"부산송도해변",addr:"부산 서구 송도해변로 97 12층 핸디즈 사무실",loc:"부산 서구",recipient:"핸디즈 부산송도",phone:"010-3506-7694",email:"urbanstay_19@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:22000,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:16,name:"강남예전로이움점",short:"강남예전로이움",addr:"서울 서초구 반포대로16길 30, 1층 107호",loc:"서울 서초구",recipient:"핸디즈 강남SAC로이움",phone:"010-3581-7694",email:"urbanstay_21@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:true,rooms:0,manager:"",account:"",note:""},
-{id:17,name:"당진터미널점",short:"당진터미널",addr:"충남 당진시 수청5길 38, 6층 핸디즈 사무실",loc:"충남 당진시",recipient:"핸디즈 당진",phone:"010-3831-7694",email:"urbanstay_22@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:true,rooms:0,manager:"",account:"",note:""},
-{id:18,name:"속초해변 AB점",short:"속초해변AB",addr:"강원도 속초시 해오름로 171 한라리센 B동 320호",loc:"강원도 속초시",recipient:"핸디즈 속초해변AB",phone:"010-2043-7694",email:"urbanstay_23@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:22000,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:19,name:"인천차이나타운",short:"인천차이나타운",addr:"인천광역시 중구 서해대로 417번길 1, B동 2층 상가 201호 사무실",loc:"인천광역시 중구",recipient:"어반스테이 차이나타운",phone:"010-5441-7694",email:"urbanstay_24@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:true,rooms:0,manager:"",account:"",note:""},
-{id:20,name:"해운대패러그라프점",short:"해운대패러그라프",addr:"부산광역시 해운대구 해운대로 570번길 30, 513호 앞 왼쪽 창고",loc:"부산광역시 해운대구",recipient:"르컬렉티브 해운대 패러그라프",phone:"010-4037-7694",email:"urbanstay_25@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:21,name:"거북섬점",short:"거북섬",addr:"경기도 시흥시 거북섬 둘레길 7, 상가부 501호",loc:"경기도 시흥시",recipient:"어반스테이 시흥 거북섬",phone:"010-8501-7694",email:"urbanstay_26@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:true,rooms:0,manager:"",account:"",note:""},
-{id:22,name:"해운대역",short:"해운대역",addr:"부산 해운대구 해운대로 620 해운대 라뮤에뜨 B1층 상가 B03호",loc:"부산 해운대구",recipient:"어반스테이 해운대역",phone:"010-6346-7694",email:"urbanstay_27@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:23,name:"낙산해변",short:"낙산해변",addr:"강원 양양군 강현면 일출로 31-10, 206호",loc:"강원 양양군",recipient:"어반스테이 낙산해변",phone:"010-6357-7694",email:"urbanstay_28@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:24,name:"속초해변",short:"속초해변",addr:"강원 속초시 해오름로201, 리슈빌S시그니처 1층 프론트",loc:"강원 속초시",recipient:"르컬렉티브 속초해변",phone:"010-6379-7694",email:"urbanstay_29@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:true,rooms:0,manager:"",account:"",note:""},
-{id:25,name:"속초중앙점",short:"속초중앙",addr:"강원특별자치도 속초시 엑스포로 109, 체스터톤즈 B1층 D01 기둥 맞은편",loc:"강원특별자치도 속초시",recipient:"권 상희 과장",phone:"010-8769-7694",email:"urbanstay_30@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:22000,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:26,name:"호텔 동탄",short:"호텔동탄",addr:"경기도 화성시 동탄반석로 171, 어반스테이 동탄 1층 115호",loc:"경기도 화성시",recipient:"핸디즈 동탄호텔",phone:"010-9186-7694",email:"urbanstay_31@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:22000,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:27,name:"속초자이엘라더비치",short:"속초자이엘라",addr:"강원도 속초시 중앙로 316, 속초 자이엘라 더 비치 지하 1층 사무실 앞",loc:"강원도 속초시",recipient:"플라트 더 원 속초 자이엘라",phone:"010-3533-7694",email:"urbanstay_32@handys.co.kr",lockOld:"직방",lockNew:"직방",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:28,name:"가평오버더마운틴",short:"가평오버더마운틴",addr:"경기 가평군 상면 수목원로386번길 75",loc:"경기 가평군",recipient:"오버더마운틴 인 파트너십 위드 플라트",phone:"010-5773-0506",email:"urbanstay_33@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
-{id:29,name:"양양브라운스톤",short:"양양브라운스톤",addr:"강원도 양양군 강현면 해맞이길 12 브라운스톤 양양오션앤스위트 상가 2층 202호",loc:"강원도 양양군",recipient:"플라트 더 각 양양",phone:"010-4670-7694",email:"urbanstay_34@handys.co.kr",lockOld:"직방",lockNew:"직방",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""}
+{id:14,name:"르컬렉티브 시흥웨이브파크",short:"웨이브파크",addr:"경기 시흥시 거북섬로 135 푸르지오시티, 4층 로비 뒷편",loc:"경기 시흥시",recipient:"핸디즈 시흥 웨이브파크",phone:"010-3801-7694",email:"urbanstay_18@handys.co.kr",lockOld:"직방",lockNew:"직방",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:15,name:"어반스테이 부산송도해변",short:"부산송도해변",addr:"부산 서구 송도해변로 97 12층 핸디즈 사무실",loc:"부산 서구",recipient:"핸디즈 부산송도",phone:"010-3506-7694",email:"urbanstay_19@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:22000,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:16,name:"르컬렉티브 강남예전로이움",short:"강남예전로이움",addr:"서울 서초구 반포대로16길 30, 1층 107호",loc:"서울 서초구",recipient:"핸디즈 강남SAC로이움",phone:"010-3581-7694",email:"urbanstay_21@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:true,rooms:0,manager:"",account:"",note:""},
+{id:17,name:"어반스테이 당진터미널",short:"당진터미널",addr:"충남 당진시 수청5길 38, 6층 핸디즈 사무실",loc:"충남 당진시",recipient:"핸디즈 당진",phone:"010-3831-7694",email:"urbanstay_22@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:true,rooms:0,manager:"",account:"",note:""},
+{id:18,name:"어반스테이 속초해변AB",short:"속초해변AB",addr:"강원도 속초시 해오름로 171 한라리센 B동 320호",loc:"강원도 속초시",recipient:"핸디즈 속초해변AB",phone:"010-2043-7694",email:"urbanstay_23@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:22000,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:19,name:"어반스테이 인천차이나타운",short:"인천차이나타운",addr:"인천광역시 중구 서해대로 417번길 1, B동 2층 상가 201호 사무실",loc:"인천광역시 중구",recipient:"어반스테이 차이나타운",phone:"010-5441-7694",email:"urbanstay_24@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:true,rooms:0,manager:"",account:"",note:""},
+{id:20,name:"르컬렉티브 해운대패러그라프",short:"해운대패러그라프",addr:"부산광역시 해운대구 해운대로 570번길 30, 513호 앞 왼쪽 창고",loc:"부산광역시 해운대구",recipient:"르컬렉티브 해운대 패러그라프",phone:"010-4037-7694",email:"urbanstay_25@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:21,name:"어반스테이 시흥거북섬",short:"거북섬",addr:"경기도 시흥시 거북섬 둘레길 7, 상가부 501호",loc:"경기도 시흥시",recipient:"어반스테이 시흥 거북섬",phone:"010-8501-7694",email:"urbanstay_26@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:true,rooms:0,manager:"",account:"",note:""},
+{id:22,name:"어반스테이 해운대역",short:"해운대역",addr:"부산 해운대구 해운대로 620 해운대 라뮤에뜨 B1층 상가 B03호",loc:"부산 해운대구",recipient:"어반스테이 해운대역",phone:"010-6346-7694",email:"urbanstay_27@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:23,name:"어반스테이 낙산해변",short:"낙산해변",addr:"강원 양양군 강현면 일출로 31-10, 206호",loc:"강원 양양군",recipient:"어반스테이 낙산해변",phone:"010-6357-7694",email:"urbanstay_28@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:24,name:"르컬렉티브 속초해변",short:"속초해변",addr:"강원 속초시 해오름로201, 리슈빌S시그니처 1층 프론트",loc:"강원 속초시",recipient:"르컬렉티브 속초해변",phone:"010-6379-7694",email:"urbanstay_29@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:true,rooms:0,manager:"",account:"",note:""},
+{id:25,name:"르컬렉티브 속초중앙",short:"속초중앙",addr:"강원특별자치도 속초시 엑스포로 109, 체스터톤즈 B1층 D01 기둥 맞은편",loc:"강원특별자치도 속초시",recipient:"권 상희 과장",phone:"010-8769-7694",email:"urbanstay_30@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:22000,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:26,name:"플라트 호텔 동탄",short:"호텔동탄",addr:"경기도 화성시 동탄반석로 171, 어반스테이 동탄 1층 115호",loc:"경기도 화성시",recipient:"핸디즈 동탄호텔",phone:"010-9186-7694",email:"urbanstay_31@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:22000,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:27,name:"플라트 더 원 속초자이엘라",short:"속초자이엘라",addr:"강원도 속초시 중앙로 316, 속초 자이엘라 더 비치 지하 1층 사무실 앞",loc:"강원도 속초시",recipient:"플라트 더 원 속초 자이엘라",phone:"010-3533-7694",email:"urbanstay_32@handys.co.kr",lockOld:"직방",lockNew:"직방",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:28,name:"오버더마운틴 인 파트너십 위드 플라트",short:"가평오버더마운틴",addr:"경기 가평군 상면 수목원로386번길 75",loc:"경기 가평군",recipient:"오버더마운틴 인 파트너십 위드 플라트",phone:"010-5773-0506",email:"urbanstay_33@handys.co.kr",lockOld:"솔리티",lockNew:"솔리티",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""},
+{id:29,name:"플라트 더 각 양양",short:"양양브라운스톤",addr:"강원도 양양군 강현면 해맞이길 12 브라운스톤 양양오션앤스위트 상가 2층 202호",loc:"강원도 양양군",recipient:"플라트 더 각 양양",phone:"010-4670-7694",email:"urbanstay_34@handys.co.kr",lockOld:"직방",lockNew:"직방",lockPrice:132000,instCost:55000,extraCost:0,cDone:false,rooms:0,manager:"",account:"",note:""}
 ];
 
 /* ── 초기 데이터: 14건 발주 (엑셀 발주현황 기준) ── */
 const INIT_ORDERS=[
-{id:1,branch:"낙산해변",room:"416호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2025-12-10",openDate:"2026-02-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
-{id:2,branch:"낙산해변",room:"616호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2025-12-10",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
-{id:3,branch:"인천차이나타운",room:"B동 2520호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-09",installed:true,paid:true,note:""},
-{id:4,branch:"속초해변C점",room:"704호",qty:1,type:"신규",price:132000,install:55000,extra:22000,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
-{id:5,branch:"속초해변C점",room:"901호",qty:1,type:"신규",price:132000,install:55000,extra:22000,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
-{id:6,branch:"속초해변C점",room:"1003호",qty:1,type:"신규",price:132000,install:55000,extra:22000,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
-{id:7,branch:"속초해변C점",room:"1901호",qty:1,type:"신규",price:132000,install:55000,extra:22000,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
-{id:8,branch:"낙산해변",room:"315호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
-{id:9,branch:"낙산해변",room:"1424호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
-{id:10,branch:"낙산해변",room:"1722호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
-{id:11,branch:"속초해변 AB점",room:"82실",qty:82,type:"신규",price:132000,install:22000,extra:22000,orderDate:"2026-01-12",openDate:"2026-03-01",doneDate:"2026-02-19",installed:true,paid:true,note:""},
-{id:12,branch:"속초등대해변점",room:"922호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-03-03",openDate:"2026-04-01",doneDate:"2026-03-24",installed:true,paid:true,note:""},
-{id:13,branch:"낙산해변",room:"724호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-03-03",openDate:"2026-04-01",doneDate:"2026-03-24",installed:true,paid:true,note:""},
-{id:14,branch:"낙산해변",room:"1325호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-03-03",openDate:"2026-04-01",doneDate:"2026-03-24",installed:true,paid:true,note:""}
+{id:1,branch:"어반스테이 낙산해변",room:"416호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2025-12-10",openDate:"2026-02-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
+{id:2,branch:"어반스테이 낙산해변",room:"616호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2025-12-10",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
+{id:3,branch:"어반스테이 인천차이나타운",room:"B동 2520호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-09",installed:true,paid:true,note:""},
+{id:4,branch:"어반스테이 속초해변C",room:"704호",qty:1,type:"신규",price:132000,install:55000,extra:22000,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
+{id:5,branch:"어반스테이 속초해변C",room:"901호",qty:1,type:"신규",price:132000,install:55000,extra:22000,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
+{id:6,branch:"어반스테이 속초해변C",room:"1003호",qty:1,type:"신규",price:132000,install:55000,extra:22000,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
+{id:7,branch:"어반스테이 속초해변C",room:"1901호",qty:1,type:"신규",price:132000,install:55000,extra:22000,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
+{id:8,branch:"어반스테이 낙산해변",room:"315호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
+{id:9,branch:"어반스테이 낙산해변",room:"1424호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
+{id:10,branch:"어반스테이 낙산해변",room:"1722호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-01-05",openDate:"2026-03-01",doneDate:"2026-01-22",installed:true,paid:true,note:""},
+{id:11,branch:"어반스테이 속초해변AB",room:"82실",qty:82,type:"신규",price:132000,install:22000,extra:22000,orderDate:"2026-01-12",openDate:"2026-03-01",doneDate:"2026-02-19",installed:true,paid:true,note:""},
+{id:12,branch:"어반스테이 속초등대해변",room:"922호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-03-03",openDate:"2026-04-01",doneDate:"2026-03-24",installed:true,paid:true,note:""},
+{id:13,branch:"어반스테이 낙산해변",room:"724호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-03-03",openDate:"2026-04-01",doneDate:"2026-03-24",installed:true,paid:true,note:""},
+{id:14,branch:"어반스테이 낙산해변",room:"1325호",qty:1,type:"신규",price:132000,install:55000,extra:0,orderDate:"2026-03-03",openDate:"2026-04-01",doneDate:"2026-03-24",installed:true,paid:true,note:""}
 ];
 
 /* ── 데이터 초기화 (버전 체크 후 자동 마이그레이션) ── */
@@ -2855,7 +2869,23 @@ function submitAddUser(){
 
 /* ── BRANCHES ── */
 // Duck 이름 → 도어락 이름 매핑 (이름이 다른 지점만)
-const DUCK_NAME_MAP={'플라트더각양양':'양양브라운스톤'};
+/* duck 지점명 → 이 시스템의 지점명. 2026-10 지점명을 브랜드 포함 정식명칭으로 바꾸면서
+   duck 과 거의 전부 어긋났다. 여기 없는 지점(부티크남포BIFF점·스타즈울산점·부티크익선점)은
+   duck 과 이름이 같아 매핑이 필요 없다. */
+const DUCK_NAME_MAP={
+  '서면점':'어반스테이 부산서면','명동점':'어반스테이 명동','제주공항점':'어반스테이 제주공항',
+  '부산역점':'르컬렉티브 부산역','송도달빛공원점':'어반스테이 송도달빛공원','속초해변C점':'어반스테이 속초해변C',
+  '속초등대해변점':'어반스테이 속초등대해변','부산시청점':'어반스테이 부산시청','부산기장점':'르컬렉티브 부산기장',
+  '강남예전시그니티점':'르컬렉티브 강남예전시그니티','웨이브파크점':'르컬렉티브 시흥웨이브파크',
+  '부산송도해변점':'어반스테이 부산송도해변','강남예전로이움점':'르컬렉티브 강남예전로이움',
+  '당진터미널점':'어반스테이 당진터미널','속초해변 AB점':'어반스테이 속초해변AB',
+  '인천차이나타운':'어반스테이 인천차이나타운','해운대패러그라프점':'르컬렉티브 해운대패러그라프',
+  '거북섬점':'어반스테이 시흥거북섬','해운대역':'어반스테이 해운대역','낙산해변':'어반스테이 낙산해변',
+  '속초해변':'르컬렉티브 속초해변','속초중앙점':'르컬렉티브 속초중앙',
+  '동탄점(호텔)':'플라트 호텔 동탄',            // ★ duck 에 '동탄점' 과 '동탄점(호텔)' 이 따로 있다 — 확인 필요
+  '속초자이엘라더비치':'플라트 더 원 속초자이엘라','가평오버더마운틴':'오버더마운틴 인 파트너십 위드 플라트',
+  '플라트더각양양':'플라트 더 각 양양','아카이브제주':'플라트 아카이브 제주','플라트더재부산남포':'플라트 더 재 부산남포'
+};
 async function syncDuckRooms(){
   try{
     if(!(S&&S.token))return false;
@@ -2940,8 +2970,19 @@ function saveBr(){
     const rcn=rcs.filter(r=>r.branch===oldName).length;
     if(oc){ors.forEach(o=>{if(o.branch===oldName)o.branch=nm;});sv(K.O,ors);}
     if(rcn){rcs.forEach(r=>{if(r.branch===oldName)r.branch=nm;});sv(K.R,rcs);}
-    logAudit('지점명변경',`${oldName} → ${nm}`,`발주 ${oc}건 · 접수 ${rcn}건 함께 갱신`);
-    if(oc||rcn)toast('i','지점명 변경',`과거 이력도 함께 옮겼습니다 (발주 ${oc}건 · 접수 ${rcn}건)`);
+    /* ★ 부자재·서비스요금도 지점명을 키로 쓴다. 여기 빠져 있어서 2026-10-01 에
+       이름을 바꾸자 택배 라벨 주소가 비고, 서비스요금 39건이 지점과 끊겼다.
+       지점명을 저장하는 곳을 새로 만들면 반드시 이 목록에 추가할 것. */
+    const pts=getPt();
+    const pc=pts.filter(x=>x.branch===oldName).length;
+    if(pc){pts.forEach(x=>{if(x.branch===oldName)x.branch=nm;});sv(K.P,pts);}
+    const sd=getSvc();let sc=0;
+    (sd.records||[]).forEach(r=>{if(r.branch===oldName){r.branch=nm;sc++;}});
+    if(sd.branchBrand&&Object.prototype.hasOwnProperty.call(sd.branchBrand,oldName)){
+      sd.branchBrand[nm]=sd.branchBrand[oldName];delete sd.branchBrand[oldName];sc++;}
+    if(sc)saveSvc(sd);
+    logAudit('지점명변경',`${oldName} → ${nm}`,`발주 ${oc}건 · 접수 ${rcn}건 · 부자재 ${pc}건 · 서비스요금 ${sc}건 함께 갱신`);
+    if(oc||rcn||pc||sc)toast('i','지점명 변경',`과거 이력도 함께 옮겼습니다 (발주 ${oc} · 접수 ${rcn} · 부자재 ${pc} · 서비스요금 ${sc})`);
   }
   logAudit(eid?'지점수정':'지점추가', nm, eid?`지점 정보 수정 (ID ${eid})`:'신규 지점 등록');
   if(acct){const accs=getAc();const ai=accs.findIndex(a=>a.branch===nm||a.id===acct);if(ai>=0){accs[ai].branch=nm;accs[ai].id=acct;if(npw)accs[ai].pw=npw;}else accs.push({id:acct,pw:npw||'1234',role:'user',name:nm+' 담당자',branch:nm});sv(K.A,accs);}
@@ -4384,8 +4425,8 @@ const SVC_NONE='_없음';
    솔리티 지점은 서비스요금이 없으므로 대상이 아니다 — 솔리티 전환의 목적이 이 요금 제거다.
    화면에서 바꾸면 K.SV.branchBrand 의 값이 이 기본값을 이긴다(새 지점·전환 완료 대응). */
 const SVC_BRAND_DEFAULT={
-  '웨이브파크점':'직방','속초자이엘라더비치':'직방','제주공항점':'직방','양양브라운스톤':'직방',
-  '스타즈울산점':'H2O','부산역점':'H2O','강남예전시그니티점':'H2O','부티크익선점':'H2O','속초등대해변점':'H2O',
+  '르컬렉티브 시흥웨이브파크':'직방','플라트 더 원 속초자이엘라':'직방','어반스테이 제주공항':'직방','플라트 더 각 양양':'직방',
+  '스타즈울산점':'H2O','르컬렉티브 부산역':'H2O','르컬렉티브 강남예전시그니티':'H2O','부티크익선점':'H2O','어반스테이 속초등대해변':'H2O',
 };
 function svcBranchBrand(name){
   const m=getSvc().branchBrand||{};
