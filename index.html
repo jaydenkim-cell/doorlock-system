@@ -356,7 +356,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 .cfmb{background:var(--white);border-radius:14px;padding:30px 28px 24px;width:360px;text-align:center;box-shadow:var(--shadow-md);}
 .cfmb .ci{font-size:38px;margin-bottom:12px;}
 .cfmb .ct{font-size:16px;font-weight:700;margin-bottom:8px;}
-.cfmb .cs{font-size:13px;color:var(--text2);line-height:1.6;}
+.cfmb .cs{font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-line;}
 .cfmr{display:flex;gap:8px;justify-content:center;margin-top:20px;}
 
 /* TOAST */
@@ -743,6 +743,27 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           </div>
           <div class="pb" style="padding-top:4px;font-size:11px;color:var(--text3)">※ 직방·H2O: 운영실수 기준 / 더엠알: 건물 전체 객실 기준 / 부가세 10% 자동 계산</div>
         </div>
+        <!-- H2O 월 객실 목록 (월초·말일 목록 → 엑셀·메일 초안·청구 반영) -->
+        <div class="panel" id="h2o-panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt">📮 H2O 월 객실 목록</span><span id="h2o-status" style="font-size:11px;color:var(--text3)"></span></div>
+          <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:600;color:var(--text2)">대상 월</label>
+              <input class="fi" id="h2o-month" type="month" style="width:140px" onchange="h2oReset()"></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:600;color:var(--text2)">구분</label>
+              <select class="fsel" id="h2o-mode" style="width:120px" onchange="h2oReset()"><option value="start">월초 목록</option><option value="end">말일 확정</option></select></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:600;color:var(--text2)">H2O 담당자</label>
+              <input class="fi" id="h2o-contact" type="text" style="width:90px" placeholder="유아름"></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:600;color:var(--text2)">보내는 사람</label>
+              <input class="fi" id="h2o-sender" type="text" style="width:170px" placeholder="핸디즈 구매소싱팀 김강현"></div>
+            <button class="btn bp bsm" onclick="h2oLoad()">불러오기</button>
+            <button class="btn bo bsm" onclick="h2oSave()">저장</button>
+            <button class="btn bo bsm" onclick="h2oExcel()" style="color:#217346;border-color:#217346">엑셀 다운로드</button>
+            <button class="btn bo bsm" onclick="h2oMail()">메일 초안</button>
+            <button class="btn bo bsm" id="h2o-apply-btn" onclick="h2oApply()" style="display:none">청구 내역에 반영</button>
+          </div>
+          <div class="pb" id="h2o-preview" style="padding-top:0"></div>
+          <div class="pb" style="padding-top:4px;font-size:11px;color:var(--text3)">① 매월 1~2일: [월초 목록] 불러오기 → 저장 → 엑셀·메일 초안으로 H2O 에 송부 &nbsp; ② 말일: [말일 확정] 불러오기 → 해지 호실의 삭제 요청 도달일 입력 → 저장 → 엑셀·메일 초안 → 청구 내역에 반영</div>
+        </div>
         <!-- 항목 입력 -->
         <!-- 자동 불러오기 (솔리티 + duck) -->
         <div class="panel" style="margin-bottom:16px">
@@ -802,7 +823,14 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
               </select>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">운영실수</label>
+              <label style="font-size:11px;font-weight:600;color:var(--text2)">구분</label>
+              <select class="fsel" id="svc-inp-kind" style="width:96px" onchange="svcKindChange()">
+                <option value="monthly">월정액</option>
+                <option value="prorate">일할</option>
+              </select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:11px;font-weight:600;color:var(--text2)" id="svc-inp-rooms-lbl">운영실수</label>
               <input class="fi" id="svc-inp-rooms" type="number" min="1" style="width:90px" placeholder="0">
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
@@ -1331,7 +1359,7 @@ const canon=v=>{
 const kvHash=s=>{let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(36);};
 const vHash=v=>kvHash(canon(v));
 // 게이트웨이 GUARD_KEYS 와 같은 목록. SLACK_KEY 류는 파일 뒤쪽 const 라 여기서는 문자열로 쓴다.
-const CAS_KEYS=new Set([K.B,K.D,K.H,K.SV,K.A,K.SA,K.SP,'doorlock_slack_wh','doorlock_slack_bot']);
+const CAS_KEYS=new Set([K.B,K.D,K.H,K.SV,K.A,K.SA,K.SP,'doorlock_slack_wh','doorlock_slack_bot','doorlock_h2o_lists']);
 const baseGet=k=>localStorage.getItem('__base__'+k);
 const baseSet=(k,h)=>localStorage.setItem('__base__'+k,h);
 /* 지금 돌고 있는 앱 코드(이 <script> 본문)의 지문. 새 버전 알림(checkAppUpdate)이 서버의 index.html 과 비교한다.
@@ -4619,10 +4647,10 @@ function exportToExcel(type){
     if(fb)recs=recs.filter(r=>r.branch===fb);
     if(fbrand)recs=recs.filter(r=>r.brand===fbrand);
     recs.sort((a,b)=>a.brand.localeCompare(b.brand)||b.month.localeCompare(a.month)||a.branch.localeCompare(b.branch,'ko'));
-    rows=[['청구월','지점','브랜드','운영실수','단가(별도)','공급가액','부가세(10%)','합계(포함)','비고']];
+    rows=[['청구월','지점','브랜드','운영실수(일할=일수)','단가(별도)','공급가액','부가세(10%)','합계(포함)','비고','구분']];
     recs.forEach(r=>{
       const c=svcCalc(r);
-      rows.push([r.month,r.branch,r.brand,r.rooms,svcUnit(r),c.ex,c.vat,c.t,r.note||'']);
+      rows.push([r.month,r.branch,r.brand,r.rooms,svcUnit(r),c.ex,c.vat,c.t,r.note||'',isProrate(r)?'일할':'월정액']);
     });
     if(recs.length>0){
       const st=svcTotal(recs);
@@ -4729,6 +4757,16 @@ async function doRestoreBackup(data,keys){
 /* ── 서비스요금 ── */
 const SVC_BRANDS=['직방','H2O','더엠알'];
 const SVC_DEF_PRICES={'직방':2000,'H2O':3000,'더엠알':3000};
+/* 공휴일(대체공휴일·선거일 포함) — 한국천문연구원 특일정보(공공데이터포털)에서 2026-10-02 조회한 2026~2028년.
+   ★ 2029년부터는 주말만 건너뛴다 — 해마다 다음 해 공휴일을 더할 것. */
+const KR_HOLIDAYS=new Set(['2026-01-01','2026-02-16','2026-02-17','2026-02-18','2026-03-01','2026-03-02','2026-05-01','2026-05-05','2026-05-24','2026-05-25','2026-06-03','2026-06-06','2026-07-17','2026-08-15','2026-08-17','2026-09-24','2026-09-25','2026-09-26','2026-10-03','2026-10-05','2026-10-09','2026-12-25','2027-01-01','2027-02-06','2027-02-07','2027-02-08','2027-02-09','2027-03-01','2027-05-01','2027-05-03','2027-05-05','2027-05-13','2027-06-06','2027-07-17','2027-07-19','2027-08-15','2027-08-16','2027-09-14','2027-09-15','2027-09-16','2027-10-03','2027-10-04','2027-10-09','2027-10-11','2027-12-25','2027-12-27','2028-01-01','2028-01-26','2028-01-27','2028-01-28','2028-03-01','2028-04-12','2028-05-01','2028-05-02','2028-05-05','2028-06-06','2028-07-17','2028-08-15','2028-10-02','2028-10-03','2028-10-04','2028-10-05','2028-10-09','2028-12-25']);
+const ymdLocal=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+// 주말·공휴일이면 다음 영업일로(민법상 기간 말일이 공휴일이면 그 익일 만료와 같은 기준)
+function nextBizDay(ymd){const d=new Date(ymd+'T00:00:00');for(let i=0;i<20;i++){const t=ymdLocal(d),w=d.getDay();if(w!==0&&w!==6&&!KR_HOLIDAYS.has(t))return t;d.setDate(d.getDate()+1);}return ymd;}
+/* 청구 내역의 '일할' 줄(2026-10 신설). rooms 칸에 객실 수 대신 등록일수를 담고, 단가는 월단가÷30(H2O 100원).
+   객실 한 개당 한 줄로 적는다 — 그래야 '객실당 월정액 초과 불가'(최대 30일)를 줄마다 지킬 수 있다. */
+const isProrate=r=>r&&r.kind==='prorate';
+const SVC_PRORATE_MAX=30;
 function getSvc(){return ld(K.SV,{brandPrices:{...SVC_DEF_PRICES},records:[]});}
 
 /* ══════════ 자동 불러오기 (솔리티 + duck) ══════════
@@ -4851,7 +4889,7 @@ function svcAutoPreview(){
   }
   if(!AUTO.rows.length)return;
   const mv=document.getElementById('auto-month').value||'';
-  const cur=getSvc().records.filter(r=>r.month===mv);
+  const cur=getSvc().records.filter(r=>r.month===mv&&!isProrate(r));   // 비교 대상은 월정액 줄만
   const prices=getSvc().brandPrices||SVC_DEF_PRICES;
 
   /* 기본은 과금 대상만 보여준다. 솔리티 전용 지점까지 29줄을 늘어놓으면
@@ -5030,9 +5068,14 @@ function svcApplyAuto(){
   if(!mv){toast('e','오류','반영할 청구월을 선택하세요.');return;}
   /* duck 실수를 못 찾은 지점(total 0)은 반영하지 않는다 — 0실로 덮어쓰면
      그 지점 요금이 사라지고, 다음 달 대사에서야 드러난다. */
+  /* H2O 월 목록으로 말일 확정한 달은 H2O 를 건너뛴다 — 여기서 덮으면 '말일 실수'가 월정액이 되어
+     월중 추가된 객실이 월정액과 일할로 두 번 청구된다(그 달 H2O 는 [청구 내역에 반영]이 정본). */
+  const h2oDone=!!((getHL().months[mv]||{}).end);
   const use=AUTO.rows.map(r=>({...r,brand:svcBranchBrand(r.branch)}))
-                     .filter(r=>r.brand&&r.brand!==SVC_NONE&&r.total>0&&r.target>0);
-  if(!use.length){toast('e','반영할 항목 없음','브랜드를 지정한 지점이 없습니다.');return;}
+                     .filter(r=>r.brand&&r.brand!==SVC_NONE&&r.total>0&&r.target>0&&!(h2oDone&&r.brand==='H2O'&&H2O_BRS.has(r.branch)));
+  const h2oSkipped=h2oDone&&AUTO.rows.some(r=>svcBranchBrand(r.branch)==='H2O'&&H2O_BRS.has(r.branch));
+  if(h2oSkipped)toast('i','H2O 는 건너뜁니다',`${mv} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);
+  if(!use.length){toast('e','반영할 항목 없음',h2oSkipped?'H2O 말고는 반영할 지점이 없습니다.':'브랜드를 지정한 지점이 없습니다.');return;}
   const d=getSvc();
   showCfm('⚡','자동 반영',
     `${mv} 서비스요금을 솔리티·duck 기준으로 덮어씁니다. 대상 ${use.length}개 지점 — `
@@ -5040,7 +5083,7 @@ function svcApplyAuto(){
     +`${use.length>4?` 외 ${use.length-4}곳`:''}. 진행할까요?`,
     ()=>{
       const keys=new Set(use.map(r=>r.branch+'|'+r.brand));
-      const keep=d.records.filter(r=>!(r.month===mv&&keys.has(r.branch+'|'+r.brand)));
+      const keep=d.records.filter(r=>isProrate(r)||!(r.month===mv&&keys.has(r.branch+'|'+r.brand)));   // 일할 줄은 남긴다
       let nid=keep.length>0?Math.max(...keep.map(r=>Number(r.id)||0))+1:1;
       use.forEach(r=>{
         keep.push({id:nid++,month:mv,branch:r.branch,brand:r.brand,rooms:r.target,
@@ -5295,7 +5338,7 @@ function svcYoloPreview(){
     if(bd==='_없음'){skip.set(bn,(skip.get(bn)||0)+1);return;}
     const k=bn+'|'+bd; agg.set(k,(agg.get(k)||0)+1);
   });
-  const cur=getSvc().records.filter(r=>r.month===mv);
+  const cur=getSvc().records.filter(r=>r.month===mv&&!isProrate(r));   // 비교 대상은 월정액 줄만
   const rows=[...agg].map(([k,n])=>{
     const[bn,bd]=k.split('|');
     const now=cur.filter(r=>r.branch===bn&&r.brand===bd).reduce((s,r)=>s+(Number(r.rooms)||0),0);
@@ -5335,7 +5378,9 @@ function svcApplyYolo(){
     if(bd==='_없음'){skip.set(bn,(skip.get(bn)||0)+1);return;}
     agg.set(bn+'|'+bd,(agg.get(bn+'|'+bd)||0)+1);
   });
-  if(!agg.size){toast('e','반영할 항목 없음','지점·브랜드 지정을 먼저 채워주세요.');return;}
+  // H2O 월 목록으로 말일 확정한 달은 H2O 를 건너뛴다(svcApplyAuto 와 같은 이유 — 월중 추가 객실 이중 청구)
+  if((getHL().months[mv]||{}).end){let n=0;[...agg.keys()].forEach(k=>{if(k.endsWith('|H2O')&&H2O_BRS.has(k.slice(0,-4))){agg.delete(k);n++;}});if(n)toast('i','H2O 는 건너뜁니다',`${mv} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);}
+  if(!agg.size){toast('e','반영할 항목 없음',(getHL().months[mv]||{}).end?'H2O 말고는 반영할 지점이 없습니다.':'지점·브랜드 지정을 먼저 채워주세요.');return;}
   const d=getSvc();
   const touched=[...agg].map(([k])=>k.split('|'));
   showCfm('📥','YOLO 기준으로 반영',
@@ -5343,7 +5388,7 @@ function svcApplyYolo(){
     +`${touched.slice(0,4).map(([a,b])=>a+' '+b).join(', ')}${touched.length>4?` 외 ${touched.length-4}건`:''}. 진행할까요?`,
     ()=>{
       // 대상 지점×브랜드의 그 달 레코드를 지우고 새로 넣는다 (부분 갱신은 중복을 남긴다)
-      const keep=d.records.filter(r=>!(r.month===mv&&agg.has(r.branch+'|'+r.brand)));
+      const keep=d.records.filter(r=>isProrate(r)||!(r.month===mv&&agg.has(r.branch+'|'+r.brand)));   // 일할 줄은 남긴다
       let nid=keep.length>0?Math.max(...keep.map(r=>Number(r.id)||0))+1:1;
       [...agg].forEach(([k,n])=>{
         const[branch,brand]=k.split('|');
@@ -5367,7 +5412,7 @@ function svcVat(amt){return Math.round(amt*0.1);}
 function svcUnit(r){return r.unitPrice||SVC_DEF_PRICES[r.brand]||0;}
 function svcCalc(r){const ex=r.rooms*svcUnit(r),vat=svcVat(ex);return{ex,vat,t:ex+vat};}
 function svcTotal(rs){return rs.reduce((a,r)=>{const c=svcCalc(r);
-  return{cnt:a.cnt+1,rooms:a.rooms+r.rooms,ex:a.ex+c.ex,vat:a.vat+c.vat,t:a.t+c.t};},{cnt:0,rooms:0,ex:0,vat:0,t:0});}
+  return{cnt:a.cnt+1,rooms:a.rooms+(isProrate(r)?0:r.rooms),days:a.days+(isProrate(r)?r.rooms:0),ex:a.ex+c.ex,vat:a.vat+c.vat,t:a.t+c.t};},{cnt:0,rooms:0,days:0,ex:0,vat:0,t:0});}   // 일할 줄의 rooms 는 일수라 실수 합계에서 뺀다
 let svcEditId=null;
 
 function renderSvc(){
@@ -5430,20 +5475,20 @@ function renderSvc(){
           <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
           <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
           <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
-          <td><input id="se-note-${r.id}" type="text" value="${r.note||''}" style="width:140px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" placeholder="비고"></td>
+          <td><input id="se-note-${r.id}" type="text" value="${escH(r.note||'')}" style="width:140px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" placeholder="비고"></td>
           <td style="white-space:nowrap"><button class="btn bp bsm" onclick="saveEditSvc(${r.id})" style="padding:2px 8px;font-size:11px;margin-right:4px">저장</button><button class="btn bo bsm" onclick="cancelSvcEdit()" style="padding:2px 8px;font-size:11px">취소</button></td>
         </tr>`;
       }
       return`<tr>
-        <td>${r.month}</td>
-        <td>${r.branch}</td>
+        <td>${escH(r.month)}</td>
+        <td>${escH(r.branch)}</td>
         <td>${brandBadge(r.brand)}</td>
-        <td style="text-align:right">${r.rooms.toLocaleString()}실</td>
+        <td style="text-align:right">${isProrate(r)?`<span class="chip cg" style="margin-right:4px">일할</span>${r.rooms}일`:r.rooms.toLocaleString()+'실'}</td>
         <td style="text-align:right">${fmt(up)}</td>
         <td style="text-align:right">${fmt(ex)}</td>
         <td style="text-align:right">${fmt(vat)}</td>
         <td style="text-align:right;font-weight:600">${fmt(ex+vat)}</td>
-        <td style="font-size:11px;color:var(--text3)">${r.note||''}</td>
+        <td style="font-size:11px;color:var(--text3)">${escH(r.note||'')}</td>
         <td style="white-space:nowrap"><button class="btn bo bsm" onclick="editSvcEntry(${r.id})" style="padding:2px 8px;font-size:11px;margin-right:4px">수정</button><button class="btn bo bsm" onclick="deleteSvcEntry(${r.id})" style="padding:2px 8px;font-size:11px">삭제</button></td>
       </tr>`;
     }).join('');
@@ -5471,23 +5516,34 @@ function addSvcEntry(){
   const month=document.getElementById('svc-inp-month').value;
   const branch=document.getElementById('svc-inp-branch').value;
   const brand=document.getElementById('svc-inp-brand').value;
-  const rooms=parseInt(document.getElementById('svc-inp-rooms').value)||0;
+  let rooms=parseInt(document.getElementById('svc-inp-rooms').value)||0;
   const note=document.getElementById('svc-inp-note').value.trim();
+  const prorate=document.getElementById('svc-inp-kind')?.value==='prorate';
   if(!month){toast('e','입력 오류','청구월을 선택하세요.');return;}
   if(!branch){toast('e','입력 오류','지점을 선택하세요.');return;}
-  if(rooms<=0){toast('e','입력 오류','운영실수를 입력하세요.');return;}
+  if(rooms<=0){toast('e','입력 오류',prorate?'등록일수를 입력하세요.':'운영실수를 입력하세요.');return;}
+  if(prorate&&!note){toast('e','입력 오류','일할은 비고에 호실과 기간을 적어 주세요. 예) 1902호 해지 10/1~10/10');return;}
+  if(prorate&&rooms>SVC_PRORATE_MAX){rooms=SVC_PRORATE_MAX;toast('w','30일로 맞췄습니다','일할은 객실당 월정액(30일분)을 넘지 않습니다.');}
   const d=getSvc();
-  const unitPrice=d.brandPrices[brand]||SVC_DEF_PRICES[brand]||0;
+  const monthly=d.brandPrices[brand]||SVC_DEF_PRICES[brand]||0;
+  const unitPrice=prorate?Math.round(monthly/30):monthly;   // H2O 3,000 ÷ 30 = 100원
   const nid=d.records.length>0?Math.max(...d.records.map(r=>r.id))+1:1;
-  d.records.push({id:nid,month,branch,brand,rooms,unitPrice,note,createdAt:new Date().toISOString()});
+  d.records.push({id:nid,month,branch,brand,rooms,unitPrice,note,...(prorate?{kind:'prorate'}:{}),createdAt:new Date().toISOString()});
   saveSvc(d);
   document.getElementById('svc-inp-rooms').value='';
   document.getElementById('svc-inp-note').value='';
   document.getElementById('svc-f-month').value=month;
-  toast('s','추가 완료',`${branch} ${brand} ${rooms}실 추가되었습니다.`);
+  toast('s','추가 완료',`${branch} ${brand} ${prorate?'일할 '+rooms+'일':rooms+'실'} 추가되었습니다.`);
   renderSvc();
 }
 
+// 일할을 고르면 칸 이름·예시를 일수로 바꾼다
+function svcKindChange(){
+  const pr=document.getElementById('svc-inp-kind')?.value==='prorate';
+  const l=document.getElementById('svc-inp-rooms-lbl');if(l)l.textContent=pr?'등록일수':'운영실수';
+  const n=document.getElementById('svc-inp-note');if(n)n.placeholder=pr?'1902호 해지 10/1~10/10':'직방 30실, 솔리티 20실';
+  const r=document.getElementById('svc-inp-rooms');if(r)r.max=pr?String(SVC_PRORATE_MAX):'';
+}
 function editSvcEntry(id){svcEditId=id;renderSvc();const el=document.getElementById('se-rooms-'+id);if(el)el.focus();}
 function cancelSvcEdit(){svcEditId=null;renderSvc();}
 function saveEditSvc(id){
@@ -5500,6 +5556,7 @@ function saveEditSvc(id){
   if(rooms<=0){toast('e','오류','운영실수를 입력하세요.');return;}
   const d=getSvc();
   const rec=d.records.find(r=>r.id===id);
+  if(isProrate(rec)&&rooms>SVC_PRORATE_MAX){toast('e','오류','일할은 객실당 30일(월정액)을 넘을 수 없습니다.');return;}
   if(rec){rec.branch=branch;rec.brand=brand;rec.rooms=rooms;rec.unitPrice=unitPrice;rec.note=note;}
   saveSvc(d);svcEditId=null;
   toast('s','수정 완료','항목이 수정되었습니다.');
@@ -5521,8 +5578,11 @@ function copySvcMonth(){
   if(!tgt){toast('e','오류','대상 월을 입력하세요.');return;}
   if(src===tgt){toast('e','오류','원본과 대상 월이 같습니다.');return;}
   const d=getSvc();
-  const srcRecs=d.records.filter(r=>r.month===src);
+  // 일할 줄·H2O 월 목록 줄은 그 달 한정이라 복사하지 않는다. 대상 달이 H2O 말일 확정된 달이면 5개 시설 H2O 는 [청구 내역에 반영]이 정본
+  const h2oT=!!(getHL().months[tgt]||{}).end;
+  const srcRecs=d.records.filter(r=>r.month===src&&!isProrate(r)&&r.src!=='h2o'&&!(h2oT&&r.brand==='H2O'&&H2O_BRS.has(r.branch)));
   if(srcRecs.length===0){toast('e','오류',`${src}에 등록된 항목이 없습니다.`);return;}
+  if(h2oT)toast('i','H2O 는 건너뜁니다',`${tgt} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);
   const tgtExists=d.records.filter(r=>r.month===tgt);
   if(tgtExists.length>0&&!confirm(`${tgt}에 이미 ${tgtExists.length}개 항목이 있습니다. 추가로 복사하시겠습니까?`))return;
   let nid=d.records.length>0?Math.max(...d.records.map(r=>r.id))+1:1;
@@ -5687,19 +5747,564 @@ function buildSvcAmaData(){
   const tgt=fm||`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
   const[y,mo]=tgt.split('-').map(Number);
   const lastDay=new Date(y,mo,0).getDate();
-  const execDate=`${y}-${String(mo).padStart(2,'0')}-${lastDay}`;
+  let execDate=`${y}-${String(mo).padStart(2,'0')}-${lastDay}`;
   const branches=[...new Set(recs.map(r=>r.branch))];
   const brands=[...new Set(recs.map(r=>r.brand))];
   const ym=tgt.substring(2).replace('-','.');
   const brandStr=brands.join('/');
   const vendorMap={'직방':'직방(주)','H2O':'에이치투오코리아','더엠알':'더엠알'};
   const vendor=brands.map(b=>vendorMap[b]||b).join('/');
-  const calcLines=recs.map((r,i)=>
-    `${i+1}. ${r.branch}\n- 객실 수 : ${r.rooms}실\n- 금액 : ${svcCalc(r).t.toLocaleString()}원 (VAT 포함)`);
-  const upRef=recs[0]?svcUnit(recs[0]):0;
-  calcLines.push(`\n산출근거\n(정산 기준: 월 고정단가(${upRef.toLocaleString()}원) × 실제 운영 객실 수)`);
+  /* H2O 는 2026-10월분부터 새 정산 기준(말일 확정 · 월정액 + 일할 · 익월 10일 지급, 2026-10-02 H2O 회신으로 합의).
+     직방·더엠알은 계약 조건이 달라 예전 문구 그대로 둔다. */
+  const h2o=brands.length===1&&brands[0]==='H2O'&&tgt>=H2O_NEW_TERMS_FROM;
+  if(brands.includes('H2O')&&brands.length>1&&tgt>=H2O_NEW_TERMS_FROM){toast('e','H2O 는 따로 품의하세요','H2O 는 지급일(익월 10일)·정산 문구가 달라 다른 업체와 한 장에 쓸 수 없습니다. 브랜드 필터를 H2O 로 맞추세요.');return null;}
+  if(!fm&&recs.some(r=>r.brand==='H2O'&&r.month>=H2O_NEW_TERMS_FROM)){toast('e','청구월을 고르세요','H2O 품의서는 한 달씩 만듭니다. 월 필터를 고르세요.');return null;}
+  if(h2o){   // 청구 내역이 말일 확정본과 짝이 맞아야 한다
+    const st=h2oApplyState(tgt);
+    if(st==='stale'){toast('e','H2O 청구 내역이 말일 확정본과 다릅니다','H2O 월 목록에서 [저장] 뒤 [청구 내역에 반영]을 다시 누르세요.');return null;}
+    if(st==='rows'){toast('e','H2O 청구 줄이 반영한 것과 다릅니다','반영한 뒤 H2O 줄을 고치거나 복사해 넣었습니다. H2O 월 목록에서 [청구 내역에 반영]을 다시 누르세요.');return null;}
+    if(st==='none')toast('w','H2O 말일 확정 전입니다',`${tgt} H2O 월 목록 말일 확정을 저장하지 않았습니다 — 청구 내역이 말일 기준인지 확인하세요.`);
+  }
+  let calcLines,specialNote;
+  if(h2o){
+    const nextM=mo===12?`${y+1}-01-10`:`${y}-${String(mo+1).padStart(2,'0')}-10`;
+    execDate=nextBizDay(nextM);   // 익월 10일, 주말·공휴일이면 다음 영업일
+    const won=n=>n.toLocaleString()+'원';
+    calcLines=branches.map((b,i)=>{
+      const rs=recs.filter(r=>r.branch===b),mon=rs.filter(r=>!isProrate(r)),pr=rs.filter(isProrate);
+      const lines=[`${i+1}. ${amaBrName(b)}`];
+      mon.forEach(r=>lines.push(`- 월정액 : ${r.rooms}실 × ${won(svcUnit(r))} = ${won(r.rooms*svcUnit(r))}`));
+      pr.forEach(r=>lines.push(`- 일할 : ${r.note?r.note+' · ':''}${r.rooms}일 × ${won(svcUnit(r))} = ${won(r.rooms*svcUnit(r))}`));
+      lines.push(`- 금액 : ${won(svcTotal(rs).t)} (VAT 포함)`);
+      return lines.join('\n');
+    });
+    const up=svcUnit(recs.find(r=>!isProrate(r))||{brand:'H2O'});
+    calcLines.push(`\n산출근거\n(정산 기준: 당월 1일~말일 계속 등록 객실 × 월 ${won(up)} + 월중 추가·해지 객실 등록일수 × ${won(Math.round(up/30))}\n · 말일 기준, 등록일·해지일 당일 포함, 객실당 월정액 초과 불가 · 해지 기준일 = 삭제 요청 메일 도달일)`);
+    specialNote='매월 말일 기준 운영 객실 수 (장기숙박·직원숙소 등 제외)\n말일 확정 → 말일자 세금계산서 발행 → 익월 10일 지급 (휴일이면 다음 영업일)';
+  }else{
+    calcLines=recs.map((r,i)=>isProrate(r)
+      ?`${i+1}. ${amaBrName(r.branch)}\n- 일할 : ${r.note?r.note+' · ':''}${r.rooms}일 × ${svcUnit(r).toLocaleString()}원\n- 금액 : ${svcCalc(r).t.toLocaleString()}원 (VAT 포함)`
+      :`${i+1}. ${amaBrName(r.branch)}\n- 객실 수 : ${r.rooms}실\n- 금액 : ${svcCalc(r).t.toLocaleString()}원 (VAT 포함)`);
+    const upRef=svcUnit(recs.find(r=>!isProrate(r))||recs[0]||{});
+    calcLines.push(`\n산출근거\n(정산 기준: 월 고정단가(${upRef.toLocaleString()}원) × 실제 운영 객실 수)`);
+    specialNote='매월 20~25일 사이 실제 운영객실수 기준 (장기숙박,직원숙소등 제외)';
+  }
   const ym2=tgt.replace('-','년 ')+'월';
-  return{costName:`${branches.join(',')} ${ym}_${brandStr}도어락서비스사용료_BQ계좌`,costType:'기타',taxType:'과세',totalAmt:total,execDate,vendor,account:'BQ_운영계좌',calcDetail:calcLines.join('\n\n'),specialNote:'매월 20~25일 사이 실제 운영객실수 기준 (장기숙박,직원숙소등 제외)',attach1:'집행처 사업자등록증',attach2:'집행처 통장 사본',attach3:'연간계약서',attach4:'고지서',attachOther:'',draftNote:`${branches.join(',')} ${ym2} ${brandStr} 도어락 서비스 사용료 상신의 건입니다.`,refLink:''};
+  const brLabels=branches.map(amaBrName);   // '어반스테이 속초등대해변' → '속초등대해변'
+  return{costName:`${brLabels.join(',')} ${ym}_${brandStr}도어락서비스사용료_BQ계좌`,costType:'기타',taxType:'과세',totalAmt:total,execDate,vendor,account:'BQ_운영계좌',calcDetail:calcLines.join('\n\n'),specialNote,attach1:'집행처 사업자등록증',attach2:'집행처 통장 사본',attach3:'연간계약서',attach4:'고지서',attachOther:'',draftNote:`${brLabels.join(',')} ${ym2} ${brandStr} 도어락 서비스 사용료 상신의 건입니다.`,refLink:''};
+}
+
+/* ══════════ H2O 월 객실 목록 (2026-10-02) ══════════
+   H2O 와 합의한 정산(말일 확정 · 월정액 + 일할 · 익월 10일 지급)에 쓰는 시설별 호실 목록을 만든다.
+   흐름: 매월 1~2일 [월초 목록] 저장 → H2O 송부 / 말일 [말일 확정] 불러오기 → 해지 도달일 입력 → 저장 → 엑셀·메일 → 청구 내역 반영 → 품의서.
+   · 월초 목록 = 지난달 말일 확정본(첫 달은 2026-10-02 수작업 대조 727실을 씨앗으로 넣어 두었다).
+   · 말일 목록 = H2O 서버의 등록 기기(업체가 요금을 매기는 기준). 다음 달 처음 등록된 기기는 뺀다.
+     duck 판매객실 − 솔리티 객실과 맞지 않으면 경고한다(2026-10-02 수작업 대조에서 5개 시설 모두 호실 단위 1:1 일치 확인).
+   · 해지 도달일이 말일 뒤면 '다음 달 해지'로 넘긴다(이번 달은 월정액, 다음 달 말일 확정에 날짜가 따라간다).
+   · 엑셀·메일·청구 반영은 '저장된 기록'으로만 만든다. 저장 뒤 사용자가 입력(도달일·등록일·직접 추가/해지)을 바꾸면 다시 저장해야 한다.
+     저장 뒤 서버만 바뀐 건 막지 않는다(닫힌 달을 열어 봐도 저장본으로 문서를 만들 수 있게).
+   · 청구 내역은 말일 확정본과 짝이 맞아야 한다 — 반영하지 않았거나 확정본을 고친 뒤면 H2O 품의서를 막는다.
+   ★ 부산역은 건물 전체(다른 운영사 세대·공용도어 포함 1,178대)가 한 H2O 시설이라 서버 목록으로 우리 방을 가를 수 없다
+     → 저장된 우리 목록을 기준으로 두고 추가·해지는 직접 적는다(판매객실 수가 달라지면 경고).
+   ★ 서버에 아직 지워지지 않은 해지(삭제 요청은 보냈는데 H2O 반영 전)는 어느 시설이든 [해지]로 적는다 — 다음 달로도 넘어간다.
+   ★ 장기안정형(장기숙박) 객실은 H2O 기기가 있어도 목록에서 뺀다(2026-10-02 확정) — duck 위성 지점이라 시설 목록에 없다.
+   ★ H2O_FAC 의 지점명은 지점관리에서 이름을 바꾸면 같이 고쳐야 한다(서비스요금 기록도 이 이름으로 묶인다).
+   ★ 시설이 끝나면(스타즈울산 2026년 말 예정) 그 시설에 until:'YYYY-MM'(마지막 청구월)을 적는다 — 다음 달부터 조회·목록에서 빠진다.
+     적기 전이라도 서버 기기가 0대면 실패가 아니라 경고로 보고, 해지 도달일을 [일괄]로 넣어 확정할 수 있다. */
+const K_HL='doorlock_h2o_lists';
+const H2O_NEW_TERMS_FROM='2026-10';   // 이 달부터 말일 확정 · 일할 · 익월 10일 지급
+const H2O_FAC=[
+  {id:'7', br:'르컬렉티브 부산역', short:'부산역', whole:true},
+  {id:'13',br:'어반스테이 속초등대해변', short:'속초등대해변'},
+  {id:'18',br:'스타즈울산점', short:'스타즈울산'},
+  {id:'19',br:'르컬렉티브 강남예전시그니티', short:'강남예전시그니티'},
+  {id:'21',br:'부티크익선점', short:'부티크익선'},
+];
+const H2O_BRS=new Set(H2O_FAC.map(f=>f.br));
+const h2oFacs=month=>H2O_FAC.filter(f=>!f.until||month<=f.until);
+const h2oLocked=month=>!!month&&!!(getHL().months[ymNext(month)]||{}).end;   // 다음 달 말일 확정이 있으면 이 달 입력은 잠근다
+const getHL=()=>{const v=ld(K_HL,{});return(v&&typeof v==='object'&&v.months)?v:{months:{}};};
+const hKey=r=>String(r.b||'')+'|'+String(r.n||'');
+// 업체 데이터 정리 — 방 이름·동에 쓰는 글자만 남긴다(화면·엑셀·메일 어디에도 코드가 섞이지 않게)
+const h2oClean=v=>String(v??'').replace(/[^0-9A-Za-z가-힣 ()\-_.#/]/g,'').trim().slice(0,40);
+const h2oCleanList=l=>(Array.isArray(l)?l:[]).map(r=>({b:h2oClean(r&&r.b),n:h2oClean(r&&r.n),at:isYmd(r&&r.at)?r.at:''})).filter(r=>r.n);
+const h2oDong=b=>{const m=String(b||'').match(/([A-Za-z가-힣]+동)\)?\s*$/)||String(b||'').match(/\(([A-Za-z]+동)\)/);return m?m[1]:'';};
+const h2oLabel=r=>{const d=h2oDong(r.b),n=String(r.n||'').replace(/^0+(?=\d)/,'');return(d?d+' ':'')+n;};
+const ymPrev=ym=>{const[y,m]=ym.split('-').map(Number);return m===1?`${y-1}-12`:`${y}-${String(m-1).padStart(2,'0')}`;};
+const ymNext=ym=>{const[y,m]=ym.split('-').map(Number);return m===12?`${y+1}-01`:`${y}-${String(m+1).padStart(2,'0')}`;};
+const ymLast=ym=>{const[y,m]=ym.split('-').map(Number);return `${ym}-${String(new Date(y,m,0).getDate()).padStart(2,'0')}`;};
+const dayDiff=(a,b)=>Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00'))/86400000);
+const addDays=(ymd,n)=>{const x=new Date(ymd+'T00:00:00');x.setDate(x.getDate()+n);return ymdLocal(x);};
+const md=d=>{const[,m,dd]=String(d).split('-');return `${+m}/${+dd}`;};
+const isYmd=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''))&&+String(v).substring(0,4)>=2020;
+const tKst=iso=>{const x=new Date(iso);return isNaN(x)?'':`${ymdLocal(x)} ${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}`;};   // 화면 표시는 한국 시간
+function addBizDays(ymd,n){let d=ymd;for(let i=0;i<n;i++){const x=new Date(d+'T00:00:00');x.setDate(x.getDate()+1);d=nextBizDay(ymdLocal(x));}return d;}
+const kstDate=t=>{const x=new Date(t);return isNaN(x)?String(t||'').substring(0,10):ymdLocal(new Date(x.getTime()+(9*60+x.getTimezoneOffset())*60000));};
+let H2OL=null,H2O_BUSY=false,H2O_DEFAULTED=false;   // 불러온 결과(화면 상태). 저장 전까지는 kv 에 쓰지 않는다
+
+// 처음 한 번만 날짜로 기본값을 고른다(월말에 '월초'로 둔 채 저장하는 실수를 줄인다). 2026-10월분보다 앞으로는 가지 않는다
+function h2oDefaults(){
+  if(H2O_DEFAULTED)return;
+  const mEl=document.getElementById('h2o-month'),oEl=document.getElementById('h2o-mode');if(!mEl||!oEl)return;
+  H2O_DEFAULTED=true;if(mEl.value)return;
+  const now=new Date(),ym=ymdLocal(now).substring(0,7),day=now.getDate(),hl=getHL(),prev=ymPrev(ym);
+  let month=ym,mode;
+  if(day<=5&&prev>=H2O_NEW_TERMS_FROM&&!(hl.months[prev]||{}).end){month=prev;mode='end';}
+  else if(day>=25)mode='end';
+  else mode=(hl.months[ym]||{}).start?'end':'start';
+  if(month<H2O_NEW_TERMS_FROM)month=H2O_NEW_TERMS_FROM;
+  mEl.value=month;oEl.value=mode;
+}
+function h2oReset(){H2OL=null;h2oRender();}   // 대상 월·구분을 바꾸면 다시 불러와야 한다
+function h2oSetBusy(b){H2O_BUSY=b;document.querySelectorAll('#h2o-panel button,#h2o-panel select,#h2o-panel input').forEach(x=>{x.disabled=b;});}
+const h2oSel=()=>({month:document.getElementById('h2o-month').value,mode:document.getElementById('h2o-mode').value});
+
+async function h2oLoad(){
+  if(H2O_BUSY)return;
+  h2oDefaults();
+  const{month,mode}=h2oSel();
+  if(!month){toast('e','대상 월','대상 월을 고르세요.');return;}
+  const st=document.getElementById('h2o-status');
+  const R={month,mode,fac:{},err:'',at:'',notes:[]};   // 다 만든 뒤에야 H2OL 에 넣는다(불러오는 중 저장되지 않게)
+  h2oSetBusy(true);H2OL=null;h2oRender();
+  try{
+    st.textContent='H2O 서버 등록 기기 가져오는 중...';
+    const srv=await kvFn('h2o_rooms');
+    if(!srv)throw new Error('로그인이 필요합니다');
+    if(srv.error)throw new Error(srv.error==='secret_missing'?'H2O 접속 정보가 서버에 없습니다(Supabase 시크릿 H2O_API_KEY·H2O_HOTEL_*)':String(srv.error));
+    // duck·솔리티는 대조용 — 실패해도 목록은 만들고 대조만 건너뛴다
+    st.textContent='판매객실(duck)·솔리티 객실 가져오는 중...';
+    let duckOk=true,accMap=new Map();
+    try{const du=await kvFn('duck_rooms',{});await syncDuckRooms();if(du&&du.stale)R.notes.push(`판매객실(duck) 조회 실패로 이전 값(${tKst(du.updatedAt)}) 사용`);}
+    catch(e){duckOk=false;R.notes.push('판매객실(duck) 조회 실패 — 객실 수 대조를 건너뜁니다');}
+    try{const sol=await kvFn('soliti_rooms',{});accMap=svcSolitiMap((sol&&sol.accounts)||{});if(sol&&sol.stale)R.notes.push('솔리티 조회 실패로 이전 값 사용');}
+    catch(e){duckOk=false;R.notes.push('솔리티 조회 실패 — 객실 수 대조를 건너뜁니다');}
+    const hl=getHL(),mm=hl.months[month]||{},prevEnd=(hl.months[ymPrev(month)]||{}).end||null;
+    const first=month+'-01',last=ymLast(month);
+    R.at=srv.fetchedAt||'';
+    h2oFacs(month).forEach(f=>{
+      const h=(srv.hotels||{})[f.id]||{},b=getBr().find(x=>x.name===f.br);
+      const solRooms=(b&&accMap.get(svcSolitiId(b)))||[];
+      const duckTotal=Number(b&&b.rooms)||0,expected=Math.max(0,duckTotal-solRooms.length);
+      const failed=!!h.error;
+      const server=failed?[]:(h.devices||[]).filter(d=>d.status==='installed').map(d=>({b:h2oClean(d.building),n:h2oClean(d.name),at:kstDate(d.created_at)})).filter(r=>r.n);
+      const warn=[],info=[];if(failed)warn.push('H2O 서버 조회 실패 — 잠시 뒤 다시 불러오세요');
+      if(!failed&&h.empty)warn.push(f.whole?'H2O 서버에 이 건물 기기가 0대입니다 — 조회 이상일 수 있으니 H2O 에 확인하세요'
+        :'H2O 서버에 이 시설 기기가 0대입니다 — 시설 종료면 해지 도달일을 [일괄]로 넣고, 아니면 H2O 에 확인하세요');
+      const srvMap=new Map(server.map(r=>[hKey(r),r]));
+      const adj=(mm.adjust||{})[f.id]||{add:[],remove:[]},rmSet=new Set(adj.remove||[]);
+      let start=null,list=[],fromServer=false,churn=[],extra=[];
+      if(mode==='start'){
+        // 월초 = 지난달 말일 확정본 → 이번 달 저장본 → (첫 달만) 서버
+        const src=(prevEnd&&(prevEnd.rooms||{})[f.id])||(mm.start&&(mm.start.rooms||{})[f.id])||null;
+        if(src)list=h2oCleanList(src);
+        else if(f.whole)warn.push('기준 목록이 없습니다(건물 전체 시설이라 서버 목록으로 우리 방을 가를 수 없습니다)');
+        else{list=server.filter(r=>!(r.at>first));fromServer=true;}
+        if(!f.whole&&!failed){const lk=new Set(list.map(hKey));const so=server.filter(r=>!lk.has(hKey(r))).length,lo=list.filter(r=>!srvMap.has(hKey(r))).length;
+          if(so||lo)info.push(`지금 서버와 다른 호실 ${so+lo}개(서버에만 ${so} · 목록에만 ${lo}) — 이번 달 말일 확정 때 추가·해지로 반영됩니다`);}
+      }else{
+        const st0=((mm.start||{}).rooms||{})[f.id]||((prevEnd||{}).rooms||{})[f.id]||null;
+        start=st0?h2oCleanList(st0):null;
+        if(!start)warn.push(`${month} 월초 목록이 없습니다 — [월초 목록]을 먼저 저장해야 추가·해지를 셀 수 있습니다`);
+        const sk=new Set((start||[]).map(hKey));
+        if(failed)list=(start||[]).slice();   // 조회 실패면 바뀐 게 없다고 보고 해지를 만들지 않는다(저장은 막힌다)
+        else if(f.whole){
+          list=(start||[]).filter(r=>!rmSet.has(hKey(r)));
+          (adj.add||[]).forEach(k=>{const r=srvMap.get(k);if(r&&!list.some(x=>hKey(x)===k))list.push(r);});
+          const gone=(start||[]).filter(r=>!srvMap.has(hKey(r))&&!rmSet.has(hKey(r)));
+          if(gone.length)info.push(`H2O 서버에서 지워진 우리 방 ${gone.length}개(${gone.slice(0,3).map(h2oLabel).join(', ')}) — 해지라면 [해지]로 적으세요`);
+        }else{
+          // 다음 달 처음 등록된 기기는 뺀다. 월초에 있던 방이 말일 뒤 다시 등록된 건 같은 방이라 남긴다
+          const next=server.filter(r=>r.at>last&&!sk.has(hKey(r)));
+          if(next.length)info.push(`다음 달 등록 기기 ${next.length}대는 빼고 셉니다(${next.slice(0,3).map(h2oLabel).join(', ')}${next.length>3?' …':''})`);
+          list=server.filter(r=>(!(r.at>last)||sk.has(hKey(r)))&&!rmSet.has(hKey(r)));
+          // 이번 달 추가됐다가 직접 해지한 방 — 추가일 ~ 도달일 일할
+          churn=server.filter(r=>rmSet.has(hKey(r))&&!sk.has(hKey(r))&&r.at>=first&&r.at<=last);
+          const late=server.filter(r=>r.at>last&&sk.has(hKey(r)));
+          if(late.length)info.push(`말일 뒤 다시 등록된 기기 ${late.length}대(${late.slice(0,3).map(h2oLabel).join(', ')}) — 월정액으로 셉니다. 이 달 중에 끊긴 적이 있으면 H2O 와 확인하세요`);
+        }
+        // 서버에서 이미 지워져 보이지 않는, 이번 달 추가됐다가 해지한 방(직접 적은 것)
+        extra=(adj.extra||[]).map(k=>{const i=k.indexOf('|');return{b:k.slice(0,i),n:k.slice(i+1),at:''};});
+      }
+      if(!failed&&duckOk&&list.length!==expected)warn.push(`목록 ${list.length}실 ≠ 판매객실 ${duckTotal} − 솔리티 ${solRooms.length} = ${expected}실 — 호실을 확인하세요`);
+      const sk=new Set((start||[]).map(hKey)),lk=new Set(list.map(hKey));
+      const added=start&&!failed?list.filter(r=>!sk.has(hKey(r))):[];
+      const removed=start&&!failed?start.filter(r=>!lk.has(hKey(r))):[];
+      const rereg=start&&!failed?list.filter(r=>sk.has(hKey(r))&&r.at>=first&&r.at<=last):[];
+      if(rereg.length)info.push(`이번 달 다시 등록된 기기 ${rereg.length}대(${rereg.slice(0,3).map(h2oLabel).join(', ')}) — 월정액에 이미 들어 있습니다. 중간에 끊긴 기간이 있었다면 일할을 따로 넣지 말고 H2O 와 확인하세요`);
+      const manual=[...(adj.remove||[]).map(k=>({k,kind:'remove'})),...(adj.add||[]).map(k=>({k,kind:'add'})),...(mode==='end'?(adj.extra||[]):[]).map(k=>({k,kind:'extra'}))];
+      R.fac[f.id]={f,server,list,start,added,removed,churn,extra,warn,info,failed,fromServer,manual,duckTotal,soliti:solRooms.length,expected,hotel:h2oClean(h.hotel_name)};
+    });
+    st.textContent=`H2O 서버 ${tKst(R.at)} 기준`;
+  }catch(e){R.err=String(e&&e.message||e);st.textContent='실패: '+R.err;}
+  finally{H2OL=R;h2oSetBusy(false);h2oRender();}
+}
+
+/* 사용자 입력(도달일·등록일)을 반영한 결과. 해지: 1일 ~ 도달일, 추가: 등록일 ~ 말일, 추가 뒤 해지: 등록일 ~ 도달일.
+   당일 포함, 30일 상한, 1일~말일이면 월정액과 같게(30일). 도달일이 지난달이면 0일(지난달 청구 정정 대상),
+   말일 뒤(40일까지)면 이번 달은 월정액으로 남기고 다음 달로 넘긴다. 범위 밖 날짜는 입력 안 한 것으로 본다. */
+function h2oEffective(R){
+  R=R||H2OL;const out={changes:[],carry:[],lists:{}};
+  if(!R||!R.month)return out;
+  const month=R.month,first=month+'-01',last=ymLast(month),lo=ymPrev(month)+'-01',hi=addDays(last,40);
+  const mm=getHL().months[month]||{},dates=mm.removedAt||{},addAt=mm.addedAt||{};
+  const span=(a,b)=>(a===first&&b===last)?SVC_PRORATE_MAX:Math.min(SVC_PRORATE_MAX,dayDiff(a,b)+1);
+  const okD=d=>isYmd(d)&&d>=lo&&d<=hi;
+  Object.values(R.fac).forEach(x=>{
+    const list=x.list.slice();out.lists[x.f.id]=list;
+    if(R.mode!=='end')return;
+    x.removed.forEach(r=>{const d=(dates[x.f.id]||{})[hKey(r)]||'';
+      if(okD(d)&&d>last){list.push(r);out.carry.push({fid:x.f.id,f:x.f,r,to:d});return;}
+      let days=null,note='';
+      if(okD(d)){if(d<first){days=0;note='지난달 도달';}else days=span(first,d);}
+      out.changes.push({fid:x.f.id,f:x.f,r,type:'해지',from:first,to:d,days,note});});
+    x.added.forEach(r=>{const set=(addAt[x.f.id]||{})[hKey(r)];
+      const at=set||(r.at>=first&&r.at<=last&&!x.f.whole?r.at:'');
+      const ok=isYmd(at)&&at>=first&&at<=last;
+      out.changes.push({fid:x.f.id,f:x.f,r,type:'추가',from:at,to:last,days:ok?span(at,last):null,note:''});});
+    (x.churn||[]).forEach(r=>{const d=(dates[x.f.id]||{})[hKey(r)]||'';
+      if(okD(d)&&d>last){list.push(r);out.changes.push({fid:x.f.id,f:x.f,r,type:'추가',from:r.at,to:last,days:span(r.at,last),note:''});out.carry.push({fid:x.f.id,f:x.f,r,to:d});return;}
+      const ok=okD(d)&&d>=r.at&&d<=last;
+      out.changes.push({fid:x.f.id,f:x.f,r,type:'추가·해지',from:r.at,to:d,days:ok?span(r.at,d):null,note:''});});
+    (x.extra||[]).forEach(r=>{const k=hKey(r),a=(addAt[x.f.id]||{})[k]||'',d=(dates[x.f.id]||{})[k]||'';
+      const ok=isYmd(a)&&isYmd(d)&&a>=first&&a<=d&&d<=last;
+      out.changes.push({fid:x.f.id,f:x.f,r,type:'추가·해지',from:a,to:d,days:ok?span(a,d):null,note:'',man:true});});
+  });
+  return out;
+}
+const h2oChanges=R=>h2oEffective(R).changes;
+// 날짜 칸: 입력하는 동안에는 다시 그리지 않는다(다시 그리면 커서가 빠져 한 글자씩 잘못 저장된다). 칸을 벗어나면 그린다
+function h2oSetDateEl(el){const month=H2OL&&H2OL.month;if(!month)return;
+  if(h2oLocked(month)){toast('e','고칠 수 없는 달',`${ymNext(month)} 말일 확정이 있어 ${month} 은 잠겨 있습니다.`);h2oRender();return;}
+  const hl=getHL(),mm=hl.months[month]||(hl.months[month]={}),box=mm[el.dataset.kind]||(mm[el.dataset.kind]={});
+  (box[el.dataset.fid]||(box[el.dataset.fid]={}))[el.dataset.k]=el.value;sv(K_HL,hl);}
+function h2oDateBlur(){setTimeout(()=>{const a=document.activeElement;if(!(a&&a.closest&&a.closest('#h2o-preview')&&a.type==='date'))h2oRender();},0);}
+// 해지 도달일 일괄 입력(시설 종료 등) — 비어 있는 해지 줄만 채운다
+function h2oBulkDate(fid){
+  if(H2O_BUSY||!H2OL||H2OL.mode!=='end'||h2oLocked(H2OL.month))return;
+  const v=(document.getElementById(`h2o-bulk-${fid}`)||{}).value||'';if(!isYmd(v)){toast('e','날짜를 고르세요','일괄로 넣을 도달일을 고르세요.');return;}
+  const x=H2OL.fac[fid];if(!x)return;
+  const hl=getHL(),mm=hl.months[H2OL.month]||(hl.months[H2OL.month]={}),box=mm.removedAt||(mm.removedAt={}),fb=box[fid]||(box[fid]={});
+  let n=0;x.removed.forEach(r=>{const k=hKey(r);if(!fb[k]){fb[k]=v;n++;}});
+  sv(K_HL,hl);h2oRender();toast('s','일괄 입력',`${x.f.short} 해지 ${n}건에 도달일 ${md(v)}을 넣었습니다.`);
+}
+/* 직접 적는 추가·해지. 형식: 'A동 1205' 또는 '1902'.
+   해지 = 모든 시설(삭제 요청은 보냈는데 서버에 남은 방) · 추가 = 부산역만(건물 전체 시설)
+   추가·해지 = 이번 달 등록됐다가 해지돼 서버에서도 지워진 방(등록일·도달일을 직접 넣는다) */
+function h2oAdjust(fid,kind){
+  if(H2O_BUSY||!H2OL||H2OL.mode!=='end'){toast('e','말일 확정에서만','[말일 확정]으로 불러온 뒤 적으세요.');return;}
+  if(h2oLocked(H2OL.month)){toast('e','고칠 수 없는 달',`${ymNext(H2OL.month)} 말일 확정이 있어 잠겨 있습니다.`);return;}
+  const inp=document.getElementById(`h2o-adj-${fid}`);const txt=(inp&&inp.value||'').trim();if(!txt)return;
+  const x=H2OL.fac[fid];if(!x)return;
+  const m=txt.match(/^([A-Za-z]+동)?\s*0*(\d+)$/);if(!m){toast('e','형식 오류','예) A동 1205 또는 1902');return;}
+  const same=r=>h2oDong(r.b)===(m[1]||'')&&String(r.n).replace(/^0+/,'')===m[2];
+  if(kind==='extra'){
+    const known=[...x.server,...(x.start||[])];
+    if((x.start||[]).some(same)||x.list.some(same)){toast('e','이미 목록에 있는 방','월초·말일 목록에 있는 방은 [해지]로 적으세요.');return;}
+    if(!x.f.whole&&x.server.some(same)){toast('e','H2O 서버에 있는 방','서버에 있는 방은 자동으로 추가로 잡힙니다. 해지했다면 [해지]로 적으세요.');return;}
+    let b='';
+    if(m[1]){const hit=known.find(r=>h2oDong(r.b)===m[1]);if(!hit){toast('e','동을 찾지 못했습니다',`${escH(m[1])} 이 이 시설에 없습니다.`);return;}b=hit.b;}
+    else if(known.some(r=>h2oDong(r.b))){toast('e','동을 붙여 적으세요','예) A동 201');return;}
+    else{const cnt=new Map();known.forEach(r=>cnt.set(r.b,(cnt.get(r.b)||0)+1));b=[...cnt].sort((p,q)=>q[1]-p[1])[0]?.[0]||'';}
+    const nm=(known.find(r=>String(r.n).replace(/^0+/,'')===m[2])||{}).n||m[2];
+    h2oAdjSet(fid,b+'|'+nm,'extra');inp.value='';return;
+  }
+  const pool=kind==='add'?x.server:x.list;
+  const hit=pool.find(r=>h2oDong(r.b)===(m[1]||'')&&String(r.n).replace(/^0+/,'')===m[2]);
+  if(!hit){toast('e','호실을 찾지 못했습니다',kind==='add'?'H2O 서버에 그 호실 기기가 없습니다':'지금 목록에 없는 호실입니다'+(x.server.some(r=>h2oDong(r.b))?' (동을 붙여 적으세요. 예: A동 201)':''));return;}
+  h2oAdjSet(fid,hKey(hit),kind);inp.value='';
+}
+function h2oAdjSet(fid,k,kind){   // kind: add | remove | extra | undo
+  if(h2oLocked(H2OL.month)){toast('e','고칠 수 없는 달',`${ymNext(H2OL.month)} 말일 확정이 있어 잠겨 있습니다.`);return;}
+  const hl=getHL(),mm=hl.months[H2OL.month]||(hl.months[H2OL.month]={});
+  const adj=(mm.adjust||(mm.adjust={}))[fid]||(mm.adjust[fid]={add:[],remove:[]});
+  adj.add=(adj.add||[]).filter(v=>v!==k);adj.remove=(adj.remove||[]).filter(v=>v!==k);adj.extra=(adj.extra||[]).filter(v=>v!==k);
+  if(kind==='add')adj.add.push(k);else if(kind==='remove')adj.remove.push(k);else if(kind==='extra')adj.extra.push(k);
+  else['removedAt','addedAt'].forEach(t=>{const b=(mm[t]||{})[fid];if(b)delete b[k];});   // 취소하면 그 방에 넣었던 날짜도 지운다
+  sv(K_HL,hl);h2oLoad();
+}
+function h2oAdjUndoEl(el){if(H2O_BUSY||!H2OL)return;h2oAdjSet(el.dataset.fid,el.dataset.k,'undo');}
+
+// 저장할 기록 — 엑셀·메일·청구 반영은 이것만 쓴다
+// 입력 지문 — 빈 칸·취소한 조정은 없는 것과 같게(되돌리면 '바뀌었다'고 막지 않도록)
+const h2oNormD=o=>{const r={};Object.entries(o||{}).forEach(([fid,m])=>{const e=Object.entries(m||{}).filter(([,v])=>v);if(e.length)r[fid]=Object.fromEntries(e);});return r;};
+const h2oNormA=o=>{const r={};Object.entries(o||{}).forEach(([fid,a])=>{const add=[...((a&&a.add)||[])].sort(),rem=[...((a&&a.remove)||[])].sort(),ex=[...((a&&a.extra)||[])].sort();if(add.length||rem.length||ex.length)r[fid]={add,rem,ex};});return r;};
+const h2oInputsSig=month=>{const mm=getHL().months[month]||{};return canon({removedAt:h2oNormD(mm.removedAt),addedAt:h2oNormD(mm.addedAt),adjust:h2oNormA(mm.adjust)});};
+const h2oRecSig=rec=>canon({rooms:Object.fromEntries(Object.entries(rec.rooms||{}).map(([k,l])=>[k,l.map(hKey).sort()])),changes:(rec.changes||[]).map(c=>[c.fid,c.b,c.n,c.type,c.from,c.to,c.days]).sort()});
+function h2oRecord(R){
+  const E=h2oEffective(R),rooms={},startCounts={},hotels={};
+  Object.values(R.fac).forEach(x=>{rooms[x.f.id]=(E.lists[x.f.id]||x.list).map(r=>({b:r.b,n:r.n,at:r.at}));startCounts[x.f.id]=x.start?x.start.length:x.list.length;hotels[x.f.id]=x.hotel||'';});
+  const rec={at:new Date().toISOString(),by:(S&&(S.name||S.email))||'',rooms,hotels,startCounts,inputsSig:h2oInputsSig(R.month),
+    unit:(getSvc().brandPrices||{})['H2O']||SVC_DEF_PRICES['H2O']};
+  if(R.mode==='end'){
+    rec.changes=E.changes.map(c=>({fid:c.fid,b:c.r.b,n:c.r.n,type:c.type,from:c.from,to:c.to,days:c.days,note:c.note||''}));
+    rec.carry=E.carry.map(c=>({fid:c.fid,b:c.r.b,n:c.r.n,to:c.to}));
+  }
+  return rec;
+}
+// 저장 뒤 사용자 입력이 바뀌었는가(서버만 바뀐 건 따지지 않는다)
+function h2oDirty(month,mode){
+  month=month||(H2OL&&H2OL.month);mode=mode||(H2OL&&H2OL.mode);if(!month||mode!=='end')return false;
+  const rec=(getHL().months[month]||{}).end;return!!rec&&rec.inputsSig!=null&&rec.inputsSig!==h2oInputsSig(month);
+}
+// 저장 뒤 서버 목록이 달라졌는가(참고용)
+function h2oDrift(){
+  if(!H2OL||H2OL.err)return false;const rec=(getHL().months[H2OL.month]||{})[H2OL.mode];
+  return!!rec&&!Object.values(H2OL.fac).some(x=>x.failed)&&h2oRecSig(rec)!==h2oRecSig(h2oRecord(H2OL));
+}
+
+function h2oRender(){
+  const el=document.getElementById('h2o-preview');if(!el)return;
+  h2oDefaults();
+  const{month,mode}=h2oSel();
+  const ab=document.getElementById('h2o-apply-btn');if(ab)ab.style.display=mode==='end'?'':'none';
+  const hl=getHL();
+  const c=document.getElementById('h2o-contact'),sd=document.getElementById('h2o-sender');
+  if(c&&!c.value)c.value=hl.contact||'유아름';if(sd&&!sd.value)sd.value=hl.sender||'핸디즈 구매소싱팀 김강현';
+  const mm=hl.months[month]||{},saved=mm[mode],locked=h2oLocked(month);
+  const ast=mode==='end'&&saved?h2oApplyState(month):'';
+  const applyState=ast==='ok'?' · ✓ 청구 내역 반영됨':ast==='rows'?' · <b style="color:var(--red)">청구 내역의 H2O 줄이 반영한 것과 다릅니다 — [청구 내역에 반영]을 다시 누르세요</b>':ast?' · <b style="color:var(--red)">청구 내역 반영 전</b>':'';
+  const savedLine=`<div style="margin-top:6px;font-size:11px;color:var(--text3)">${saved?`✓ ${escH(month)} ${mode==='start'?'월초 목록':'말일 확정'} 저장됨 · ${escH(tKst(saved.at))}${saved.by?' · '+escH(saved.by):''} · ${Object.values(saved.rooms||{}).reduce((t,l)=>t+l.length,0)}실${applyState}`:`아직 ${escH(month)} ${mode==='start'?'월초 목록':'말일 확정'}을 저장하지 않았습니다.`}${mode==='start'&&mm.end?' · <b style="color:var(--yellow)">이 달은 말일 확정까지 끝났습니다</b>':''}</div>`;
+  if(H2O_BUSY){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">불러오는 중...</div>';return;}
+  if(!H2OL||H2OL.month!==month||H2OL.mode!==mode){el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 0">대상 월과 구분을 확인하고 [불러오기]를 누르세요.${saved?' 저장된 기록으로는 바로 [엑셀 다운로드]·[메일 초안]을 만들 수 있습니다.':''}</div>`+savedLine;return;}
+  if(H2OL.err){el.innerHTML=`<div style="color:var(--red);font-size:12px;padding:8px 0">${escH(H2OL.err)}</div>`+savedLine;return;}
+  const E=h2oEffective();
+  const adjBox=x=>{if(mode!=='end')return'';const f=x.f;const dong=[...x.server,...(x.start||[])].some(r=>h2oDong(r.b));
+    const kl={add:'추가',remove:'해지',extra:'추가·해지'};
+    const chips=x.manual.map(a=>{const i=a.k.indexOf('|');return`<span class="chip cg" style="margin:2px 4px 0 0">${escH(h2oLabel({b:a.k.slice(0,i),n:a.k.slice(i+1)}))} ${kl[a.kind]}${locked?'':` <a href="javascript:void 0" data-fid="${escH(f.id)}" data-k="${escH(a.k)}" onclick="h2oAdjUndoEl(this)" title="직접 적은 것 취소" style="color:var(--red);text-decoration:none">✕</a>`}</span>`;}).join('');
+    if(locked)return chips?`<div style="font-size:11px">${chips}</div>`:'';
+    const bt=(k,t,tip)=>`<button class="btn bo bsm" style="padding:1px 6px;font-size:11px" onclick="h2oAdjust('${f.id}','${k}')" title="${tip}">${t}</button>`;
+    const bulk=x.removed.length>=2?`<div style="margin-top:4px;display:flex;gap:4px;align-items:center"><input type="date" id="h2o-bulk-${f.id}" style="font-size:11px"><button class="btn bo bsm" style="padding:1px 6px;font-size:11px" onclick="h2oBulkDate('${f.id}')" title="비어 있는 해지 도달일을 한 번에 채웁니다(시설 종료 등)">도달일 일괄</button></div>`:'';
+    return`<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><input class="fi" id="h2o-adj-${f.id}" placeholder="${dong?'A동 1205':'1902'}" style="width:80px;padding:2px 6px;font-size:11px">${f.whole?bt('add','추가','H2O 서버에 등록된 우리 방(건물 전체 시설)'):''}${bt('remove','해지','삭제 요청은 보냈는데 H2O 서버에 아직 남아 있는 방')}${bt('extra','추가·해지','이번 달 등록됐다가 해지돼 서버에서도 지워진 방 — 등록일·도달일을 넣습니다')}</div>${bulk}${chips?`<div style="font-size:11px">${chips}</div>`:''}`;};
+  const rows=h2oFacs(month).map(f=>{const x=H2OL.fac[f.id];if(!x)return'';const L=E.lists[f.id]||x.list;
+    const cn=E.changes.filter(c=>c.fid===f.id),ad=cn.filter(c=>c.type!=='해지').length,rm=cn.filter(c=>c.type!=='추가').length;
+    const msgs=x.warn.map(w=>`<span style="color:var(--red)">${escH(w)}</span>`).concat(x.info.map(w=>`<span style="color:var(--text3)">${escH(w)}</span>`));
+    return`<tr><td>${escH(f.short)}${adjBox(x)}</td><td style="text-align:right">${mode==='end'?(x.start?x.start.length:'—'):L.length}</td><td style="text-align:right">${ad||''}</td><td style="text-align:right">${rm||''}</td><td style="text-align:right;font-weight:700">${mode==='end'?L.length:''}</td>
+      <td style="text-align:right;color:var(--text3)">${x.expected}</td><td style="font-size:11px">${msgs.length?msgs.join('<br>'):'<span style="color:var(--green)">✓ 일치</span>'}</td></tr>`;}).join('');
+  const tot=k=>h2oFacs(month).reduce((t,f)=>{const x=H2OL.fac[f.id];if(!x)return t;const L=E.lists[f.id]||x.list;const cn=E.changes.filter(c=>c.fid===f.id);
+    return t+(k==='s'?(mode==='end'?(x.start||[]).length:L.length):k==='a'?cn.filter(c=>c.type!=='해지').length:k==='r'?cn.filter(c=>c.type!=='추가').length:L.length);},0);
+  const dateInp=(kind,x,v,min,max)=>`<input type="date" value="${escH(v||'')}" ${min?`min="${escH(min)}"`:''} max="${escH(max||(kind==='removedAt'?addDays(ymLast(H2OL.month),40):ymLast(H2OL.month)))}" data-kind="${kind}" data-fid="${escH(x.fid)}" data-k="${escH(hKey(x.r))}" onchange="h2oSetDateEl(this)" onblur="h2oDateBlur()" ${locked?'disabled':''} style="font-size:11px">`;
+  const chRows=E.changes.map(x=>{const lbl=`${escH(x.f.short)} ${escH(h2oLabel(x.r))}`;
+    const inp=x.man?`등록일 ${dateInp('addedAt',x,x.from,H2OL.month+'-01')} · 도달일 ${dateInp('removedAt',x,x.to,H2OL.month+'-01',ymLast(H2OL.month))}`
+      :x.type==='추가'?`등록일 ${dateInp('addedAt',x,x.from,H2OL.month+'-01')}`
+      :x.type==='추가·해지'?`${escH(md(x.from))} 등록 · 도달일 ${dateInp('removedAt',x,x.to,x.from)}`
+      :`삭제 요청 도달일 ${dateInp('removedAt',x,x.to,ymPrev(H2OL.month)+'-01')}`;
+    const dd=x.days==null?`<span style="color:var(--red)">${x.type==='추가'?'등록일':'도달일'} 입력</span>`:x.days+'일'+(x.note?`<br><span style="font-size:10px;color:var(--yellow)">${escH(x.note)} — 이번 달 일할 없음</span>`:'');
+    return`<tr><td>${x.type}</td><td>${lbl}</td><td>${inp}</td><td style="text-align:right">${dd}</td></tr>`;}).join('')
+    +E.carry.map(c=>`<tr style="color:var(--text3)"><td>다음 달 해지</td><td>${escH(c.f.short)} ${escH(h2oLabel(c.r))}</td><td>도달일 ${escH(md(c.to))} — 이번 달은 월정액, 다음 달 말일 확정에 반영</td><td></td></tr>`).join('');
+  el.innerHTML=(H2OL.notes.length?`<div style="font-size:11px;color:var(--yellow);margin-top:4px">${H2OL.notes.map(escH).join(' · ')}</div>`:'')
+    +`<table class="tbl" style="margin-top:6px"><thead><tr><th>시설</th><th>월초</th><th>추가</th><th>해지</th><th>말일</th><th title="duck 판매객실 − 솔리티">대조값</th><th>확인</th></tr></thead>
+    <tbody>${rows}</tbody><tfoot><tr style="font-weight:700;background:var(--bg2)"><td>합계</td><td style="text-align:right">${tot('s')}</td><td style="text-align:right">${tot('a')||''}</td><td style="text-align:right">${tot('r')||''}</td><td style="text-align:right">${mode==='end'?tot('l'):''}</td><td></td><td></td></tr></tfoot></table>
+    ${mode==='end'&&chRows?`<div style="margin-top:8px;font-size:12px;font-weight:600">당월 추가·해지 (일할 대상)</div><table class="tbl" style="margin-top:4px"><thead><tr><th>구분</th><th>호실</th><th>날짜</th><th>일할</th></tr></thead><tbody>${chRows}</tbody></table>`:''}
+    ${locked?`<div style="margin-top:6px;font-size:11px;color:var(--text3)">${escH(ymNext(month))} 말일 확정이 있어 이 달은 잠겨 있습니다(엑셀·메일은 저장본으로 만들 수 있습니다).</div>`:''}
+    ${h2oDirty()?'<div style="margin-top:6px;font-size:12px;font-weight:600;color:var(--red)">저장한 뒤 날짜·추가·해지 입력이 바뀌었습니다 — [저장]을 다시 눌러야 엑셀·메일·청구 반영에 들어갑니다.</div>':h2oDrift()?'<div style="margin-top:6px;font-size:11px;color:var(--text3)">참고: 저장한 뒤 H2O 서버 목록이 조금 달라졌습니다. 이 달을 고칠 게 아니면 다시 저장하지 않아도 됩니다(문서는 저장본으로 만듭니다).</div>':''}`+savedLine;
+}
+
+function h2oSave(){
+  if(H2O_BUSY)return;
+  if(!H2OL||H2OL.err||!H2OL.month){toast('e','먼저 불러오기','[불러오기]로 H2O 서버 목록을 먼저 가져오세요.');return;}
+  const R=H2OL,mode=R.mode,month=R.month,sel=h2oSel();
+  if(sel.month!==month||sel.mode!==mode){toast('e','다시 불러오세요','대상 월·구분이 불러온 것과 다릅니다.');return;}
+  const hl=getHL(),mm=hl.months[month]||{},next=ymNext(month),mmN=hl.months[next]||{};
+  const fails=Object.values(R.fac).filter(x=>x.failed&&(mode==='end'||x.fromServer||!x.list.length));
+  if(fails.length){toast('e','서버 조회 실패',`${fails.map(x=>x.f.short).join(', ')} — 잠시 뒤 다시 불러오세요. 실패한 상태로는 저장하지 않습니다.`);return;}
+  if(mode==='start'){
+    if(mm.end){toast('e','이미 말일 확정까지 끝난 달',`${month} 은 말일 확정이 저장돼 있어 월초 목록을 바꿀 수 없습니다.`);return;}
+    const noBase=Object.values(R.fac).filter(x=>x.f.whole&&!x.list.length);
+    if(noBase.length){toast('e','기준 목록이 없습니다',`${noBase.map(x=>x.f.short).join(', ')} — 지난달 말일 확정본이 있어야 합니다.`);return;}
+  }else{
+    if(mmN.end){toast('e','다음 달까지 확정된 달',`${next} 말일 확정이 이미 있어 ${month} 을 고칠 수 없습니다. 차이는 ${next} 이후에서 정정하세요.`);return;}
+    const noStart=Object.values(R.fac).filter(x=>!x.start);
+    if(noStart.length){toast('e','월초 목록이 없습니다',`${month} 월초 목록을 먼저 저장하세요(${noStart.map(x=>x.f.short).join(', ')}).`);return;}
+    const miss=h2oChanges(R).filter(x=>x.days==null);
+    if(miss.length){toast('e','날짜를 넣어 주세요',escH(miss.map(x=>`${x.f.short} ${h2oLabel(x.r)} ${x.type==='추가'?'등록일':'도달일'}`).join(', ')));return;}
+  }
+  const rec=h2oRecord(R);
+  const total=Object.values(rec.rooms).reduce((t,l)=>t+l.length,0);
+  const msgs=[`${month} ${mode==='start'?'월초 목록':'말일 확정'} ${total}실을 저장합니다.`];
+  const prevRec=mm[mode];
+  if(prevRec)msgs.push(`※ 이미 저장된 기록(${tKst(prevRec.at)}${prevRec.by?' · '+prevRec.by:''} · ${Object.values(prevRec.rooms||{}).reduce((t,l)=>t+l.length,0)}실)을 덮어씁니다.`);
+  if(mode==='end'&&prevRec&&prevRec.appliedAt)msgs.push('※ 이미 청구 내역에 반영한 달입니다 — 저장 뒤 [청구 내역에 반영]을 다시 눌러야 품의서가 맞습니다.');
+  if(mode==='end'&&mmN.start)msgs.push(`※ ${next} 월초 목록도 이 말일 확정 내용으로 바뀝니다.`);
+  if(mode==='end'&&ymdLocal(new Date())<ymLast(month))msgs.push(`※ 아직 말일(${md(ymLast(month))}) 전입니다. 말일 확정을 저장하면 이 달 H2O 는 자동 반영에서 빠집니다.`);
+  if(rec.carry&&rec.carry.length)msgs.push(`※ 다음 달로 넘기는 해지 ${rec.carry.length}건(도달일이 말일 뒤)`);
+  if(R.notes.length)msgs.push('※ '+R.notes.join(' / '));
+  const warn=Object.values(R.fac).filter(x=>x.warn.length);
+  if(warn.length)msgs.push('※ 확인 필요:\n'+warn.map(x=>`  ${x.f.short}: ${x.warn.join(' / ')}`).join('\n'));
+  showCfm(CI.calendar,`${month} ${mode==='start'?'월초 목록':'말일 확정'} 저장`,msgs.join('\n'),()=>{
+    const hl2=getHL(),mm2=hl2.months[month]||(hl2.months[month]={}),mN=hl2.months[next]||(hl2.months[next]={});
+    if(mode==='start'&&mm2.end){toast('e','저장하지 않았습니다','그사이 말일 확정이 저장됐습니다.');return;}
+    if(mode==='end'&&mN.end){toast('e','저장하지 않았습니다','그사이 다음 달 말일 확정이 저장됐습니다.');return;}
+    const old=mm2[mode];mm2[mode]=rec;
+    if(mode==='end'){
+      // 지난번 저장 때 다음 달로 넘긴 것을 먼저 거둔다(그사이 다음 달에서 바꾼 값은 건드리지 않는다)
+      const oc=(old&&old.carried)||{};
+      Object.entries(oc.removedAt||{}).forEach(([fid,m])=>Object.entries(m).forEach(([k,v])=>{const b=(mN.removedAt||{})[fid];if(b&&b[k]===v)delete b[k];}));
+      Object.entries(oc.adjust||{}).forEach(([fid,ks])=>{const a=(mN.adjust||{})[fid];if(a)a.remove=(a.remove||[]).filter(k=>!ks.includes(k));});
+      // 다음 달로: 월초 목록(이미 저장했다면 맞춰 고친다) · 말일 뒤 도달 해지의 날짜 · 직접 해지
+      const carried={removedAt:{},adjust:{}};
+      if(mN.start)mN.start={...rec,at:new Date().toISOString(),by:rec.by,changes:undefined,carry:undefined,carried:undefined,from:`${month} 말일 확정`};
+      (rec.carry||[]).forEach(c=>{const k=hKey(c),box=mN.removedAt||(mN.removedAt={}),fb=box[c.fid]||(box[c.fid]={});
+        if(!fb[k]){fb[k]=c.to;(carried.removedAt[c.fid]||(carried.removedAt[c.fid]={}))[k]=c.to;}});
+      // 일반 시설: 서버에 아직 남은 해지(안 넘기면 다음 달 '추가'로 되살아난다) · 부산역: 다음 달로 넘긴 해지(서버와 상관없이 — 목록이 '월초 − 직접 해지'라서)
+      const adj=mm2.adjust||{};Object.entries(adj).forEach(([fid,a])=>{const x=R.fac[fid];if(!x)return;const inEnd=new Set((rec.rooms[fid]||[]).map(hKey));
+        const still=(a.remove||[]).filter(k=>x.f.whole?inEnd.has(k):x.server.some(r=>hKey(r)===k));
+        if(still.length){const na=(mN.adjust||(mN.adjust={}))[fid]||(mN.adjust[fid]={add:[],remove:[]});na.remove=na.remove||[];
+          still.forEach(k=>{if(!na.remove.includes(k)){na.remove.push(k);(carried.adjust[fid]||(carried.adjust[fid]=[])).push(k);}});}});
+      rec.carried=carried;
+    }
+    hl2.contact=(document.getElementById('h2o-contact').value||'').trim()||hl2.contact||'유아름';
+    hl2.sender=(document.getElementById('h2o-sender').value||'').trim()||hl2.sender||'핸디즈 구매소싱팀 김강현';
+    sv(K_HL,hl2);logAudit('H2O 월 목록 저장',month,`${mode==='start'?'월초':'말일'} ${total}실`);
+    toast('s','저장 완료',`${month} ${mode==='start'?'월초 목록':'말일 확정'}을 저장했습니다.${mode==='end'?' 이어서 [청구 내역에 반영]을 누르세요.':''}`);h2oRender();
+  });
+}
+
+// 저장된 기록으로 문서를 만든다. 사용자 입력이 저장본과 다르면 다시 저장하라고 막는다
+function h2oDoc(){
+  const{month,mode}=h2oSel();
+  const hl=getHL(),mm=hl.months[month]||{},rec=mm[mode];
+  if(!rec){toast('e','먼저 저장하세요',`${month} ${mode==='start'?'월초 목록':'말일 확정'}을 저장한 뒤 만들 수 있습니다.`);return null;}
+  if(h2oDirty(month,mode)){toast('e','저장 후 바뀐 입력이 있습니다','[불러오기] → [저장]을 다시 한 뒤 만드세요.');return null;}
+  if(mode==='end'&&(rec.changes||[]).some(c=>c.days==null)){toast('e','날짜가 빠진 변동이 있습니다','다시 불러와 날짜를 넣고 저장하세요.');return null;}
+  const sortR=l=>h2oCleanList(l).sort((a,b)=>(a.b||'').localeCompare(b.b||'')||(parseInt(a.n)||0)-(parseInt(b.n)||0));
+  const changes=(rec.changes||[]).map(c=>({...c,b:h2oClean(c.b),n:h2oClean(c.n),f:H2O_FAC.find(f=>f.id===c.fid)||{short:c.fid},r:{b:h2oClean(c.b),n:h2oClean(c.n)}}));
+  const fac=h2oFacs(month).filter(f=>(rec.rooms||{})[f.id]).map(f=>{const list=sortR((rec.rooms||{})[f.id]||[]);const chs=changes.filter(c=>c.fid===f.id);
+    const add=chs.filter(c=>c.type!=='해지').length,rem=chs.filter(c=>c.type!=='추가').length;
+    const start=mode==='end'?((rec.startCounts||{})[f.id]??(list.length-chs.filter(c=>c.type==='추가').length+chs.filter(c=>c.type==='해지').length)):list.length;
+    return{f,hotel:h2oClean((rec.hotels||{})[f.id]),list,start,add,rem};});
+  const carry=(rec.carry||[]).map(c=>({...c,f:H2O_FAC.find(f=>f.id===c.fid)||{short:c.fid},r:{b:h2oClean(c.b),n:h2oClean(c.n)}}));
+  const unit=rec.unit||(getSvc().brandPrices||{})['H2O']||SVC_DEF_PRICES['H2O'];   // 저장할 때의 단가
+  return{mode,month,fac,changes,carry,rec,unit,pu:Math.round(unit/30),contact:hl.contact||'유아름',sender:hl.sender||'핸디즈 구매소싱팀 김강현'};
+}
+// 업체에 보내는 변동 문구(내부 메모는 빼고)
+const h2oChText=c=>c.type==='해지'&&c.days===0?`${h2oLabel(c.r)} 해지 (${md(c.to)} 도달 · 이번 달 0일)`
+  :`${h2oLabel(c.r)} ${c.type} (${md(c.from)}~${md(c.to)}, ${c.days}일)`;
+
+function h2oExcel(){
+  if(H2O_BUSY)return;
+  const D=h2oDoc();if(!D)return;
+  if(typeof XLSX==='undefined'){toast('e','엑셀 도구를 불러오지 못했습니다','새로고침 후 다시 시도하세요.');return;}
+  const[y,m]=D.month.split('-').map(Number),last=ymLast(D.month);
+  const wb=XLSX.utils.book_new();
+  const head=[[`핸디즈 · H2O 도어락 서비스 시설별 객실 목록 (${y}년 ${m}월)`],
+    [D.mode==='start'?`기준: ${D.month}-01(월초) · 당월 추가·해지·말일 객실 수는 ${md(last)} 기준으로 확정해 다시 송부드립니다.`:`기준: ${last}(말일) 확정 · 월초 대비 추가·해지 반영`],[],
+    ['No','시설(핸디즈)','H2O 시설명','월초 객실 수','당월 추가','당월 해지','말일 객실 수','비고']];
+  const ws=XLSX.utils.aoa_to_sheet(head);
+  D.fac.forEach((x,i)=>{const r=5+i,sh=x.f.short,lastRow=4+x.list.length;
+    const note=D.changes.filter(c=>c.fid===x.f.id).map(h2oChText).concat(D.carry.filter(c=>c.fid===x.f.id).map(c=>`${h2oLabel(c.r)} 해지 요청 ${md(c.to)} 도달 — 다음 달 반영`)).join(', ');
+    XLSX.utils.sheet_add_aoa(ws,[[i+1,x.f.br,x.hotel||'']],{origin:`A${r}`});
+    ws[`D${r}`]={t:'n',v:x.start};ws[`E${r}`]={t:'n',v:x.add};ws[`F${r}`]={t:'n',v:x.rem};
+    ws[`G${r}`]={t:'n',v:x.list.length,f:D.mode==='start'?`COUNTA('${sh}'!C5:C${Math.max(5,lastRow)})`:`D${r}+E${r}-F${r}`};
+    if(note||x.f.whole)ws[`H${r}`]={t:'s',v:[x.f.whole?'건물 전체가 한 H2O 시설로 등록돼 있어 핸디즈 운영 객실만 동·호수로 표기':'',note].filter(Boolean).join(' · ')};});
+  const tr=5+D.fac.length;
+  ws[`B${tr}`]={t:'s',v:'합계'};
+  ['D','E','F','G'].forEach(c=>{const v=D.fac.reduce((t,x)=>t+(c==='D'?x.start:c==='E'?x.add:c==='F'?x.rem:x.list.length),0);ws[`${c}${tr}`]={t:'n',v,f:`SUM(${c}5:${c}${tr-1})`};});
+  XLSX.utils.sheet_add_aoa(ws,[[],[`※ 산정 기준: 당월 1일부터 말일까지 계속 등록된 객실은 월정액(객실당 월 ${D.unit.toLocaleString()}원), 월중 추가·해지된 객실은 등록일수 × ${D.pu}원(등록일·해지일 당일 포함, 월정액 초과 불가). 금액은 부가세 별도.`],
+    ['※ 해지 기준일은 당사의 삭제 요청 메일(solution.op@h2ohospitality.io)이 도달한 날입니다.']],{origin:`A${tr+1}`});
+  ws['!ref']=`A1:H${tr+3}`;ws['!cols']=[{wch:5},{wch:28},{wch:34},{wch:12},{wch:9},{wch:9},{wch:12},{wch:50}];
+  XLSX.utils.book_append_sheet(wb,ws,'요약');
+  D.fac.forEach(x=>{
+    const rows=[[`${x.f.br} — ${D.mode==='start'?D.month+'-01(월초)':last+'(말일)'} 기준 객실 목록`],[`H2O 시설명: ${x.hotel||''}`,'','','객실 수'],[],['No','동','호실','H2O 등록명','비고']];
+    const addK=new Set(D.changes.filter(c=>c.fid===x.f.id&&c.type==='추가').map(c=>hKey(c.r)));
+    x.list.forEach((r,j)=>rows.push([j+1,h2oDong(r.b)||'-',String(r.n).replace(/^0+(?=\d)/,''),x.f.whole?`${r.b} / ${r.n}`:r.n,addK.has(hKey(r))?'당월 추가':'']));
+    const s2=XLSX.utils.aoa_to_sheet(rows);s2['E2']={t:'n',v:x.list.length,f:`COUNTA(C5:C${Math.max(5,4+x.list.length)})`};
+    s2['!ref']=XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length-1,c:4}});   // E열(객실 수·비고)을 범위에 넣어야 저장된다
+    s2['!cols']=[{wch:6},{wch:8},{wch:10},{wch:26},{wch:12}];
+    XLSX.utils.book_append_sheet(wb,s2,x.f.short);
+  });
+  if(D.mode==='end'&&(D.changes.length||D.carry.length)){
+    const rows=[['당월 추가·해지 (일할)'],[],['시설','호실','구분','시작','끝','등록일수','일할(원, 부가세 별도)','비고']];
+    D.changes.forEach(c=>rows.push([c.f.short,h2oLabel(c.r),c.type,c.days===0?'':c.from,c.to,c.days,c.days*D.pu,c.days===0?`${md(c.to)} 도달 · 이번 달 0일`:'']));
+    D.carry.forEach(c=>rows.push([c.f.short,h2oLabel(c.r),'다음 달 해지','',c.to,'','','해지 요청이 말일 뒤 도달 — 이번 달은 월정액']));
+    const s3=XLSX.utils.aoa_to_sheet(rows);s3['!cols']=[{wch:14},{wch:12},{wch:10},{wch:12},{wch:12},{wch:9},{wch:16},{wch:34}];
+    XLSX.utils.book_append_sheet(wb,s3,'추가·해지');
+  }
+  XLSX.writeFile(wb,`H2O_${y}년${m}월_${D.mode==='start'?'월초':'말일'}_시설별객실목록_핸디즈.xlsx`);
+}
+
+function h2oMail(){
+  if(H2O_BUSY)return;
+  const D=h2oDoc();if(!D)return;
+  const contact=(document.getElementById('h2o-contact').value||D.contact).trim(),sender=(document.getElementById('h2o-sender').value||D.sender).trim();
+  const[yy,m]=D.month.split('-').map(Number),last=ymLast(D.month);
+  const tot=D.fac.reduce((t,x)=>t+x.list.length,0);
+  const per=D.fac.map(x=>`${x.f.short} ${x.list.length}실`).join(' / ');
+  let body;
+  if(D.mode==='start'){
+    body=`안녕하세요, ${contact}님. ${sender}입니다.\n\n${m}월 시설별 객실 목록(${m}/1 월초 기준)을 첨부드립니다.\n\n- ${D.fac.length}개 시설 합계 ${tot}실\n  ${per}\n- 부산역은 건물 전체가 하나의 시설로 등록되어 있어, 당사 운영 객실만 동·호수로 표기했습니다.\n\n당월 추가·해지 내역과 말일 객실 수는 ${md(last)} 기준으로 확정해 다시 보내드리겠습니다.\n첨부 목록과 귀사 등록 내역에 차이가 있으면 말씀 부탁드립니다.\n\n감사합니다.\n\n${sender} 드림`;
+  }else{
+    const s0=D.fac.reduce((t,x)=>t+x.start,0),a=D.fac.reduce((t,x)=>t+x.add,0),r=D.fac.reduce((t,x)=>t+x.rem,0);
+    const recs=h2oBillRows(D);
+    const mon=recs.filter(x=>!isProrate(x)).reduce((t,x)=>t+x.rooms,0),days=recs.filter(isProrate).reduce((t,x)=>t+x.rooms,0);
+    const ex=recs.reduce((t,x)=>t+svcCalc(x).ex,0),vat=recs.reduce((t,x)=>t+svcCalc(x).vat,0);
+    // 같은 기간 4실 이상은 한 줄로(호실은 첨부 엑셀 '추가·해지' 시트에 모두 있다)
+    const chg=D.changes.length?h2oGroupCh(D.changes).flatMap(g=>g.length>=4
+      ?[`  · ${g[0].f.short} ${g[0].type} ${g.length}실 (${g[0].days===0?md(g[0].to)+' 도달 · 이번 달 0일':`${md(g[0].from)}~${md(g[0].to)}, 각 ${g[0].days}일`}) — 호실은 첨부 '추가·해지' 시트`]
+      :g.map(c=>`  · ${c.f.short} ${h2oChText(c)}`)).join('\n'):'  · 당월 추가·해지 객실은 없습니다.';
+    const car=D.carry.length?'\n- 말일 뒤 도달한 해지 요청 (다음 달 정산에 반영)\n'+D.carry.map(c=>`  · ${c.f.short} ${h2oLabel(c.r)} (${md(c.to)} 도달)`).join('\n'):'';
+    const today=ymdLocal(new Date()),reply=addBizDays(today,2),pay=nextBizDay(m===12?`${yy+1}-01-10`:`${yy}-${String(m+1).padStart(2,'0')}-10`);
+    body=`안녕하세요, ${contact}님. ${sender}입니다.\n\n${m}월 말일 기준 시설별 객실 목록을 첨부드립니다.\n\n- 월초 ${s0}실 / 당월 추가 ${a}실 / 당월 해지 ${r}실 / 말일 ${tot}실\n  ${per}\n- 당월 추가·해지 (일할 대상)\n${chg}${car}\n\n- 청구 금액 (부가세 별도)\n  월정액 ${mon}실 × ${D.unit.toLocaleString()}원 = ${(mon*D.unit).toLocaleString()}원\n  일할 ${days}일 × ${D.pu}원 = ${(days*D.pu).toLocaleString()}원\n  공급가액 ${ex.toLocaleString()}원 / 부가세 ${vat.toLocaleString()}원 / 합계 ${(ex+vat).toLocaleString()}원\n\n확인하신 뒤 ${md(reply)}까지 회신 부탁드립니다. 확정되면 ${md(last)}일자로 세금계산서 발행 부탁드립니다.\n지급은 계약대로 ${md(pay)}에 진행하겠습니다.\n\n감사합니다.\n\n${sender} 드림`;
+  }
+  showMailDraft(body);
+}
+function showMailDraft(body){
+  let mo=document.getElementById('mo-h2o-mail');
+  if(!mo){mo=document.createElement('div');mo.className='mo';mo.id='mo-h2o-mail';
+    mo.innerHTML='<div class="mb" style="width:720px;max-width:95vw"><div class="mh"><span class="mt2">✉️ H2O 메일 초안</span></div><div style="padding:12px 16px"><textarea id="h2o-mail-body" style="width:100%;height:420px;font-size:13px;line-height:1.5;padding:10px;border:1px solid var(--border);border-radius:6px"></textarea><div style="font-size:11px;color:var(--text3);margin-top:6px">고칠 곳을 고친 뒤 [복사]를 눌러 메일에 붙여 넣으세요. 엑셀 파일은 [엑셀 다운로드]로 따로 받아 첨부합니다.</div></div><div class="mf" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 16px"><button class="btn bo" onclick="closeMo(\'mo-h2o-mail\')">닫기</button><button class="btn bp" onclick="copyMailDraft()">복사</button></div></div>';
+    document.body.appendChild(mo);}
+  document.getElementById('h2o-mail-body').value=body;openMo('mo-h2o-mail');
+}
+function copyMailDraft(){
+  const t=document.getElementById('h2o-mail-body').value;
+  const ok=()=>toast('s','복사 완료','메일에 붙여 넣으세요.'),fail=()=>toast('e','복사 실패','글자를 직접 선택해 복사해 주세요.');
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(t).then(ok).catch(()=>_fbCopy(t,ok,fail));else _fbCopy(t,ok,fail);
+}
+
+const h2oGroupCh=ch=>{const m=new Map();ch.forEach(c=>{const k=[c.fid,c.type,c.from,c.to,c.days].join('|');(m.get(k)||m.set(k,[]).get(k)).push(c);});return[...m.values()];};
+/* 말일 확정본 → 청구 내역 줄. 월정액 = 월초 − 해지(한 달 내내 등록된 객실), 일할 = 변동 객실별 한 줄(0일은 뺀다) */
+function h2oBillRows(D){
+  const rows=[];
+  D.fac.forEach(x=>{
+    const ch=D.changes.filter(c=>c.fid===x.f.id);
+    const full=x.start-ch.filter(c=>c.type==='해지').length;
+    if(full>0)rows.push({month:D.month,branch:x.f.br,brand:'H2O',rooms:full,unitPrice:D.unit,note:`H2O 월 목록 · 월초 ${x.start} − 해지 ${ch.filter(c=>c.type==='해지').length}`,src:'h2o'});
+    // 같은 구분·기간의 일할은 한 줄로 묶는다(시설 종료처럼 수백 실이 같은 날 빠질 때 품의서가 수백 줄이 되지 않게). 일수 합은 같다
+    h2oGroupCh(ch.filter(c=>c.days>0)).forEach(g=>{const c=g[0];
+      rows.push({month:D.month,branch:x.f.br,brand:'H2O',rooms:c.days*g.length,unitPrice:D.pu,kind:'prorate',
+        note:g.length===1?`${h2oLabel(c.r)} ${c.type} ${md(c.from)}~${md(c.to)}`:`${c.type} ${g.length}실 ${md(c.from)}~${md(c.to)} (각 ${c.days}일)`,src:'h2o'});});
+  });
+  return rows;
+}
+// 그 달 H2O 청구 내역이 말일 확정본과 짝이 맞는가(품의서 전에 확인)
+// 그 달 H2O 5개 시설 청구 줄의 지문 — 반영한 뒤 손으로 고치거나 복사해 넣은 줄이 있으면 달라진다
+const h2oRowsSig=month=>canon(getSvc().records.filter(r=>r.month===month&&r.brand==='H2O'&&H2O_BRS.has(r.branch))
+  .map(r=>[r.branch,isProrate(r)?'prorate':'',Number(r.rooms)||0,Number(svcUnit(r))||0].join('|')).sort());
+function h2oApplyState(month){const e=(getHL().months[month]||{}).end;if(!e)return'none';
+  if(!(e.appliedSig&&e.appliedSig===h2oRecSig(e)&&!h2oDirty(month,'end')))return'stale';
+  return e.appliedRowsSig===h2oRowsSig(month)?'ok':'rows';}
+function h2oApply(){
+  if(H2O_BUSY)return;
+  if(h2oSel().mode!=='end'){toast('e','말일 확정에서만','구분을 [말일 확정]으로 바꾸세요.');return;}
+  const D=h2oDoc();if(!D)return;
+  const month=D.month,add=h2oBillRows(D),brs=H2O_BRS;
+  const d=getSvc(),old=d.records.filter(r=>r.month===month&&r.brand==='H2O'&&brs.has(r.branch));
+  const auto=old.filter(r=>r.src!=='h2o'&&/자동 반영|YOLO/.test(r.note||'')),manual=old.filter(r=>r.src!=='h2o'&&!/자동 반영|YOLO/.test(r.note||''));
+  const t=svcTotal(add);
+  showCfm(CI.calendar,`${month} 청구 내역에 반영`,`${month} H2O 5개 시설 기존 ${old.length}줄을 말일 확정 기준 ${add.length}줄로 바꿉니다.\n월정액 ${t.rooms}실 · 일할 ${t.days}일 · 합계 ${t.t.toLocaleString()}원 (부가세 포함)`
+    +(auto.length?`\n※ 자동 반영·YOLO 로 넣었던 줄 ${auto.length}개는 이 기준으로 바뀝니다.`:'')
+    +(manual.length?`\n※ 손으로 넣은 줄 ${manual.length}개도 지워집니다: ${manual.slice(0,4).map(r=>`${amaBrName(r.branch)} ${isProrate(r)?r.rooms+'일':r.rooms+'실'}${r.note?' ('+r.note+')':''}`).join(', ')}${manual.length>4?' …':''}`:''),()=>{
+    const d2=getSvc();let nid=d2.records.length?Math.max(...d2.records.map(r=>r.id))+1:1;
+    d2.records=d2.records.filter(r=>!(r.month===month&&r.brand==='H2O'&&brs.has(r.branch)));
+    add.forEach(r=>d2.records.push({id:nid++,...r,createdAt:new Date().toISOString()}));
+    saveSvc(d2);
+    const hl=getHL(),e=(hl.months[month]||{}).end;if(e){e.appliedAt=new Date().toISOString();e.appliedSig=h2oRecSig(e);e.appliedRowsSig=h2oRowsSig(month);sv(K_HL,hl);}
+    logAudit('서비스요금 H2O 월목록반영',month,`월정액 ${t.rooms}실 · 일할 ${t.days}일`);
+    renderSvc();   // 필터 목록을 먼저 다시 만든 뒤 맞춘다
+    const fm=document.getElementById('svc-f-month'),fb=document.getElementById('svc-f-brand'),fbr=document.getElementById('svc-f-branch');
+    if(fm)fm.value=month;if(fb)fb.value='H2O';if(fbr)fbr.value='';renderSvc();h2oRender();
+    toast('s','반영 완료','청구 내역을 확인한 뒤 [품의서 복사]를 누르세요(이 달 H2O 만 보이게 맞춰 두었습니다). 이 줄들을 손으로 고치면 품의서가 막힙니다.');
+  });
 }
 
 /* ── 월마감 품의서 (2026-10-01) ──
