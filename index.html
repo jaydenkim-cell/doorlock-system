@@ -5743,8 +5743,12 @@ function buildSvcAmaData(){
   if(fbrand)recs=recs.filter(r=>r.brand===fbrand);
   if(!recs.length){toast('e','오류','청구 내역이 없습니다. 필터를 확인해주세요.');return null;}
   // 아래 calcLines(산출근거)가 건별 금액을 나열하므로, 합계금액도 같은 기준으로 더해야 서로 맞는다
+  /* 품의서는 한 달씩 — 월 필터가 '전체 월'이면 여러 달이 한 장에 합쳐지고, 기준 월이 '이번 달'로 잡혀
+     지난달 내역에 이번 달 문구가 붙는다(2026-10-02 실제로 4~9월 6개월 치가 한 장에 나왔다). */
+  const months=[...new Set(recs.map(r=>r.month))].sort();
+  if(months.length>1){toast('e','청구월을 고르세요',`품의서는 한 달씩 만듭니다. 지금 ${months.length}개월(${months[0]} ~ ${months[months.length-1]}) 내역이 함께 잡혀 있습니다. 월 필터를 고르세요.`);return null;}
   const total=svcTotal(recs).t;
-  const tgt=fm||`${new Date().getFullYear()}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
+  const tgt=fm||months[0];
   const[y,mo]=tgt.split('-').map(Number);
   const lastDay=new Date(y,mo,0).getDate();
   let execDate=`${y}-${String(mo).padStart(2,'0')}-${lastDay}`;
@@ -5758,7 +5762,6 @@ function buildSvcAmaData(){
      직방·더엠알은 계약 조건이 달라 예전 문구 그대로 둔다. */
   const h2o=brands.length===1&&brands[0]==='H2O'&&tgt>=H2O_NEW_TERMS_FROM;
   if(brands.includes('H2O')&&brands.length>1&&tgt>=H2O_NEW_TERMS_FROM){toast('e','H2O 는 따로 품의하세요','H2O 는 지급일(익월 10일)·정산 문구가 달라 다른 업체와 한 장에 쓸 수 없습니다. 브랜드 필터를 H2O 로 맞추세요.');return null;}
-  if(!fm&&recs.some(r=>r.brand==='H2O'&&r.month>=H2O_NEW_TERMS_FROM)){toast('e','청구월을 고르세요','H2O 품의서는 한 달씩 만듭니다. 월 필터를 고르세요.');return null;}
   if(h2o){   // 청구 내역이 말일 확정본과 짝이 맞아야 한다
     const st=h2oApplyState(tgt);
     if(st==='stale'){toast('e','H2O 청구 내역이 말일 확정본과 다릅니다','H2O 월 목록에서 [저장] 뒤 [청구 내역에 반영]을 다시 누르세요.');return null;}
@@ -5773,8 +5776,8 @@ function buildSvcAmaData(){
     calcLines=branches.map((b,i)=>{
       const rs=recs.filter(r=>r.branch===b),mon=rs.filter(r=>!isProrate(r)),pr=rs.filter(isProrate);
       const lines=[`${i+1}. ${amaBrName(b)}`];
-      mon.forEach(r=>lines.push(`- 월정액 : ${r.rooms}실 × ${won(svcUnit(r))} = ${won(r.rooms*svcUnit(r))}`));
-      pr.forEach(r=>lines.push(`- 일할 : ${r.note?r.note+' · ':''}${r.rooms}일 × ${won(svcUnit(r))} = ${won(r.rooms*svcUnit(r))}`));
+      mon.forEach(r=>lines.push(`- 월정액 : ${r.rooms}실 × ${won(svcUnit(r))} = ${won(r.rooms*svcUnit(r))} (VAT 별도)`));
+      pr.forEach(r=>lines.push(`- 일할 : ${r.note?r.note+' · ':''}${r.rooms}일 × ${won(svcUnit(r))} = ${won(r.rooms*svcUnit(r))} (VAT 별도)`));
       lines.push(`- 금액 : ${won(svcTotal(rs).t)} (VAT 포함)`);
       return lines.join('\n');
     });
