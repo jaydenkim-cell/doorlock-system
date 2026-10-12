@@ -709,13 +709,15 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
           </select>
           <button class="btn bp" onclick="openHqReqMo()" style="margin-left:auto">+ 전환 신고</button>
           <button class="btn bo" id="hq-proxy-btn" onclick="openHqReqMo({proxy:true})">대신 신고</button>
+          <button class="btn bo" id="hq-srv-btn" onclick="hqServerCheck(true)">서버와 대조</button>
         </div>
         <div id="hq-pending"></div>
+        <div id="hq-srv"></div>
         <div class="panel" style="margin-bottom:0">
           <div class="ph"><span class="pt">전환 신고 내역</span>
             <span style="font-size:11px;color:var(--text3)" id="hq-hint"></span></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr>
-            <th>신고일</th><th>지점</th><th>방향</th><th>호실</th><th>바꾼 날</th><th>신고자</th><th>상태</th><th>처리</th>
+            <th>신고일</th><th>지점</th><th>방향</th><th>호실</th><th>바꾼 날</th><th>신고자</th><th>상태</th><th id="hq-srv-th">서버</th><th>처리</th>
           </tr></thead><tbody id="hq-body"></tbody></table></div>
         </div>
       </div>
@@ -6455,7 +6457,7 @@ let HQ_MAIL=null;   // 메일 창을 연 순간의 {fid, ids} — [보냈어요]
 let HQ_PROXY=false; // [대신 신고]로 연 창인가
 function renderH2oReq(){
   const a=isAdm(),me=String(S.email||S.id||'').toLowerCase();
-  const pb=document.getElementById('hq-proxy-btn');if(pb)pb.style.display=a?'':'none';
+  ['hq-proxy-btn','hq-srv-btn','hq-srv-th'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display=a?'':'none';});
   const fs=document.getElementById('fhq-f');
   if(fs&&fs.options.length===1)h2oFacs(ymdLocal(new Date()).substring(0,7)).forEach(f=>fs.appendChild(new Option(f.short,f.id)));
   const hint=document.getElementById('hq-hint');
@@ -6467,7 +6469,8 @@ function renderH2oReq(){
   rows=stv?rows.filter(x=>x.st===stv):rows.filter(x=>x.st!=='전달'||String(x.sent||'')>=cut);
   HQ_G=[];const gm=new Map();
   rows.sort((x,y)=>String(y.at||'').localeCompare(String(x.at||''))).forEach(x=>{const k=x.grp||x.id;let g=gm.get(k);if(!g){g={items:[]};gm.set(k,g);HQ_G.push(g);}g.items.push(x);});
-  hqRenderPending();
+  if(a&&!HQ_SRV_BUSY&&(!HQ_SRV||Date.now()-HQ_SRV.t>600000))hqServerCheck(false);   // 들어올 때 10분에 한 번
+  hqRenderPending();hqRenderSrv();
   const tb=document.getElementById('hq-body');
   if(tb)tb.innerHTML=HQ_G.length?HQ_G.map((g,gi)=>{
     const x0=g.items[0],f=hqFac(x0.fid),nSent=g.items.filter(x=>x.st==='전달').length,nNew=g.items.length-nSent;
@@ -6480,9 +6483,9 @@ function renderH2oReq(){
       +(a||mine?`<button class="btn br2 bsm" style="margin-left:2px" onclick="delHqG(${gi})">삭제</button>`:'');
     return `<tr><td>${escH(kstDate(x0.at)||'—')}</td><td style="font-weight:500">${escH(f?f.short:x0.fid)}</td>
       <td style="white-space:nowrap">${escH(HQ_DIRS[x0.dir]||'')}</td><td>${rooms}${memo?`<div style="font-size:11px;color:var(--text3)">${escH(memo)}</div>`:''}</td><td>${escH(isYmd(x0.sw)?md(x0.sw):'—')}</td>
-      <td style="font-size:12px">${slackAvatar(x0.email,x0.by)}</td><td style="white-space:nowrap">${chip}</td>
+      <td style="font-size:12px">${slackAvatar(x0.email,x0.by)}</td><td style="white-space:nowrap">${chip}</td>${a?`<td style="white-space:nowrap">${g.items.map(hqSrvMark).join(' ')}</td>`:''}
       <td style="white-space:nowrap">${act}</td></tr>`;
-  }).join(''):emp(8);
+  }).join(''):emp(a?9:8);
   hqBadge();
 }
 function hqRenderPending(){
@@ -6662,6 +6665,60 @@ function hqUndoSentG(gi){
     renderH2oReq();toast('s','되돌리기 완료',"'신고됨'으로 돌아갔습니다.");
   });
 }
+/* ── H2O 서버와 대조 (관리자) ── 월 목록 [불러오기]와 같은 h2o_rooms 를 부른다. 10분 안에는 결과를 다시 쓴다 */
+let HQ_SRV=null,HQ_SRV_BUSY=false;   // {t, at, err, byFac:{fid:{failed, installed}}, missing:[{fid,dir,r,upd,note}]}
+let HQ_MS=[];                        // '신고 없이 바뀐 방' — [신고 만들기]는 이 배열 번호만 넘긴다
+async function hqServerCheck(force){
+  if(!isAdm()||HQ_SRV_BUSY)return;
+  if(!force&&HQ_SRV&&Date.now()-HQ_SRV.t<600000)return;
+  HQ_SRV_BUSY=true;hqRenderSrv();
+  const out={t:Date.now(),at:'',err:'',byFac:{},missing:[]};
+  try{
+    const srv=await kvFn('h2o_rooms');
+    if(!srv)throw new Error('로그인이 필요합니다');
+    if(srv.error)throw new Error(srv.error==='secret_missing'?'H2O 접속 정보가 서버에 없습니다':String(srv.error));
+    out.at=srv.fetchedAt||'';
+    const today=ymdLocal(new Date()),since=addDays(today,-62),mm=getHL().months[today.substring(0,7)]||{},reqs=hqAlive();
+    h2oFacs(today.substring(0,7)).forEach(f=>{
+      const h=(srv.hotels||{})[f.id]||{};
+      if(h.error){out.byFac[f.id]={failed:true};return;}
+      const devs=(h.devices||[]).map(d=>({b:h2oClean(d.building),n:h2oClean(d.name),st:String(d.status||''),at:kstDate(d.created_at),upd:d.updated_at?kstDate(d.updated_at):''})).filter(d=>d.n);
+      const installed=devs.filter(d=>d.st==='installed');
+      out.byFac[f.id]={failed:false,installed};
+      const base=h2oBaseList(f.id).list;
+      const has=(dir,r)=>reqs.some(x=>x.fid===f.id&&x.dir===dir&&String(x.at||'').substring(0,10)>=since&&hqSame(x,hqP(r)));
+      const dated=r=>!!((mm.removedAt||{})[f.id]||{})[hKey(r)];
+      base.filter(r=>!installed.some(d=>hqSame(d,hqP(r)))&&!has('off',r)&&!dated(r)).forEach(r=>{const d=devs.find(v=>hqSame(v,hqP(r)));
+        out.missing.push({fid:f.id,dir:'off',r,upd:d?d.upd:'',note:d?`서버 상태 ${d.st||'?'}`:'서버에 기기 없음'});});
+      if(!f.whole)installed.filter(d=>!base.some(r=>hqSame(r,hqP(d)))&&!has('on',d)).forEach(d=>
+        out.missing.push({fid:f.id,dir:'on',r:d,upd:d.upd,note:`서버 등록일 ${d.at?md(d.at):'?'}`}));
+    });
+  }catch(e){out.err=String(e&&e.message||e);}
+  HQ_SRV=out;HQ_SRV_BUSY=false;
+  if(document.getElementById('page-h2oreq')?.classList.contains('on'))renderH2oReq();
+}
+function hqRenderSrv(){
+  const el=document.getElementById('hq-srv');if(!el)return;
+  if(!isAdm()||(!HQ_SRV&&!HQ_SRV_BUSY)){el.innerHTML='';return;}
+  if(HQ_SRV_BUSY){el.innerHTML='<div style="font-size:12px;color:var(--text3);margin-bottom:10px">H2O 서버와 대조하는 중...</div>';return;}
+  if(HQ_SRV.err){el.innerHTML=`<div style="font-size:12px;color:var(--red);margin-bottom:10px">서버 대조 실패: ${escH(HQ_SRV.err)}</div>`;return;}
+  HQ_MS=HQ_SRV.missing.slice();
+  const fail=Object.entries(HQ_SRV.byFac).filter(([,v])=>v.failed).map(([k])=>(hqFac(k)||{}).short||k);
+  el.innerHTML=`<div class="panel" style="margin-bottom:12px"><div class="pb" style="font-size:12px;line-height:1.8">
+    <div style="color:var(--text3)">H2O 서버 ${escH(tKst(HQ_SRV.at))} 기준${fail.length?` · <span style="color:var(--red)">조회 실패: ${escH(fail.join(', '))}</span>`:''}</div>
+    ${HQ_MS.length?HQ_MS.map((m,i)=>`<div>⚠ <b>${m.dir==='off'?'신고 없이 홈용이 된 방':'신고 없이 객실용이 된 방'}</b>: ${escH((hqFac(m.fid)||{}).short||m.fid)} ${escH(h2oLabel(m.r))} <span style="color:var(--text3)">(${escH(m.note)})</span> <button class="btn bo bsm" onclick="hqFromSrv(${i})">신고 만들기</button></div>`).join('')
+      :'<div style="color:var(--green)">✓ 신고 없이 바뀐 방이 없습니다</div>'}
+  </div></div>`;
+}
+/* 신고마다 서버 반영 여부: 해지 → installed 가 아니면 ✓, 추가 → installed 면 ✓ */
+function hqSrvMark(x){
+  const s=HQ_SRV&&!HQ_SRV.err&&HQ_SRV.byFac[x.fid];
+  if(!s||s.failed)return'<span style="color:var(--text3)">—</span>';
+  const on=s.installed.some(d=>hqSame(d,hqP(x))),ok=x.dir==='off'?!on:on;
+  return ok?`<span style="color:var(--green)" title="${escH(h2oLabel(x))} 서버 반영">✓</span>`
+    :`<span style="color:var(--yellow)" title="${escH(h2oLabel(x))} — ${x.dir==='off'?'서버는 아직 객실용':'서버는 아직 객실용 아님'}">⚠</span>`;
+}
+function hqFromSrv(i){const m=HQ_MS[i];if(!m)return;openHqReqMo({proxy:true,fid:m.fid,dir:m.dir,room:h2oLabel(m.r),sw:m.upd||''});}
 
 /* ── 월마감 품의서 (2026-10-01) ──
    서비스요금 품의서 복사와 같은 방식. 화면에 보이는 달·지점 필터 그대로(mView) 발주 지출품의 양식을 채운다.
