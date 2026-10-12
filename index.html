@@ -6469,7 +6469,7 @@ function renderH2oReq(){
   rows=stv?rows.filter(x=>x.st===stv):rows.filter(x=>x.st!=='전달'||String(x.sent||'')>=cut);
   HQ_G=[];const gm=new Map();
   rows.sort((x,y)=>String(y.at||'').localeCompare(String(x.at||''))).forEach(x=>{const k=x.grp||x.id;let g=gm.get(k);if(!g){g={items:[]};gm.set(k,g);HQ_G.push(g);}g.items.push(x);});
-  if(a&&!HQ_SRV_BUSY&&(!HQ_SRV||Date.now()-HQ_SRV.t>600000))hqServerCheck(false);   // 들어올 때 10분에 한 번
+  if(a&&FILL_FORCE&&!HQ_SRV_BUSY&&(!HQ_SRV||Date.now()-HQ_SRV.t>600000))hqServerCheck(false);   // 메뉴로 들어올 때만, 10분에 한 번(30초 새로고침·필터 변경·저장 뒤에는 부르지 않는다)
   hqRenderPending();hqRenderSrv();
   const tb=document.getElementById('hq-body');
   if(tb)tb.innerHTML=HQ_G.length?HQ_G.map((g,gi)=>{
@@ -6666,48 +6666,57 @@ function hqUndoSentG(gi){
   });
 }
 /* ── H2O 서버와 대조 (관리자) ── 월 목록 [불러오기]와 같은 h2o_rooms 를 부른다. 10분 안에는 결과를 다시 쓴다 */
-let HQ_SRV=null,HQ_SRV_BUSY=false;   // {t, at, err, byFac:{fid:{failed, installed}}, missing:[{fid,dir,r,upd,note}]}
+let HQ_SRV=null,HQ_SRV_BUSY=false;   // {t, at, err, byFac:{fid:{failed, why} | {failed:false, devs, installed}}}
 let HQ_MS=[];                        // '신고 없이 바뀐 방' — [신고 만들기]는 이 배열 번호만 넘긴다
 async function hqServerCheck(force){
   if(!isAdm()||HQ_SRV_BUSY)return;
   if(!force&&HQ_SRV&&Date.now()-HQ_SRV.t<600000)return;
   HQ_SRV_BUSY=true;hqRenderSrv();
-  const out={t:Date.now(),at:'',err:'',byFac:{},missing:[]};
+  const out={t:Date.now(),at:'',err:'',byFac:{}};
   try{
     const srv=await kvFn('h2o_rooms');
     if(!srv)throw new Error('로그인이 필요합니다');
     if(srv.error)throw new Error(srv.error==='secret_missing'?'H2O 접속 정보가 서버에 없습니다':String(srv.error));
     out.at=srv.fetchedAt||'';
-    const today=ymdLocal(new Date()),since=addDays(today,-62),mm=getHL().months[today.substring(0,7)]||{},reqs=hqAlive();
-    h2oFacs(today.substring(0,7)).forEach(f=>{
-      const h=(srv.hotels||{})[f.id]||{};
-      if(h.error){out.byFac[f.id]={failed:true};return;}
+    h2oFacs(ymdLocal(new Date()).substring(0,7)).forEach(f=>{
+      const h=(srv.hotels||{})[f.id];
+      if(!h||h.error){out.byFac[f.id]={failed:true,why:h?'조회 실패':'응답 없음'};return;}
       const devs=(h.devices||[]).map(d=>({b:h2oClean(d.building),n:h2oClean(d.name),st:String(d.status||''),at:kstDate(d.created_at),upd:d.updated_at?kstDate(d.updated_at):''})).filter(d=>d.n);
-      const installed=devs.filter(d=>d.st==='installed');
-      out.byFac[f.id]={failed:false,installed};
-      const base=h2oBaseList(f.id).list;
-      const has=(dir,r)=>reqs.some(x=>x.fid===f.id&&x.dir===dir&&String(x.at||'').substring(0,10)>=since&&hqSame(x,hqP(r)));
-      const dated=r=>!!((mm.removedAt||{})[f.id]||{})[hKey(r)];
-      base.filter(r=>!installed.some(d=>hqSame(d,hqP(r)))&&!has('off',r)&&!dated(r)).forEach(r=>{const d=devs.find(v=>hqSame(v,hqP(r)));
-        out.missing.push({fid:f.id,dir:'off',r,upd:d?d.upd:'',note:d?`서버 상태 ${d.st||'?'}`:'서버에 기기 없음'});});
-      if(!f.whole)installed.filter(d=>!base.some(r=>hqSame(r,hqP(d)))&&!has('on',d)).forEach(d=>
-        out.missing.push({fid:f.id,dir:'on',r:d,upd:d.upd,note:`서버 등록일 ${d.at?md(d.at):'?'}`}));
+      // 기기 0대 — 시설 종료일 수도, 조회 이상일 수도 있다(게이트웨이 empty:true). 경고를 만들지 않고 '확인 못 함'으로 둔다(월 목록 [불러오기]와 같은 태도)
+      if(h.empty||!devs.length){out.byFac[f.id]={failed:true,why:'기기 0대'};return;}
+      out.byFac[f.id]={failed:false,devs,installed:devs.filter(d=>d.st==='installed')};
     });
   }catch(e){out.err=String(e&&e.message||e);}
   HQ_SRV=out;HQ_SRV_BUSY=false;
   if(document.getElementById('page-h2oreq')?.classList.contains('on'))renderH2oReq();
+}
+/* 신고 없이 바뀐 방 — 그릴 때마다 지금의 신고·월 목록으로 다시 센다(신고를 만들거나 지우면 바로 반영된다) */
+function hqMissing(){
+  if(!HQ_SRV||HQ_SRV.err)return[];
+  const today=ymdLocal(new Date()),since=addDays(today,-62),mm=getHL().months[today.substring(0,7)]||{},reqs=hqAlive(),out=[];
+  h2oFacs(today.substring(0,7)).forEach(f=>{
+    const s=HQ_SRV.byFac[f.id];if(!s||s.failed)return;
+    const base=h2oBaseList(f.id).list;
+    const has=(dir,r)=>reqs.some(x=>x.fid===f.id&&x.dir===dir&&kstDate(x.at)>=since&&hqSame(x,hqP(r)));
+    const dated=r=>!!((mm.removedAt||{})[f.id]||{})[hKey(r)];
+    base.filter(r=>!s.installed.some(d=>hqSame(d,hqP(r)))&&!has('off',r)&&!dated(r)).forEach(r=>{const d=s.devs.find(v=>hqSame(v,hqP(r)));
+      out.push({fid:f.id,dir:'off',r,upd:d?d.upd:'',note:d?`서버 상태 ${d.st||'?'}`:'서버에 기기 없음'});});
+    if(!f.whole)s.installed.filter(d=>!base.some(r=>hqSame(r,hqP(d)))&&!has('on',d)).forEach(d=>
+      out.push({fid:f.id,dir:'on',r:d,upd:d.upd,note:`서버 등록일 ${d.at?md(d.at):'?'}`}));
+  });
+  return out;
 }
 function hqRenderSrv(){
   const el=document.getElementById('hq-srv');if(!el)return;
   if(!isAdm()||(!HQ_SRV&&!HQ_SRV_BUSY)){el.innerHTML='';return;}
   if(HQ_SRV_BUSY){el.innerHTML='<div style="font-size:12px;color:var(--text3);margin-bottom:10px">H2O 서버와 대조하는 중...</div>';return;}
   if(HQ_SRV.err){el.innerHTML=`<div style="font-size:12px;color:var(--red);margin-bottom:10px">서버 대조 실패: ${escH(HQ_SRV.err)}</div>`;return;}
-  HQ_MS=HQ_SRV.missing.slice();
-  const fail=Object.entries(HQ_SRV.byFac).filter(([,v])=>v.failed).map(([k])=>(hqFac(k)||{}).short||k);
+  HQ_MS=hqMissing();
+  const fail=Object.entries(HQ_SRV.byFac).filter(([,v])=>v.failed).map(([k,v])=>`${(hqFac(k)||{}).short||k}(${v.why})`);
   el.innerHTML=`<div class="panel" style="margin-bottom:12px"><div class="pb" style="font-size:12px;line-height:1.8">
     <div style="color:var(--text3)">H2O 서버 ${escH(tKst(HQ_SRV.at))} 기준${fail.length?` · <span style="color:var(--red)">조회 실패: ${escH(fail.join(', '))}</span>`:''}</div>
     ${HQ_MS.length?HQ_MS.map((m,i)=>`<div>⚠ <b>${m.dir==='off'?'신고 없이 홈용이 된 방':'신고 없이 객실용이 된 방'}</b>: ${escH((hqFac(m.fid)||{}).short||m.fid)} ${escH(h2oLabel(m.r))} <span style="color:var(--text3)">(${escH(m.note)})</span> <button class="btn bo bsm" onclick="hqFromSrv(${i})">신고 만들기</button></div>`).join('')
-      :'<div style="color:var(--green)">✓ 신고 없이 바뀐 방이 없습니다</div>'}
+      :fail.length?'<div style="color:var(--text3)">확인한 시설에는 신고 없이 바뀐 방이 없습니다</div>':'<div style="color:var(--green)">✓ 신고 없이 바뀐 방이 없습니다</div>'}
   </div></div>`;
 }
 /* 신고마다 서버 반영 여부: 해지 → installed 가 아니면 ✓, 추가 → installed 면 ✓ */
