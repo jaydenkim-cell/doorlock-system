@@ -701,6 +701,25 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
         </div>
       </div>
 
+      <div class="page" id="page-h2oreq">
+        <div class="frow">
+          <select class="fsel" id="fhq-f" onchange="renderH2oReq()"><option value="">전체 지점</option></select>
+          <select class="fsel" id="fhq-s" onchange="renderH2oReq()" style="max-width:190px">
+            <option value="">처리 전 + 최근 90일 전달</option><option value="신고">신고됨</option><option value="전달">H2O 전달</option>
+          </select>
+          <button class="btn bp" onclick="openHqReqMo()" style="margin-left:auto">+ 전환 신고</button>
+          <button class="btn bo" id="hq-proxy-btn" onclick="openHqReqMo({proxy:true})">대신 신고</button>
+        </div>
+        <div id="hq-pending"></div>
+        <div class="panel" style="margin-bottom:0">
+          <div class="ph"><span class="pt">전환 신고 내역</span>
+            <span style="font-size:11px;color:var(--text3)" id="hq-hint"></span></div>
+          <div style="overflow-x:auto"><table class="tbl"><thead><tr>
+            <th>신고일</th><th>지점</th><th>방향</th><th>호실</th><th>바꾼 날</th><th>신고자</th><th>상태</th><th>처리</th>
+          </tr></thead><tbody id="hq-body"></tbody></table></div>
+        </div>
+      </div>
+
       <!-- 월마감 (admin) -->
       <div class="page" id="page-monthly">
         <div class="frow">
@@ -1184,6 +1203,49 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
     <div class="fg"><label>메모</label><input class="fi" id="pti-note" placeholder="예: 9월 정기 공급"></div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-pt-in')">취소</button><button class="btn bp" onclick="submitPtIn()">입고 등록</button></div>
+</div>
+</div>
+
+<!-- H2O 모드 전환 신고 -->
+<div class="mo" id="mo-hq-req">
+<div class="mb">
+  <div class="mh"><span class="mt2" id="hqq-title">H2O 모드 전환 신고</span><button class="mx" onclick="closeMo('mo-hq-req')">✕</button></div>
+  <div class="mbody">
+    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
+      도어락을 <strong>객실용↔홈용으로 바꾼 뒤</strong> 신고해 주세요. 본사가 H2O 에 알리면 <strong>슬랙으로 알려드립니다</strong>.
+    </div>
+    <div class="fg"><label>지점 <span class="req">*</span></label><select class="fs" id="hqq-fac" onchange="hqqCheck()"></select></div>
+    <div class="fg"><label>방향 <span class="req">*</span></label>
+      <div style="display:flex;gap:18px;font-size:13px">
+        <label style="display:inline-flex;gap:5px;align-items:center;font-weight:400;margin:0;color:inherit"><input type="radio" name="hqq-dir" value="off" onchange="hqqDir()">객실용 → 홈용 (해지)</label>
+        <label style="display:inline-flex;gap:5px;align-items:center;font-weight:400;margin:0;color:inherit"><input type="radio" name="hqq-dir" value="on" onchange="hqqDir()">홈용 → 객실용 (추가)</label>
+      </div></div>
+    <div class="fg"><label>호실 <span class="req">*</span></label><input class="fi" id="hqq-rooms" placeholder="311, 312 (부산역은 A동 1205)" oninput="hqqCheck()">
+      <div id="hqq-check" style="font-size:12px;margin-top:6px;line-height:1.7"></div></div>
+    <div class="fr2">
+      <div class="fg"><label>바꾼 날 <span class="req">*</span></label><input class="fi" id="hqq-sw" type="date"></div>
+      <div class="fg"><label>사유</label><select class="fs" id="hqq-reason"></select></div>
+    </div>
+    <div class="fg"><label>메모</label><input class="fi" id="hqq-note" maxlength="100" placeholder="예: 오너 반환"></div>
+  </div>
+  <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-hq-req')">취소</button><button class="btn bp" onclick="submitHqReq()">신고하기</button></div>
+</div>
+</div>
+
+<!-- H2O 전환 메일 · 보냈어요 (관리자) -->
+<div class="mo" id="mo-hq-mail">
+<div class="mb" style="width:640px;max-width:95vw">
+  <div class="mh"><span class="mt2" id="hqm-title">✉️ H2O 전환 메일</span><button class="mx" onclick="closeMo('mo-hq-mail')">✕</button></div>
+  <div class="mbody">
+    <div class="fg"><label>받는 사람</label>
+      <div style="display:flex;gap:6px"><input class="fi" id="hqm-to" readonly><button class="btn bo bsm" onclick="hqCopy('hqm-to')">복사</button></div></div>
+    <div class="fg"><label>본문 <span style="font-weight:400;color:var(--text3)">(고친 뒤 복사해 메일에 붙여 넣으세요)</span></label>
+      <textarea class="fi" id="hqm-body" style="height:200px;font-size:13px;line-height:1.6;resize:vertical"></textarea>
+      <div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn bo bsm" onclick="hqCopy('hqm-body')">본문 복사</button></div></div>
+    <div class="fg" style="max-width:220px"><label>보낸 날 <span class="req">*</span></label><input class="fi" id="hqm-sent" type="date"></div>
+    <div style="font-size:11px;color:var(--text3);line-height:1.6">요금은 추가·해지 모두 <b>메일 보낸 날</b> 기준입니다. 이미 보낸 건이면 본문은 무시하고 보낸 날만 맞춰 [보냈어요]를 누르세요.</div>
+  </div>
+  <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-hq-mail')">닫기</button><button class="btn bp" onclick="hqMarkSent()">보냈어요</button></div>
 </div>
 </div>
 
@@ -2188,7 +2250,7 @@ function startApp(){
   else{re.className='ur ur-u';re.textContent='직원';}
   buildNav();populateSels();loadDCfg();
   goP('dashboard');
-  sbSync().then(()=>{ migrateLockTypes(); if(document.querySelector('.page.on')?.id==='page-dashboard'&&typeof renderD==='function')renderD(); checkAppUpdate(true); }); // 로그인 후 최신 데이터 로드
+  sbSync().then(()=>{ migrateLockTypes(); if(document.querySelector('.page.on')?.id==='page-dashboard'&&typeof renderD==='function')renderD(); checkAppUpdate(true); hqBadge(); }); // 로그인 후 최신 데이터 로드
 }
 
 /* 도어락 유형 일괄 기록 (1회성, 멱등).
@@ -2225,6 +2287,7 @@ const NI={
   archive:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="22" height="5" rx="1"/><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
   box:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M10 12h4"/></svg>`,
   log:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>`,
+  swap:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16V4M7 4L3 8M7 4l4 4"/><path d="M17 8v12M17 20l4-4M17 20l-4-4"/></svg>`,
 };
 // 콘텐츠 영역 아이콘 (15px, currentColor)
 const _s='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"';
@@ -2256,13 +2319,15 @@ function buildNav(){
   if(a){itms.push({p:'order',ic:NI.order,l:'발주 관리'});itms.push({p:'draft',ic:NI.draft,l:'발주서 작성'});}
   itms.push({p:'install',ic:NI.install,l:'설치 현황'});
   itms.push({p:'parts',ic:NI.box,l:'부자재 관리'});   // 지점이 신청하므로 전원에게 보인다
+  itms.push({p:'h2oreq',ic:NI.swap,l:'H2O 모드 전환'});   // 지점이 신고하므로 전원에게 보인다(직원 계정에 지점이 정해져 있지 않다)
   if(a)itms.push({p:'stock',ic:NI.box,l:'재고 관리'});   // 조달 전용 — 지점 계정에는 안 보인다
   if(a){itms.push({sep:'정산'},{p:'monthly',ic:NI.monthly,l:'월마감 정산'},{p:'svc',ic:NI.svc,l:'서비스요금'},{sep:'설정'},{p:'branches',ic:NI.branches,l:'지점 관리'},{p:'archive',ic:NI.archive,l:'종료 지점'},{p:'log',ic:NI.log,l:'변경 이력'});}
   if(sa)itms.push({p:'users',ic:NI.users,l:'사용자 관리'});
   document.getElementById('sb-nav').innerHTML=itms.map(i=>i.sep?`<div class="sg">${i.sep}</div>`:`<div class="ni" data-p="${i.p}" onclick="goP('${i.p}')"><span class="ic">${i.ic}</span>${i.l}</div>`).join('');
+  hqBadge();   // 메뉴를 다시 그리면 숫자도 다시 단다
 }
 
-const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],svc:['서비스요금','직방·H2O·더엠알 월 서비스요금 관리'],branches:['지점 관리','지점 정보 및 계정'],archive:['종료 지점','종료(아카이브)된 지점 · 재개 가능'],users:['사용자 관리','접속 권한 부여 및 역할 설정'],log:['변경 이력','상태 변경 감사 로그'],stock:['재고 관리','지점 보유 도어락 · 입고와 설치'],parts:['부자재 관리','도어락 커버·모듈 신청과 발송']};
+const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],svc:['서비스요금','직방·H2O·더엠알 월 서비스요금 관리'],branches:['지점 관리','지점 정보 및 계정'],archive:['종료 지점','종료(아카이브)된 지점 · 재개 가능'],users:['사용자 관리','접속 권한 부여 및 역할 설정'],log:['변경 이력','상태 변경 감사 로그'],stock:['재고 관리','지점 보유 도어락 · 입고와 설치'],parts:['부자재 관리','도어락 커버·모듈 신청과 발송'],h2oreq:['H2O 모드 전환','객실용↔홈용 전환 신고와 H2O 통보']};
 function goP(p){
   if((p==='order'||p==='draft'||p==='monthly'||p==='branches'||p==='svc'||p==='archive'||p==='log'||p==='stock')&&!isAdm()){toast('e','권한 없음','관리자만 접근할 수 있습니다.');return;}
   if(p==='users'&&!isSA()){toast('e','권한 없음','최고관리자만 접근할 수 있습니다.');return;}
@@ -2291,7 +2356,7 @@ function goP(p){
   /* 메뉴로 들어올 때 그리는 목록. 30초 새로고침용 PAGE_RENDER(맨 아래)와 따로 있어서
      서비스요금·부자재가 그쪽에만 들어가 있었다 → 들어가면 빈 화면이고 필터를 바꾸거나
      30초를 기다려야 채워졌다. 새 페이지를 만들면 두 곳 모두에 넣을 것. */
-  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:renderSvc,parts:renderParts,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock};
+  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:renderSvc,parts:renderParts,h2oreq:renderH2oReq,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock};
   FILL_FORCE=true;try{if(fns[p])fns[p]();}finally{FILL_FORCE=false;}
   if(['receipt','order','install','monthly','stock'].includes(p)){
     const tbr=document.getElementById('tb-r');
@@ -5835,12 +5900,13 @@ function buildSvcAmaData(){
      적기 전이라도 서버 기기가 0대면 실패가 아니라 경고로 보고, 해지 도달일을 [일괄]로 넣어 확정할 수 있다. */
 const K_HL='doorlock_h2o_lists';
 const H2O_NEW_TERMS_FROM='2026-10';   // 이 달부터 말일 확정 · 일할 · 익월 10일 지급
+// mail = H2O 전환 메일에 쓰는 이름(H2O 서버 시설명을 괄호로 붙인다 — 2026-10-12 Jayden 메일 '속초등대해변(써밋베이)' 방식)
 const H2O_FAC=[
-  {id:'7', br:'르컬렉티브 부산역', short:'부산역', whole:true},
-  {id:'13',br:'어반스테이 속초등대해변', short:'속초등대해변'},
-  {id:'18',br:'스타즈울산점', short:'스타즈울산'},
-  {id:'19',br:'르컬렉티브 강남예전시그니티', short:'강남예전시그니티'},
-  {id:'21',br:'부티크익선점', short:'부티크익선'},
+  {id:'7', br:'르컬렉티브 부산역', short:'부산역', whole:true, mail:'부산역(협성마리나 G7)'},
+  {id:'13',br:'어반스테이 속초등대해변', short:'속초등대해변', mail:'속초등대해변(써밋베이)'},
+  {id:'18',br:'스타즈울산점', short:'스타즈울산', mail:'스타즈울산(스타즈 호텔 울산)'},
+  {id:'19',br:'르컬렉티브 강남예전시그니티', short:'강남예전시그니티', mail:'강남예전시그니티(르컬렉티브 강남예술의전당)'},
+  {id:'21',br:'부티크익선점', short:'부티크익선', mail:'부티크익선(익선동 53호텔)'},
 ];
 const H2O_BRS=new Set(H2O_FAC.map(f=>f.br));
 const h2oFacs=month=>H2O_FAC.filter(f=>!f.until||month<=f.until);
@@ -6381,6 +6447,208 @@ function hqResolve(fid,text){
   if(dongs.length)return{ok:false,err:`동을 붙여 적어 주세요 — 예) A동 ${p.num}`};
   const cnt=new Map();list.forEach(r=>cnt.set(r.b,(cnt.get(r.b)||0)+1));
   return{ok:true,b:([...cnt].sort((x,y)=>y[1]-x[1])[0]||[''])[0],n:p.num,inList:false,p};
+}
+/* ── 신고 화면 ── */
+let HQ_G=[];        // 화면에 그린 묶음(한 번에 신고한 건). onclick 은 이 배열의 번호만 넘긴다(문자열 금지 — 9/16 저장형 XSS 교훈)
+let HQ_PF=[];       // 처리 대기 시설 — [메일 쓰기]도 번호만 넘긴다
+let HQ_MAIL=null;   // 메일 창을 연 순간의 {fid, ids} — [보냈어요]는 이 id 만 처리한다(창을 연 사이 들어온 신고가 잘못 찍히지 않게)
+let HQ_PROXY=false; // [대신 신고]로 연 창인가
+function renderH2oReq(){
+  const a=isAdm(),me=String(S.email||S.id||'').toLowerCase();
+  const pb=document.getElementById('hq-proxy-btn');if(pb)pb.style.display=a?'':'none';
+  const fs=document.getElementById('fhq-f');
+  if(fs&&fs.options.length===1)h2oFacs(ymdLocal(new Date()).substring(0,7)).forEach(f=>fs.appendChild(new Option(f.short,f.id)));
+  const hint=document.getElementById('hq-hint');
+  if(hint)hint.textContent=a?'메일을 보낸 뒤 [보냈어요]를 누르면 그날이 말일 확정의 해지·추가 날짜가 됩니다(요금 기준일 = 메일 보낸 날).'
+    :'신고 → 본사가 H2O 에 메일 → 전달. 전달되면 슬랙으로 알려 드립니다. 본사 처리 전에는 내 신고를 지울 수 있습니다.';
+  const fv=fs?fs.value:'',stv=(document.getElementById('fhq-s')||{}).value||'',cut=addDays(ymdLocal(new Date()),-90);
+  let rows=hqAlive();
+  if(fv)rows=rows.filter(x=>x.fid===fv);
+  rows=stv?rows.filter(x=>x.st===stv):rows.filter(x=>x.st!=='전달'||String(x.sent||'')>=cut);
+  HQ_G=[];const gm=new Map();
+  rows.sort((x,y)=>String(y.at||'').localeCompare(String(x.at||''))).forEach(x=>{const k=x.grp||x.id;let g=gm.get(k);if(!g){g={items:[]};gm.set(k,g);HQ_G.push(g);}g.items.push(x);});
+  hqRenderPending();
+  const tb=document.getElementById('hq-body');
+  if(tb)tb.innerHTML=HQ_G.length?HQ_G.map((g,gi)=>{
+    const x0=g.items[0],f=hqFac(x0.fid),nSent=g.items.filter(x=>x.st==='전달').length,nNew=g.items.length-nSent;
+    const rooms=g.items.map(x=>escH(h2oLabel(x))+(x.dir==='off'&&x.inList===false?'<span title="신고 때 목록에 없던 방" style="color:var(--yellow)">⚠</span>':'')).join(', ');
+    const sentD=[...new Set(g.items.filter(x=>x.st==='전달').map(x=>md(x.sent)))].join(', ');
+    const chip=(nNew?`<span class="chip cg">○ 신고됨${nSent?' '+nNew:''}</span>`:'')+(nSent?`<span class="chip co">✓ 전달 ${escH(sentD)}</span>`:'');
+    const mine=!a&&g.items.every(x=>String(x.email||'').toLowerCase()===me&&x.st!=='전달');
+    const act=(a&&nSent?`<button class="btn bo bsm" title="'신고됨'으로 되돌리기" onclick="hqUndoSentG(${gi})">↩</button>`:'')
+      +(a||mine?`<button class="btn br2 bsm" style="margin-left:2px" onclick="delHqG(${gi})">삭제</button>`:'');
+    return `<tr><td>${escH(kstDate(x0.at)||'—')}</td><td style="font-weight:500">${escH(f?f.short:x0.fid)}</td>
+      <td style="white-space:nowrap">${escH(HQ_DIRS[x0.dir]||'')}</td><td>${rooms}</td><td>${escH(isYmd(x0.sw)?md(x0.sw):'—')}</td>
+      <td style="font-size:12px">${slackAvatar(x0.email,x0.by)}</td><td style="white-space:nowrap">${chip}</td>
+      <td style="white-space:nowrap">${act}</td></tr>`;
+  }).join(''):emp(8);
+  hqBadge();
+}
+function hqRenderPending(){
+  const el=document.getElementById('hq-pending');if(!el)return;
+  const pend=isAdm()?hqAlive().filter(x=>x.st!=='전달'):[];
+  if(!pend.length){el.innerHTML='';HQ_PF=[];return;}
+  const by=new Map();pend.forEach(x=>by.set(x.fid,(by.get(x.fid)||0)+1));
+  HQ_PF=[...by.keys()];
+  el.innerHTML=`<div class="panel" style="margin-bottom:12px"><div class="pb" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px">
+    <b style="color:var(--yellow)">⚠ H2O에 아직 안 알린 신고 ${pend.length}건</b>
+    ${HQ_PF.map((fid,i)=>`<span>${escH((hqFac(fid)||{}).short||fid)} ${by.get(fid)}건 <button class="btn bp bsm" onclick="openHqMail(${i})">메일 쓰기</button></span>`).join('')}</div></div>`;
+}
+/* 관리자 메뉴 옆 숫자 = 아직 H2O 에 안 알린 신고 수 */
+function hqBadge(){
+  const ni=document.querySelector('.ni[data-p="h2oreq"]');if(!ni)return;
+  let b=ni.querySelector('.hq-nb');
+  const n=isAdm()?hqAlive().filter(x=>x.st!=='전달').length:0;
+  if(!n){if(b)b.remove();return;}
+  if(!b){b=document.createElement('span');b.className='hq-nb';b.style.cssText='margin-left:auto;background:#e02424;color:#fff;border-radius:9px;padding:0 6px;font-size:11px;font-weight:700;line-height:18px';ni.appendChild(b);}
+  b.textContent=String(n);
+}
+function openHqReqMo(o){
+  o=o||{};
+  const facs=h2oFacs(ymdLocal(new Date()).substring(0,7)),sel=document.getElementById('hqq-fac');
+  if(S.branchLocked&&!facs.some(f=>f.br===S.branch)){toast('e','H2O 지점이 아닙니다','이 지점은 H2O 도어락 지점이 아닙니다.');return;}
+  HQ_PROXY=!!o.proxy&&isAdm();
+  sel.innerHTML=facs.map(f=>`<option value="${escH(f.id)}">${escH(f.short)}</option>`).join('');
+  if(S.branchLocked){sel.value=facs.find(f=>f.br===S.branch).id;sel.disabled=true;}
+  else{sel.disabled=false;if(o.fid&&facs.some(f=>f.id===o.fid))sel.value=o.fid;}
+  document.querySelectorAll('input[name="hqq-dir"]').forEach(r=>{r.checked=r.value===o.dir;});
+  document.getElementById('hqq-rooms').value=o.room||'';
+  document.getElementById('hqq-sw').value=o.sw!==undefined?o.sw:(HQ_PROXY?'':ymdLocal(new Date()));
+  document.getElementById('hqq-note').value=HQ_PROXY?'대신 신고':'';
+  document.getElementById('hqq-title').textContent=HQ_PROXY?'H2O 모드 전환 — 대신 신고':'H2O 모드 전환 신고';
+  hqqDir();openMo('mo-hq-req');
+}
+function hqqDir(){
+  const d=(document.querySelector('input[name="hqq-dir"]:checked')||{}).value||'';
+  document.getElementById('hqq-reason').innerHTML=(HQ_REASONS[d]||['해지 객실','신규 객실','기타']).map(r=>`<option>${r}</option>`).join('');
+  hqqCheck();
+}
+/* 신고 창 읽기 — 방마다 목록 대조. 막는 건 형식 오류·동 누락·없는 동·같은 방 두 번·처리 전 중복뿐(나머지는 경고만) */
+function hqqRead(){
+  const fid=document.getElementById('hqq-fac').value,dir=(document.querySelector('input[name="hqq-dir"]:checked')||{}).value||'';
+  const toks=String(document.getElementById('hqq-rooms').value||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean);
+  const open=hqAlive().filter(x=>x.fid===fid&&x.dir===dir&&x.st!=='전달'),seen=new Set();
+  const res=toks.map(t=>{
+    const r=hqResolve(fid,t);if(!r.ok)return{t,err:r.err};
+    const k=r.p.dong+'|'+r.p.num;if(seen.has(k))return{t,err:'같은 방을 두 번 적었습니다'};seen.add(k);
+    if(dir&&open.some(x=>hqSame(x,r.p)))return{t,err:'이미 신고된 방입니다(본사 처리 전)'};
+    const warn=dir==='off'&&!r.inList?'지금 목록에 없는 방 — 이번 달 새로 들어온 방이면 그대로 신고하세요':dir==='on'&&r.inList?'이미 객실용 목록에 있는 방':'';
+    return{t,r,warn};});
+  return{fid,dir,res};
+}
+function hqqCheck(){
+  const el=document.getElementById('hqq-check');if(!el)return;
+  el.innerHTML=hqqRead().res.map(x=>x.err?`<div style="color:var(--red)">✕ ${escH(x.t)} — ${escH(x.err)}</div>`
+    :x.warn?`<div style="color:var(--yellow)">⚠ ${escH(h2oLabel(x.r))} — ${escH(x.warn)}</div>`
+    :`<div style="color:var(--green)">✓ ${escH(h2oLabel(x.r))}</div>`).join('');
+}
+function submitHqReq(){
+  const{fid,dir,res}=hqqRead(),f=hqFac(fid),today=ymdLocal(new Date());
+  if(!f||!h2oFacs(today.substring(0,7)).some(x=>x.id===fid)){toast('e','지점','H2O 지점을 고르세요.');return;}
+  if(S.branchLocked&&f.br!==S.branch){toast('e','권한 없음','다른 지점으로는 신고할 수 없습니다.');return;}
+  if(!HQ_DIR[dir]){toast('e','방향','객실용 → 홈용 / 홈용 → 객실용 중 하나를 고르세요.');return;}
+  if(!res.length){toast('e','호실','호실을 적어 주세요.');return;}
+  const bad=res.find(x=>x.err);if(bad){toast('e','호실 확인',`${escH(bad.t)} — ${escH(bad.err)}`);return;}
+  const sw=document.getElementById('hqq-sw').value;
+  if(!isYmd(sw)||sw>today||sw<addDays(today,-62)){toast('e','바꾼 날','바꾼 날을 넣어 주세요(오늘까지, 62일 이내).');return;}
+  const rv=document.getElementById('hqq-reason').value,reason=HQ_REASONS[dir].includes(rv)?rv:HQ_REASONS[dir][0];
+  const note=String(document.getElementById('hqq-note').value||'').trim().slice(0,100);
+  const now=new Date().toISOString(),grp='hq_'+Date.now().toString(36),by=S.name||S.email||S.id||'',email=String(S.email||S.id||'');
+  const arr=getHQ();
+  res.forEach(x=>arr.push({id:hqId(),grp,fid,dir,b:h2oClean(x.r.b),n:h2oClean(x.r.n),inList:!!x.r.inList,sw,reason,note,st:'신고',by,email,at:now,sent:'',sentBy:'',sentAt:'',v:1,upd:now}));
+  sv(K.HQ,arr);
+  const label=res.map(x=>h2oLabel(x.r)+'호').join(', ');
+  logAudit('H2O전환신고',f.short,`${label} · ${HQ_DIR[dir]} · 바꾼 날 ${sw}`);
+  closeMo('mo-hq-req');HQ_PROXY=false;renderH2oReq();
+  toast('s','신고 완료','본사가 H2O 에 알리면 슬랙으로 알려 드려요.');
+  hqSlackNoti(f,dir,label,sw,by);
+}
+/* 새 접수 알림과 같은 웹훅 채널(Jayden 확인용). 실패해도 신고는 그대로다 */
+async function hqSlackNoti(f,dir,label,sw,by){
+  const wh=getSlackWh();if(!wh)return;
+  const text=`🔁 H2O 모드 전환 신고 — ${f.short} ${label} · ${HQ_DIR[dir]} · 바꾼 날 ${md(sw)} · 신고 ${by}`;
+  try{await fetch(wh,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'payload='+encodeURIComponent(JSON.stringify({text}))});}
+  catch(e){console.warn('웹훅 알림 전송 실패:',e);}
+}
+/* 삭제 = 툼스톤. 직원은 자기 신고(처리 전)만 — 서버는 툼스톤의 주인을 보지 않으므로(부자재와 같다) 화면에서 막는다 */
+function delHqG(gi){
+  const g=HQ_G[gi];if(!g)return;
+  const me=String(S.email||S.id||'').toLowerCase();
+  if(!isAdm()&&!g.items.every(x=>String(x.email||'').toLowerCase()===me&&x.st!=='전달')){toast('e','권한 없음','본사가 처리한 신고나 다른 사람의 신고는 지울 수 없습니다.');return;}
+  const lbl=`${(hqFac(g.items[0].fid)||{}).short||''} ${g.items.map(x=>h2oLabel(x)).join(', ')}`;
+  showCfm(CI.trash,'삭제',`${lbl} 신고를 삭제할까요?`,()=>{
+    const ids=g.items.map(x=>x.id);
+    markDel(K.HQ,ids);
+    sv(K.HQ,getHQ().filter(x=>!ids.includes(x.id)));
+    logAudit('H2O전환삭제',lbl,ids.length+'건');
+    renderH2oReq();toast('s','삭제 완료','신고를 지웠습니다.');
+  });
+}
+/* ── 메일 · 보냈어요 (관리자) ── */
+const hqRo=w=>{const s=String(w),c=s.charCodeAt(s.length-1)-0xAC00;if(c<0||c>11171)return s+'로';const j=c%28;return s+(j===0||j===8?'로':'으로');};   // 받침 없거나 ㄹ → '로'
+/* 전환 메일 본문 — Jayden 이 보내던 문장 그대로. '금일' = 메일 보낸 날(요금 기준일과 같은 날). 바꾼 날은 본문에 쓰지 않는다 */
+function hqMailText(fid,items){
+  const f=hqFac(fid)||{short:fid},name=String(getHL().sender||'핸디즈 구매소싱팀 김강현').trim().split(/\s+/).pop();
+  const rs=[...new Set(items.map(x=>x.reason))],reason=rs.length===1&&rs[0]!=='기타'?rs[0]:'객실 변경';
+  const byNum=(p,q)=>(parseInt(String(p.n),10)||0)-(parseInt(String(q.n),10)||0)||h2oLabel(p).localeCompare(h2oLabel(q));
+  const lines=['off','on'].map(d=>{const l=items.filter(x=>x.dir===d).sort(byNum).map(x=>h2oLabel(x)+'호');return l.length?`${HQ_DIR[d]}: ${l.join(', ')}`:'';}).filter(Boolean);
+  return[`안녕하세요 핸디즈 ${name}입니다.`,`${f.mail||f.short} ${hqRo(reason)} 인해 금일 도어락 모드 전환 완료하였습니다.`,...lines,'위 관련 문의사항 있으시면 연락주십시오','감사합니다.',`${name} 드림`].join('\n');
+}
+function openHqMail(i){
+  if(!isAdm())return;
+  const fid=HQ_PF[i],items=hqAlive().filter(x=>x.fid===fid&&x.st!=='전달');
+  if(!items.length){toast('i','보낼 신고 없음','그사이 처리됐습니다.');renderH2oReq();return;}
+  HQ_MAIL={fid,ids:items.map(x=>x.id)};
+  document.getElementById('hqm-title').textContent=`✉️ H2O 전환 메일 — ${(hqFac(fid)||{}).short||fid} ${items.length}건`;
+  document.getElementById('hqm-to').value=HQ_TO;
+  document.getElementById('hqm-body').value=hqMailText(fid,items);
+  document.getElementById('hqm-sent').value=ymdLocal(new Date());
+  openMo('mo-hq-mail');
+}
+function hqCopy(id){
+  const t=(document.getElementById(id)||{}).value||'';
+  const ok=()=>toast('s','복사 완료','메일에 붙여 넣으세요.'),fail=()=>toast('e','복사 실패','글자를 직접 선택해 복사해 주세요.');
+  if(navigator.clipboard?.writeText)navigator.clipboard.writeText(t).then(ok).catch(()=>_fbCopy(t,ok,fail));else _fbCopy(t,ok,fail);
+}
+function hqMarkSent(){
+  if(!isAdm()||!HQ_MAIL)return;
+  const sent=document.getElementById('hqm-sent').value,today=ymdLocal(new Date());
+  if(!isYmd(sent)){toast('e','보낸 날','메일 보낸 날을 넣어 주세요.');return;}
+  if(sent>today){toast('e','보낸 날','오늘 이후 날짜는 넣을 수 없습니다.');return;}
+  const dead=tombSet(K.HQ),arr=getHQ(),ids=new Set(HQ_MAIL.ids),t=arr.filter(x=>ids.has(x.id)&&x.st!=='전달'&&!dead.has(x.id));
+  const f=hqFac(HQ_MAIL.fid)||{short:HQ_MAIL.fid};
+  if(!t.length){closeMo('mo-hq-mail');toast('i','처리할 신고 없음','그사이 처리됐거나 지워졌습니다.');renderH2oReq();return;}
+  const go=()=>{
+    const now=new Date().toISOString(),by=S.name||S.email||'';
+    t.forEach(x=>{x.st='전달';x.sent=sent;x.sentBy=by;x.sentAt=now;x.v=(Number(x.v)||0)+1;x.upd=now;});
+    sv(K.HQ,arr);
+    logAudit('H2O전환전달',f.short,`${t.map(x=>h2oLabel(x)).join(', ')} · 메일 ${sent}`);
+    closeMo('mo-hq-mail');HQ_MAIL=null;renderH2oReq();
+    toast('s','전달 기록',`${escH(f.short)} ${t.length}건 — 말일 확정에서 메일 날짜 ${md(sent)}로 계산됩니다.`);
+    hqSentDM(f,t,sent);
+  };
+  const early=t.filter(x=>isYmd(x.sw)&&sent<x.sw);
+  if(early.length){showCfm(CI.calendar,'바꾼 날보다 앞선 메일',`${early.map(x=>`${h2oLabel(x)} 바꾼 날 ${md(x.sw)}`).join(', ')} — 보낸 날 ${md(sent)}이 더 앞섭니다. 바꾼 날을 잘못 적었을 수 있습니다. 그대로 기록할까요?`,go);return;}
+  go();
+}
+/* 신고자별 DM 한 통. 실패해도 전달 기록은 되돌리지 않는다(ptSlackDM 이 알림만 띄운다) */
+async function hqSentDM(f,items,sent){
+  const by=new Map();items.forEach(x=>{const e=String(x.email||'');if(!by.has(e))by.set(e,[]);by.get(e).push(x);});
+  for(const[email,l]of by){
+    if(!email)continue;
+    const dirs=[...new Set(l.map(x=>HQ_DIR[x.dir]))].join(' / ');
+    await ptSlackDM(email,`✅ H2O에 알렸어요\n\n${f.short} ${l.map(x=>h2oLabel(x)+'호').join(', ')} · ${dirs}\n${md(sent)} 메일로 전달했습니다.`);
+  }
+}
+function hqUndoSentG(gi){
+  if(!isAdm())return;const g=HQ_G[gi];if(!g)return;
+  const ids=new Set(g.items.filter(x=>x.st==='전달').map(x=>x.id));if(!ids.size)return;
+  showCfm(CI.calendar,'전달 취소',`${g.items.filter(x=>ids.has(x.id)).map(x=>h2oLabel(x)).join(', ')} — '신고됨'으로 되돌릴까요? 말일 확정의 날짜도 빠집니다.`,()=>{
+    const arr=getHQ(),now=new Date().toISOString();
+    arr.forEach(x=>{if(ids.has(x.id)&&x.st==='전달'){x.st='신고';x.sent='';x.sentBy='';x.sentAt='';x.v=(Number(x.v)||0)+1;x.upd=now;}});
+    sv(K.HQ,arr);logAudit('H2O전환전달취소',(hqFac(g.items[0].fid)||{}).short||'',ids.size+'건');
+    renderH2oReq();toast('s','되돌리기 완료',"'신고됨'으로 돌아갔습니다.");
+  });
 }
 
 /* ── 월마감 품의서 (2026-10-01) ──
@@ -6932,10 +7200,11 @@ function delStk(id){
 }
 
 // 30초 새로고침 목록 — 메뉴 진입 때 쓰는 goP 의 fns 와 짝이다(한쪽에만 넣으면 진입 시 빈 화면)
-const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:()=>typeof renderR==='function'&&renderR(),order:()=>typeof renderO==='function'&&renderO(),install:()=>typeof renderI==='function'&&renderI(),monthly:()=>typeof renderM==='function'&&renderM(),svc:()=>typeof renderSvc==='function'&&renderSvc(),stock:()=>typeof renderStock==='function'&&renderStock(),parts:()=>typeof renderParts==='function'&&renderParts()};
+const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:()=>typeof renderR==='function'&&renderR(),order:()=>typeof renderO==='function'&&renderO(),install:()=>typeof renderI==='function'&&renderI(),monthly:()=>typeof renderM==='function'&&renderM(),svc:()=>typeof renderSvc==='function'&&renderSvc(),stock:()=>typeof renderStock==='function'&&renderStock(),parts:()=>typeof renderParts==='function'&&renderParts(),h2oreq:()=>typeof renderH2oReq==='function'&&renderH2oReq()};
 setInterval(async()=>{
   if(!S)return; // 로그인 전엔 동기화 안 함
   await sbSync();
+  hqBadge();
   const anyModalOpen=document.querySelector('.mo.show');
   if(anyModalOpen)return;
   const cur=document.querySelector('.page.on')?.id?.replace('page-','');
