@@ -5939,7 +5939,9 @@ function h2oDefaults(){
   H2O_DEFAULTED=true;if(mEl.value)return;
   const now=new Date(),ym=ymdLocal(now).substring(0,7),day=now.getDate(),hl=getHL(),prev=ymPrev(ym);
   let month=ym,mode;
-  if(day<=5&&prev>=H2O_NEW_TERMS_FROM&&!(hl.months[prev]||{}).end){month=prev;mode='end';}
+  // 말일 전에 미리 저장된 말일 확정(2026-10-12 10월분)도 아직 끝나지 않은 달로 본다
+  const pe=(hl.months[prev]||{}).end;
+  if(day<=5&&prev>=H2O_NEW_TERMS_FROM&&(!pe||kstDate(pe.at)<ymLast(prev))){month=prev;mode='end';}
   else if(day>=25)mode='end';
   else mode=(hl.months[ym]||{}).start?'end':'start';
   if(month<H2O_NEW_TERMS_FROM)month=H2O_NEW_TERMS_FROM;
@@ -6197,7 +6199,7 @@ function h2oRender(){
   const mm=hl.months[month]||{},saved=mm[mode],locked=h2oLocked(month);
   const ast=mode==='end'&&saved?h2oApplyState(month):'';
   const applyState=ast==='ok'?' · ✓ 청구 내역 반영됨':ast==='rows'?' · <b style="color:var(--red)">청구 내역의 H2O 줄이 반영한 것과 다릅니다 — [청구 내역에 반영]을 다시 누르세요</b>':ast?' · <b style="color:var(--red)">청구 내역 반영 전</b>':'';
-  const savedLine=`<div style="margin-top:6px;font-size:11px;color:var(--text3)">${saved?`✓ ${escH(month)} ${mode==='start'?'월초 목록':'말일 확정'} 저장됨 · ${escH(tKst(saved.at))}${saved.by?' · '+escH(saved.by):''} · ${Object.values(saved.rooms||{}).reduce((t,l)=>t+l.length,0)}실${applyState}`:`아직 ${escH(month)} ${mode==='start'?'월초 목록':'말일 확정'}을 저장하지 않았습니다.`}${mode==='start'&&mm.end?' · <b style="color:var(--yellow)">이 달은 말일 확정까지 끝났습니다</b>':''}</div>`;
+  const savedLine=`<div style="margin-top:6px;font-size:11px;color:var(--text3)">${saved?`✓ ${escH(month)} ${mode==='start'?'월초 목록':'말일 확정'} 저장됨 · ${escH(tKst(saved.at))}${saved.by?' · '+escH(saved.by):''} · ${Object.values(saved.rooms||{}).reduce((t,l)=>t+l.length,0)}실${applyState}`:`아직 ${escH(month)} ${mode==='start'?'월초 목록':'말일 확정'}을 저장하지 않았습니다.`}${mode==='start'&&mm.end?' · <b style="color:var(--yellow)">이 달은 말일 확정까지 끝났습니다</b>':''}${mode==='end'&&saved&&kstDate(saved.at)<ymLast(month)?' · <b style="color:var(--yellow)">말일 전에 저장한 기록 — 말일 뒤 [불러오기]→[저장]으로 다시 확정하세요</b>':''}</div>`;
   if(H2O_BUSY){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">불러오는 중...</div>';return;}
   if(!H2OL||H2OL.month!==month||H2OL.mode!==mode){el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 0">대상 월과 구분을 확인하고 [불러오기]를 누르세요.${saved?' 저장된 기록으로는 바로 [엑셀 다운로드]·[메일 초안]을 만들 수 있습니다.':''}</div>`+savedLine;return;}
   if(H2OL.err){el.innerHTML=`<div style="color:var(--red);font-size:12px;padding:8px 0">${escH(H2OL.err)}</div>`+savedLine;return;}
@@ -6268,7 +6270,7 @@ function h2oSave(){
   if(R.notes.length)msgs.push('※ '+R.notes.join(' / '));
   const warn=Object.values(R.fac).filter(x=>x.warn.length);
   if(warn.length)msgs.push('※ 확인 필요:\n'+warn.map(x=>`  ${x.f.short}: ${x.warn.join(' / ')}`).join('\n'));
-  showCfm(CI.calendar,`${month} ${mode==='start'?'월초 목록':'말일 확정'} 저장`,msgs.join('\n'),()=>{
+  const doSave=()=>showCfm(CI.calendar,`${month} ${mode==='start'?'월초 목록':'말일 확정'} 저장`,msgs.join('\n'),()=>{
     const hl2=getHL(),mm2=hl2.months[month]||(hl2.months[month]={}),mN=hl2.months[next]||(hl2.months[next]={});
     if(mode==='start'&&mm2.end){toast('e','저장하지 않았습니다','그사이 말일 확정이 저장됐습니다.');return;}
     if(mode==='end'&&mN.end){toast('e','저장하지 않았습니다','그사이 다음 달 말일 확정이 저장됐습니다.');return;}
@@ -6298,6 +6300,13 @@ function h2oSave(){
     sv(K_HL,hl2);logAudit('H2O 월 목록 저장',month,`${mode==='start'?'월초':'말일'} ${total}실`);
     toast('s','저장 완료',`${month} ${mode==='start'?'월초 목록':'말일 확정'}을 저장했습니다.${mode==='end'?' 이어서 [청구 내역에 반영]을 누르세요.':''}`);h2oRender();
   });
+  /* 말일 전 확정은 한 번 더 묻는다 — 날짜·추가·해지는 입력 즉시 저장되므로 [저장]을 미리 누를 이유가 없다(2026-10-12 10월분).
+     closeCfm 은 콜백을 부른 뒤 cfmCb 를 지운다 → 확인창 안에서 다음 확인창은 setTimeout 으로 한 박자 늦춰 연다 */
+  if(mode==='end'&&ymdLocal(new Date())<ymLast(month)){
+    showCfm(CI.calendar,'아직 말일 전이에요',`날짜·추가·해지는 입력하는 즉시 저장돼요. ${month} 말일 확정은 ${ymNext(month)} 1~5일에 하세요.\n지금 확정하면 이 달 H2O 는 자동 반영에서 빠집니다. 그래도 지금 확정할까요?`,()=>setTimeout(doSave,0));
+    return;
+  }
+  doSave();
 }
 
 // 저장된 기록으로 문서를 만든다. 사용자 입력이 저장본과 다르면 다시 저장하라고 막는다
