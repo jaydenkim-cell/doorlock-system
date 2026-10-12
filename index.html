@@ -6028,11 +6028,12 @@ async function h2oLoad(){
         if(!failed){   // 신고와 어긋남 — 버튼이 달린 안내라 info(글자)와 따로 둔다
           const onSrv=q=>server.some(r=>hqSame(r,hqP(q)));
           const after=(q,dir)=>qs.some(o=>o.dir===dir&&o.id!==q.id&&hqSame(o,hqP(q))&&o.sent>=q.sent);   // 같은 방에 이 신고 뒤(같은 날 포함)의 반대 방향 신고
+          const afterIn=(q,dir)=>qs.some(o=>o.dir===dir&&o.id!==q.id&&hqSame(o,hqP(q))&&o.sent>=q.sent&&o.sent<=last);   // 이 달 말일까지의 반대 방향 신고만(말일 뒤 추가는 다음 달 일)
           // 해지 메일 뒤 다시 추가 메일이 있으면 서버가 객실용인 게 맞다 — "서버는 그대로"가 아니라 안내만(이 달은 월정액으로 둔다)
           const latestOff=q=>!qs.some(o=>o.dir==='off'&&o.id!==q.id&&hqSame(o,hqP(q))&&(o.sent>q.sent||(o.sent===q.sent&&o.id>q.id)));   // 방마다 마지막 해지 신고만 본다(해지·추가를 오간 방에 안내가 겹치지 않게)
           const inStart=q=>(start||[]).some(r=>hqSame(r,hqP(q)));
           qs.filter(q=>q.dir==='off'&&q.sent<=last&&latestOff(q)&&onSrv(q)&&list.some(r=>hqSame(r,hqP(q)))).forEach(q=>{
-            if(after(q,'on')){if(inStart(q))RW.push({kind:'offThenOn',q});return;}   // 해지 뒤 다시 추가 — 월초 목록 방만 안내(그 밖의 방은 추가 메일대로 이미 맞게 센다)
+            if(afterIn(q,'on')){if(inStart(q))RW.push({kind:'offThenOn',q});return;}   // 해지 뒤 다시 추가 — 월초 목록 방만 안내(그 밖의 방은 추가 메일대로 이미 맞게 센다)
             RW.push({kind:'stillOn',q,k:hKey(server.find(r=>hqSame(r,hqP(q))))});});
           qs.filter(q=>q.dir==='on'&&!onSrv(q)&&!after(q,'off')).forEach(q=>RW.push({kind:'notOn',q}));
           const inEx=q=>(adj.extra||[]).some(k=>{const i=k.indexOf('|');return hqSame({b:k.slice(0,i),n:k.slice(i+1)},hqP(q));});
@@ -6092,7 +6093,7 @@ function h2oEffective(R){
       if(okD(d)&&d>last){list.push(r);out.changes.push({fid,f:x.f,r,type:'추가',from,to:last,days:span(from,last),note,src:A?'req':'srv',q:A||null});out.carry.push({fid,f:x.f,r,to:d,src:P.src,q:P.q});return;}
       const ok=okD(d)&&d>=from&&d<=last;
       out.changes.push({fid,f:x.f,r,type:'추가·해지',from,to:d,days:ok?span(from,d):null,note,src:P.src,q:P.q});});
-    (x.extra||[]).forEach(r=>{const k=hKey(r),A=pick(addAt,fid,r,'on'),P=pick(dates,fid,r,'off'),a=A.d,d=P.d;
+    (x.extra||[]).forEach(r=>{const A=pick(addAt,fid,r,'on'),P=pick(dates,fid,r,'off'),a=A.d,d=P.d;
       // 해지 메일이 말일 뒤 — 이번 달은 추가일부터 말일까지 받고, 그 방은 목록에 남겨 해지를 다음 달로 넘긴다(추가·해지 방의 carry 와 같다)
       if(isYmd(a)&&a>=first&&a<=last&&okD(d)&&d>last){list.push(r);out.changes.push({fid,f:x.f,r,type:'추가',from:a,to:last,days:span(a,last),note:'',src:A.src,q:A.q});out.carry.push({fid,f:x.f,r,to:d,src:P.src,q:P.q});return;}
       const ok=isYmd(a)&&isYmd(d)&&a>=first&&a<=d&&d<=last;
@@ -6219,7 +6220,7 @@ function h2oRender(){
   const qChip=(src,q)=>src==='req'?`<span class="chip ci" style="margin-left:4px;font-size:10px;padding:0 6px" title="${escH(q?`${q.by||''} 신고 · ${md(q.sent)} 메일`:'신고')}">신고</span>`:'';
   const noReq=x=>(x.src===''||x.src==='srv')?`<span style="margin-left:4px;font-size:10px;color:var(--yellow)" title="이 변동에 맞는 '전달' 신고가 없습니다 — 지점에 확인하세요">신고 없음</span>`:'';
   const chRows=E.changes.map(x=>{const lbl=`${escH(x.f.short)} ${escH(h2oLabel(x.r))}${noReq(x)}`;
-    const inp=x.man?`등록일 ${dateInp('addedAt',x,x.from,H2OL.month+'-01')}${qChip(x.srcA,x.qA)} · 도달일 ${dateInp('removedAt',x,x.to,H2OL.month+'-01',ymLast(H2OL.month))}${qChip(x.src,x.q)}`
+    const inp=x.man?`등록일 ${dateInp('addedAt',x,x.from,H2OL.month+'-01')}${qChip(x.srcA,x.qA)} · 도달일 ${dateInp('removedAt',x,x.to,H2OL.month+'-01',addDays(ymLast(H2OL.month),40))}${qChip(x.src,x.q)}`
       :x.type==='추가'?`등록일 ${dateInp('addedAt',x,x.from,H2OL.month+'-01')}${qChip(x.src,x.q)}`
       :x.type==='추가·해지'?`${escH(md(x.from))} 등록 · 도달일 ${dateInp('removedAt',x,x.to,x.from)}${qChip(x.src,x.q)}`
       :`삭제 요청 도달일 ${dateInp('removedAt',x,x.to,ymPrev(H2OL.month)+'-01')}${qChip(x.src,x.q)}`;
@@ -6286,7 +6287,8 @@ function h2oSave(){
         if(!fb[k]){fb[k]=c.to;(carried.removedAt[c.fid]||(carried.removedAt[c.fid]={}))[k]=c.to;}});
       // 일반 시설: 서버에 아직 남은 해지(안 넘기면 다음 달 '추가'로 되살아난다) · 부산역: 다음 달로 넘긴 해지(서버와 상관없이 — 목록이 '월초 − 직접 해지'라서)
       const adj=mm2.adjust||{};Object.entries(adj).forEach(([fid,a])=>{const x=R.fac[fid];if(!x)return;const inEnd=new Set((rec.rooms[fid]||[]).map(hKey));
-        const still=(a.remove||[]).filter(k=>x.f.whole?inEnd.has(k):x.server.some(r=>hKey(r)===k));
+        const reAdded=k=>{const i=k.indexOf('|'),r={b:k.slice(0,i),n:k.slice(i+1)},on=h2oReqFor(next,fid,r,'on'),off=h2oReqFor(next,fid,r,'off');return!!on&&(!off||on.sent>off.sent);};   // 해지 뒤 다시 추가 메일이 있으면 [해지]를 다음 달로 넘기지 않는다(넘기면 다음 달에 추가·해지가 거꾸로 잡힌다)
+        const still=(a.remove||[]).filter(k=>(x.f.whole?inEnd.has(k):x.server.some(r=>hKey(r)===k))&&!reAdded(k));
         if(still.length){const na=(mN.adjust||(mN.adjust={}))[fid]||(mN.adjust[fid]={add:[],remove:[]});na.remove=na.remove||[];
           still.forEach(k=>{if(!na.remove.includes(k)){na.remove.push(k);(carried.adjust[fid]||(carried.adjust[fid]=[])).push(k);}});}});
       rec.carried=carried;
@@ -6810,7 +6812,7 @@ function h2oPendLine(month,mode){
   const last=ymLast(month),n=hqAlive().filter(q=>q.st!=='전달'&&h2oFacs(month).some(f=>f.id===q.fid)&&(!isYmd(q.sw)||q.sw<=last)).length;   // 이 달 말일까지 바꾼 방만(다음 달에 바꾼 방은 다음 달 일)
   return n?`<div style="margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--bg2);font-size:12px;font-weight:600;color:var(--yellow)">⚠ 아직 H2O에 안 알린 신고 ${n}건 — <a href="javascript:void 0" onclick="goP('h2oreq')">[H2O 모드 전환]</a>에서 메일부터 보내세요(그 방은 날짜가 없어 [저장]이 막힙니다)</div>`:'';
 }
-/* 불러온 뒤 신고가 바뀌었나 — 부산역 자동 반영·추가·해지·안내는 [불러오기] 때 정해진다. 바뀌었으면 다시 불러와야 저장한다 처리 전 신고는 계산에 안 들어가므로 보지 않는다(정리하는 동안 직원이 신고해도 저장이 막히지 않게). */
+/* 불러온 뒤 신고가 바뀌었나 — 부산역 자동 반영·추가·해지·안내는 [불러오기] 때 정해진다. 바뀌었으면 다시 불러와야 저장한다. 처리 전 신고는 계산에 안 들어가므로 보지 않는다(정리하는 동안 직원이 신고해도 저장이 막히지 않게). */
 const h2oReqSnap=month=>{const lo=ymPrev(month)+'-01',hi=addDays(ymLast(month),40),fs=h2oFacs(month);
   return canon(hqAlive().filter(q=>fs.some(f=>f.id===q.fid)&&q.st==='전달'&&isYmd(q.sent)&&q.sent>=lo&&q.sent<=hi).map(q=>[q.id,q.st,q.sent||'']).sort());};
 
