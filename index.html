@@ -6147,7 +6147,8 @@ function h2oRecord(R){
 function h2oDirty(month,mode){
   month=month||(H2OL&&H2OL.month);mode=mode||(H2OL&&H2OL.mode);if(!month||mode!=='end')return false;
   const rec=(getHL().months[month]||{}).end;if(!rec)return false;
-  return(rec.inputsSig!=null&&rec.inputsSig!==h2oInputsSig(month))||h2oReqDrift(month,rec);
+  // 다음 달까지 확정돼 잠긴 달은 다시 저장할 수 없다 — 나중에 신고가 바뀌어도 '저장 뒤 바뀜'으로 막지 않는다(차이는 다음 달에서 정정)
+  return(rec.inputsSig!=null&&rec.inputsSig!==h2oInputsSig(month))||(!h2oLocked(month)&&h2oReqDrift(month,rec));
 }
 // 저장 뒤 서버 목록이 달라졌는가(참고용)
 function h2oDrift(){
@@ -6248,7 +6249,7 @@ function h2oSave(){
       Object.entries(oc.adjust||{}).forEach(([fid,ks])=>{const a=(mN.adjust||{})[fid];if(a)a.remove=(a.remove||[]).filter(k=>!ks.includes(k));});
       // 다음 달로: 월초 목록(이미 저장했다면 맞춰 고친다) · 말일 뒤 도달 해지의 날짜 · 직접 해지
       const carried={removedAt:{},adjust:{}};
-      if(mN.start)mN.start={...rec,at:new Date().toISOString(),by:rec.by,changes:undefined,carry:undefined,carried:undefined,from:`${month} 말일 확정`};
+      if(mN.start)mN.start={...rec,at:new Date().toISOString(),by:rec.by,changes:undefined,carry:undefined,carried:undefined,reqUsed:undefined,from:`${month} 말일 확정`};
       (rec.carry||[]).forEach(c=>{const k=hKey(c),box=mN.removedAt||(mN.removedAt={}),fb=box[c.fid]||(box[c.fid]={});
         if(!fb[k]){fb[k]=c.to;(carried.removedAt[c.fid]||(carried.removedAt[c.fid]={}))[k]=c.to;}});
       // 일반 시설: 서버에 아직 남은 해지(안 넘기면 다음 달 '추가'로 되살아난다) · 부산역: 다음 달로 넘긴 해지(서버와 상관없이 — 목록이 '월초 − 직접 해지'라서)
@@ -6744,10 +6745,10 @@ function hqSrvMark(x){
 }
 function hqFromSrv(i){const m=HQ_MS[i];if(!m)return;openHqReqMo({proxy:true,fid:m.fid,dir:m.dir,room:h2oLabel(m.r),sw:m.upd||''});}
 /* ── 말일 확정 연결 ── */
-/* 말일 확정이 읽는 신고 — 전달됐고, 같은 시설·방향·방이고, 메일 날짜가 그 달 범위(지난달 1일 ~ 말일+40일) 안인 것 중 가장 늦은 것 */
+/* 말일 확정이 읽는 신고 — 전달됐고, 같은 시설·방향·방이고, 메일 날짜가 그 달 범위(지난달 1일 ~ 말일+40일) 안인 것 중 가장 늦은 것 같은 날이면 id 가 큰 것(탭마다 순서가 달라도 같은 신고를 고른다) */
 function h2oReqFor(month,fid,r,dir){
   const lo=ymPrev(month)+'-01',hi=addDays(ymLast(month),40),p=hqP(r);let best=null;
-  hqAlive().forEach(x=>{if(x.st==='전달'&&x.fid===String(fid)&&x.dir===dir&&isYmd(x.sent)&&x.sent>=lo&&x.sent<=hi&&hqSame(x,p)&&(!best||x.sent>best.sent))best=x;});
+  hqAlive().forEach(x=>{if(x.st==='전달'&&x.fid===String(fid)&&x.dir===dir&&isYmd(x.sent)&&x.sent>=lo&&x.sent<=hi&&hqSame(x,p)&&(!best||x.sent>best.sent||(x.sent===best.sent&&x.id>best.id)))best=x;});
   return best;
 }
 /* 저장 뒤 신고가 바뀌었나 — 저장 때 날짜로 쓴 신고(reqUsed)가 지워졌거나 '신고'로 돌아갔거나 날짜가 바뀜,
