@@ -1238,12 +1238,12 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
   <div class="mh"><span class="mt2" id="hqm-title">✉️ H2O 전환 메일</span><button class="mx" onclick="closeMo('mo-hq-mail')">✕</button></div>
   <div class="mbody">
     <div class="fg"><label>받는 사람</label>
-      <div style="display:flex;gap:6px"><input class="fi" id="hqm-to" readonly><button class="btn bo bsm" onclick="hqCopy('hqm-to')">복사</button></div></div>
+      <div style="display:flex;gap:6px"><input class="fi" id="hqm-to" readonly><button class="btn bo bsm" style="white-space:nowrap;flex-shrink:0" onclick="hqCopy('hqm-to')">복사</button></div></div>
     <div class="fg"><label>본문 <span style="font-weight:400;color:var(--text3)">(고친 뒤 복사해 메일에 붙여 넣으세요)</span></label>
       <textarea class="fi" id="hqm-body" style="height:200px;font-size:13px;line-height:1.6;resize:vertical"></textarea>
       <div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn bo bsm" onclick="hqCopy('hqm-body')">본문 복사</button></div></div>
     <div class="fg" style="max-width:220px"><label>보낸 날 <span class="req">*</span></label><input class="fi" id="hqm-sent" type="date"></div>
-    <div style="font-size:11px;color:var(--text3);line-height:1.6">요금은 추가·해지 모두 <b>메일 보낸 날</b> 기준입니다. 이미 보낸 건이면 본문은 무시하고 보낸 날만 맞춰 [보냈어요]를 누르세요.</div>
+    <div style="font-size:11px;color:var(--text3);line-height:1.6">요금은 추가·해지 모두 <b>메일 보낸 날</b> 기준입니다. 이미 보낸 건이면 본문은 무시하고 보낸 날만 맞춰 [보냈어요]를 누르세요. 문안에서 방을 빼도 [보냈어요]는 이 창의 신고를 모두 기록합니다 — 빼야 하면 그 신고를 지우세요.</div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-hq-mail')">닫기</button><button class="btn bp" onclick="hqMarkSent()">보냈어요</button></div>
 </div>
@@ -4477,7 +4477,7 @@ async function ptSlackDM(email,msg){
     const lu=await(await fetch('https://slack.com/api/users.lookupByEmail',{
       method:'POST',body:new URLSearchParams({token,email})
     })).json();
-    if(!lu.ok||!lu.user?.id){toast('w','신청자 조회 실패',`${lu.error||'알 수 없는 오류'} (${email})`);return;}
+    if(!lu.ok||!lu.user?.id){toast('w','신청자 조회 실패',`${lu.error||'알 수 없는 오류'} (${escH(email)})`);return;}
     const conv=await(await fetch('https://slack.com/api/conversations.open',{
       method:'POST',body:new URLSearchParams({token,users:lu.user.id})
     })).json();
@@ -4485,7 +4485,7 @@ async function ptSlackDM(email,msg){
     const md=await(await fetch('https://slack.com/api/chat.postMessage',{
       method:'POST',body:new URLSearchParams({token,channel:conv.channel.id,text:msg})
     })).json();
-    if(md.ok)toast('s','발송 알림 전송',`${email} 님 Slack에 알림을 보냈습니다.`);
+    if(md.ok)toast('s','발송 알림 전송',`${escH(email)} 님 Slack에 알림을 보냈습니다.`);
     else toast('w','메시지 전송 실패',md.error||'알 수 없는 오류');
   }catch(e){
     console.warn('부자재 DM 전송 실패:',e);
@@ -6472,13 +6472,14 @@ function renderH2oReq(){
   if(tb)tb.innerHTML=HQ_G.length?HQ_G.map((g,gi)=>{
     const x0=g.items[0],f=hqFac(x0.fid),nSent=g.items.filter(x=>x.st==='전달').length,nNew=g.items.length-nSent;
     const rooms=g.items.map(x=>escH(h2oLabel(x))+(x.dir==='off'&&x.inList===false?'<span title="신고 때 목록에 없던 방" style="color:var(--yellow)">⚠</span>':'')).join(', ');
+    const memo=[...new Set(g.items.map(x=>x.note).filter(Boolean))].join(' / ');
     const sentD=[...new Set(g.items.filter(x=>x.st==='전달').map(x=>md(x.sent)))].join(', ');
     const chip=(nNew?`<span class="chip cg">○ 신고됨${nSent?' '+nNew:''}</span>`:'')+(nSent?`<span class="chip co">✓ 전달 ${escH(sentD)}</span>`:'');
     const mine=!a&&g.items.every(x=>String(x.email||'').toLowerCase()===me&&x.st!=='전달');
     const act=(a&&nSent?`<button class="btn bo bsm" title="'신고됨'으로 되돌리기" onclick="hqUndoSentG(${gi})">↩</button>`:'')
       +(a||mine?`<button class="btn br2 bsm" style="margin-left:2px" onclick="delHqG(${gi})">삭제</button>`:'');
     return `<tr><td>${escH(kstDate(x0.at)||'—')}</td><td style="font-weight:500">${escH(f?f.short:x0.fid)}</td>
-      <td style="white-space:nowrap">${escH(HQ_DIRS[x0.dir]||'')}</td><td>${rooms}</td><td>${escH(isYmd(x0.sw)?md(x0.sw):'—')}</td>
+      <td style="white-space:nowrap">${escH(HQ_DIRS[x0.dir]||'')}</td><td>${rooms}${memo?`<div style="font-size:11px;color:var(--text3)">${escH(memo)}</div>`:''}</td><td>${escH(isYmd(x0.sw)?md(x0.sw):'—')}</td>
       <td style="font-size:12px">${slackAvatar(x0.email,x0.by)}</td><td style="white-space:nowrap">${chip}</td>
       <td style="white-space:nowrap">${act}</td></tr>`;
   }).join(''):emp(8);
@@ -6505,6 +6506,7 @@ function hqBadge(){
 }
 function openHqReqMo(o){
   o=o||{};
+  if(!(S&&S.token)){toast('e','Plott 로그인 필요','지점 아이디로 로그인하면 신고가 본사에 전달되지 않습니다. Plott 계정으로 다시 로그인해 주세요.');return;}
   const facs=h2oFacs(ymdLocal(new Date()).substring(0,7)),sel=document.getElementById('hqq-fac');
   if(S.branchLocked&&!facs.some(f=>f.br===S.branch)){toast('e','H2O 지점이 아닙니다','이 지점은 H2O 도어락 지점이 아닙니다.');return;}
   HQ_PROXY=!!o.proxy&&isAdm();
@@ -6532,7 +6534,9 @@ function hqqRead(){
     const r=hqResolve(fid,t);if(!r.ok)return{t,err:r.err};
     const k=r.p.dong+'|'+r.p.num;if(seen.has(k))return{t,err:'같은 방을 두 번 적었습니다'};seen.add(k);
     if(dir&&open.some(x=>hqSame(x,r.p)))return{t,err:'이미 신고된 방입니다(본사 처리 전)'};
-    const warn=dir==='off'&&!r.inList?'지금 목록에 없는 방 — 이번 달 새로 들어온 방이면 그대로 신고하세요':dir==='on'&&r.inList?'이미 객실용 목록에 있는 방':'';
+    const opp=dir&&hqAlive().some(x=>x.fid===fid&&x.dir!==dir&&x.st!=='전달'&&hqSame(x,r.p));
+    const warn=opp?'반대 방향 신고가 아직 처리 전입니다 — 확인한 뒤 신고하세요'
+      :dir==='off'&&!r.inList?'지금 목록에 없는 방 — 이번 달 새로 들어온 방이면 그대로 신고하세요':dir==='on'&&r.inList?'이미 객실용 목록에 있는 방':'';
     return{t,r,warn};});
   return{fid,dir,res};
 }
@@ -6543,6 +6547,7 @@ function hqqCheck(){
     :`<div style="color:var(--green)">✓ ${escH(h2oLabel(x.r))}</div>`).join('');
 }
 function submitHqReq(){
+  if(!(S&&S.token)){toast('e','Plott 로그인 필요','지점 아이디로 로그인하면 신고가 본사에 전달되지 않습니다. Plott 계정으로 다시 로그인해 주세요.');return;}
   const{fid,dir,res}=hqqRead(),f=hqFac(fid),today=ymdLocal(new Date());
   if(!f||!h2oFacs(today.substring(0,7)).some(x=>x.id===fid)){toast('e','지점','H2O 지점을 고르세요.');return;}
   if(S.branchLocked&&f.br!==S.branch){toast('e','권한 없음','다른 지점으로는 신고할 수 없습니다.');return;}
@@ -6561,12 +6566,13 @@ function submitHqReq(){
   logAudit('H2O전환신고',f.short,`${label} · ${HQ_DIR[dir]} · 바꾼 날 ${sw}`);
   closeMo('mo-hq-req');HQ_PROXY=false;renderH2oReq();
   toast('s','신고 완료','본사가 H2O 에 알리면 슬랙으로 알려 드려요.');
-  hqSlackNoti(f,dir,label,sw,by);
+  hqSlackNoti(f,dir,label,sw,by,note);
 }
 /* 새 접수 알림과 같은 웹훅 채널(Jayden 확인용). 실패해도 신고는 그대로다 */
-async function hqSlackNoti(f,dir,label,sw,by){
+async function hqSlackNoti(f,dir,label,sw,by,note){
   const wh=getSlackWh();if(!wh)return;
-  const text=`🔁 H2O 모드 전환 신고 — ${f.short} ${label} · ${HQ_DIR[dir]} · 바꾼 날 ${md(sw)} · 신고 ${by}`;
+  const sl=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');   // 슬랙 문법 문자(<!channel> 등)를 글자로
+  const text=`🔁 H2O 모드 전환 신고 — ${sl(f.short)} ${sl(label)} · ${HQ_DIR[dir]} · 바꾼 날 ${md(sw)} · 신고 ${sl(by)}${note?` · 메모 ${sl(note)}`:''}`;
   try{await fetch(wh,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'payload='+encodeURIComponent(JSON.stringify({text}))});}
   catch(e){console.warn('웹훅 알림 전송 실패:',e);}
 }
@@ -6577,6 +6583,8 @@ function delHqG(gi){
   if(!isAdm()&&!g.items.every(x=>String(x.email||'').toLowerCase()===me&&x.st!=='전달')){toast('e','권한 없음','본사가 처리한 신고나 다른 사람의 신고는 지울 수 없습니다.');return;}
   const lbl=`${(hqFac(g.items[0].fid)||{}).short||''} ${g.items.map(x=>h2oLabel(x)).join(', ')}`;
   showCfm(CI.trash,'삭제',`${lbl} 신고를 삭제할까요?`,()=>{
+    // 확인하는 사이 본사가 처리했을 수 있다 — 직원은 저장 직전 상태로 다시 확인한다
+    if(!isAdm()&&getHQ().filter(x=>g.items.some(y=>y.id===x.id)).some(x=>x.st==='전달'||String(x.email||'').toLowerCase()!==me)){toast('e','삭제할 수 없습니다','그사이 본사가 처리한 신고입니다.');renderH2oReq();return;}
     const ids=g.items.map(x=>x.id);
     markDel(K.HQ,ids);
     sv(K.HQ,getHQ().filter(x=>!ids.includes(x.id)));
@@ -6615,10 +6623,14 @@ function hqMarkSent(){
   const sent=document.getElementById('hqm-sent').value,today=ymdLocal(new Date());
   if(!isYmd(sent)){toast('e','보낸 날','메일 보낸 날을 넣어 주세요.');return;}
   if(sent>today){toast('e','보낸 날','오늘 이후 날짜는 넣을 수 없습니다.');return;}
-  const dead=tombSet(K.HQ),arr=getHQ(),ids=new Set(HQ_MAIL.ids),t=arr.filter(x=>ids.has(x.id)&&x.st!=='전달'&&!dead.has(x.id));
-  const f=hqFac(HQ_MAIL.fid)||{short:HQ_MAIL.fid};
-  if(!t.length){closeMo('mo-hq-mail');toast('i','처리할 신고 없음','그사이 처리됐거나 지워졌습니다.');renderH2oReq();return;}
+  const f=hqFac(HQ_MAIL.fid)||{short:HQ_MAIL.fid},ids=new Set(HQ_MAIL.ids);
+  // 확인창이 떠 있는 동안에도 30초 동기화가 돈다 — 저장 직전에 다시 읽어야 그사이 들어온 신고를 지우지 않는다
+  const pick=()=>{const dead=tombSet(K.HQ),arr=getHQ();return{arr,t:arr.filter(x=>ids.has(x.id)&&x.st!=='전달'&&!dead.has(x.id))};};
+  const none=()=>{closeMo('mo-hq-mail');toast('i','처리할 신고 없음','그사이 처리됐거나 지워졌습니다.');renderH2oReq();};
+  const first=pick().t;
+  if(!first.length){none();return;}
   const go=()=>{
+    const{arr,t}=pick();if(!t.length){none();return;}
     const now=new Date().toISOString(),by=S.name||S.email||'';
     t.forEach(x=>{x.st='전달';x.sent=sent;x.sentBy=by;x.sentAt=now;x.v=(Number(x.v)||0)+1;x.upd=now;});
     sv(K.HQ,arr);
@@ -6627,7 +6639,7 @@ function hqMarkSent(){
     toast('s','전달 기록',`${escH(f.short)} ${t.length}건 — 말일 확정에서 메일 날짜 ${md(sent)}로 계산됩니다.`);
     hqSentDM(f,t,sent);
   };
-  const early=t.filter(x=>isYmd(x.sw)&&sent<x.sw);
+  const early=first.filter(x=>isYmd(x.sw)&&sent<x.sw);
   if(early.length){showCfm(CI.calendar,'바꾼 날보다 앞선 메일',`${early.map(x=>`${h2oLabel(x)} 바꾼 날 ${md(x.sw)}`).join(', ')} — 보낸 날 ${md(sent)}이 더 앞섭니다. 바꾼 날을 잘못 적었을 수 있습니다. 그대로 기록할까요?`,go);return;}
   go();
 }
