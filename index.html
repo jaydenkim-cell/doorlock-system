@@ -6287,7 +6287,7 @@ function h2oSave(){
         if(!fb[k]){fb[k]=c.to;(carried.removedAt[c.fid]||(carried.removedAt[c.fid]={}))[k]=c.to;}});
       // 일반 시설: 서버에 아직 남은 해지(안 넘기면 다음 달 '추가'로 되살아난다) · 부산역: 다음 달로 넘긴 해지(서버와 상관없이 — 목록이 '월초 − 직접 해지'라서)
       const adj=mm2.adjust||{};Object.entries(adj).forEach(([fid,a])=>{const x=R.fac[fid];if(!x)return;const inEnd=new Set((rec.rooms[fid]||[]).map(hKey));
-        const reAdded=k=>{const i=k.indexOf('|'),r={b:k.slice(0,i),n:k.slice(i+1)},on=h2oReqFor(next,fid,r,'on'),off=h2oReqFor(next,fid,r,'off');return!!on&&(!off||on.sent>off.sent);};   // 해지 뒤 다시 추가 메일이 있으면 [해지]를 다음 달로 넘기지 않는다(넘기면 다음 달에 추가·해지가 거꾸로 잡힌다)
+        const reAdded=k=>{const i=k.indexOf('|'),r={b:k.slice(0,i),n:k.slice(i+1)},on=h2oReqFor(next,fid,r,'on'),off=h2oReqFor(next,fid,r,'off'),offD=((mm2.removedAt||{})[fid]||{})[k]||(off&&off.sent)||'';return!!on&&!!offD&&on.sent>offD;};   // 해지 뒤(직접 적은 도달일 우선, 없으면 해지 메일 날짜) 다시 추가 메일이 있어야 [해지]를 넘기지 않는다
         const still=(a.remove||[]).filter(k=>(x.f.whole?inEnd.has(k):x.server.some(r=>hKey(r)===k))&&!reAdded(k));
         if(still.length){const na=(mN.adjust||(mN.adjust={}))[fid]||(mN.adjust[fid]={add:[],remove:[]});na.remove=na.remove||[];
           still.forEach(k=>{if(!na.remove.includes(k)){na.remove.push(k);(carried.adjust[fid]||(carried.adjust[fid]=[])).push(k);}});}});
