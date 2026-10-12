@@ -1332,7 +1332,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 <script>
 'use strict';
 /* ── localStorage keys (기존 그대로 유지) ── */
-const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close',MCS:'doorlock_monthly_snap',SV:'doorlock_svc',LOG:'doorlock_audit',TS:'doorlock_tombstones',P:'doorlock_parts'};
+const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close',MCS:'doorlock_monthly_snap',SV:'doorlock_svc',LOG:'doorlock_audit',TS:'doorlock_tombstones',P:'doorlock_parts',HQ:'doorlock_h2o_reqs'};
 /* HTML 이스케이프. ' 까지 막아 작은따옴표 속성값에서도 안전하다.
    escLog 는 파일 뒤쪽에 정의된 const 라 이 위치에서는 참조할 수 없어 따로 둔다. */
 const escH=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1650,7 +1650,7 @@ async function sbSync(){
       if(!local||isInit){
         // 로컬 없거나 초기 데이터 → Supabase 우선 (새 기기/브라우저 첫 접속)
         if(sbVal!==undefined&&sbVal!==null){
-          const v=(MERGE_KEYS.has(row.key)&&Array.isArray(sbVal))?notTomb(sbVal,dead):sbVal;
+          const v=((MERGE_KEYS.has(row.key)||row.key===K.HQ)&&Array.isArray(sbVal))?notTomb(sbVal,dead):sbVal;
           localStorage.setItem(row.key,JSON.stringify(v));
           localStorage.removeItem('__init__'+row.key);
           if(CAS_KEYS.has(row.key)){baseSet(row.key,vHash(v));CAS_CHANGED.add(row.key);}
@@ -1673,6 +1673,14 @@ async function sbSync(){
           }
           else if(sh===bh)casPush(row.key);
           else casAdopt(row.key,sbVal,true);
+        }catch{}
+      } else if(row.key===K.HQ){
+        /* H2O 모드 전환 신고: id 합집합 + 같은 id 는 더 새것. 서버 우선(접수 방식)이면 내 '전달'이 남의 낡은 사본에 지고,
+           로컬 우선(설정 방식)이면 옛 탭처럼 남의 신고를 지운다 — 게이트웨이 v8 과 같은 규칙으로 합친다 */
+        try{
+          const r=hqMergeRows(sbVal,JSON.parse(local),dead);
+          localStorage.setItem(row.key,JSON.stringify(r.merged));
+          if(r.push)sbSet(row.key,r.merged);
         }catch{}
       } else if(MERGE_KEYS.has(row.key)){
         // 접수/발주: ID 기준 병합 — Supabase를 기본으로 하고 로컬 전용 항목 추가
@@ -6319,6 +6327,60 @@ function h2oApply(){
     if(fm)fm.value=month;if(fb)fb.value='H2O';if(fbr)fbr.value='';renderSvc();h2oRender();
     toast('s','반영 완료','청구 내역을 확인한 뒤 [품의서 복사]를 누르세요(이 달 H2O 만 보이게 맞춰 두었습니다). 이 줄들을 손으로 고치면 품의서가 막힙니다.');
   });
+}
+
+/* ══════════ H2O 모드 전환 신고 (2026-10-12) ══════════
+   지점이 도어락을 객실용↔홈용으로 직접 바꾼 뒤 신고한다 → 관리자가 H2O 에 메일을 보내고 [보냈어요]로 보낸 날을 남긴다
+   → 말일 확정 [불러오기]가 그 날짜를 읽어 해지·추가 줄에 채운다. 요금 기준일은 추가·해지 모두 '메일 보낸 날'(sent).
+   신고 날짜는 월 목록(K_HL)에 써 넣지 않는다 — 월 목록은 관리자 전용·지문 키라 이 화면이 건드리지 않는다.
+   한 줄 = 방 하나: {id,grp,fid,dir:'off'(객실용→홈용)|'on'(홈용→객실용),b,n,inList,sw(바꾼 날·참고용),reason,note,
+   st:'신고'|'전달',by,email,at,sent,sentBy,sentAt,v,upd}. st·sent·sentBy·sentAt 는 관리자만(게이트웨이 v8 이 막는다). */
+const HQ_TO='solution.op@h2ohospitality.io';   // H2O 삭제·추가 요청 메일 받는 곳(엑셀 산정 기준 문구와 같다)
+const HQ_DIR={off:'객실용 → 홈용',on:'홈용 → 객실용'};
+const HQ_DIRS={off:'객실→홈',on:'홈→객실'};
+const HQ_REASONS={off:['해지 객실','기타'],on:['신규 객실','기타']};
+const getHQ=()=>{const v=ld(K.HQ,[]);return Array.isArray(v)?v:[];};
+const hqAlive=()=>{const dead=tombSet(K.HQ);return getHQ().filter(x=>x&&typeof x==='object'&&typeof x.id==='string'&&!dead.has(x.id));};
+const hqFac=fid=>H2O_FAC.find(f=>f.id===String(fid))||null;
+const hqId=()=>'hq_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+/* 같은 id 는 더 새것이 이긴다: v 큰 쪽 → upd 늦은 쪽(같으면 서버). ★ 게이트웨이 v8 mergeReqs 와 같은 규칙 */
+function hqNewer(a,b){const av=Number(a&&a.v)||0,bv=Number(b&&b.v)||0;return av!==bv?av>bv:String((a&&a.upd)||'')>String((b&&b.upd)||'');}
+/* 서버·로컬 신고 합치기(툼스톤 제외). push = 내 쪽에 더 새것이나 서버에 없는 줄이 있다 */
+function hqMergeRows(sbVal,localVal,dead){
+  const raw=Array.isArray(sbVal)?sbVal:[];
+  const sb=notTomb(raw.filter(x=>x&&typeof x==='object'&&typeof x.id==='string'),dead);
+  const m=new Map(sb.map(x=>[x.id,x]));
+  let push=sb.length!==raw.length;
+  notTomb(Array.isArray(localVal)?localVal:[],dead).forEach(x=>{
+    if(!x||typeof x!=='object'||typeof x.id!=='string')return;
+    const s=m.get(x.id);if(!s||hqNewer(x,s)){m.set(x.id,x);push=true;}
+  });
+  return{merged:[...m.values()],push};
+}
+/* 호실 한 개: '311' · '311호' · 'A동 1205' · 'A동1205' (월 목록 [해지]·[추가] 칸과 같은 규칙 — 앞 0·끝 '호' 무시) */
+function hqParseRoom(t){const m=String(t||'').trim().replace(/\s*호$/,'').match(/^([A-Za-z가-힣]+동)?\s*0*(\d+)$/);return m?{dong:m[1]||'',num:m[2]}:null;}
+const hqP=r=>({dong:h2oDong(r&&r.b),num:String((r&&r.n)||'').replace(/^0+(?=\d)/,'')});
+const hqSame=(r,p)=>!!r&&h2oDong(r.b)===p.dong&&String(r.n||'').replace(/^0+(?=\d)/,'')===p.num;
+/* 시설의 '가장 최근 저장 목록' — 가장 늦은 달의 말일 확정, 없으면 그 달 월초. 신고 대조·서버 대조의 기준 */
+function h2oBaseList(fid){
+  const ms=getHL().months||{};
+  for(const m of Object.keys(ms).sort().reverse()){
+    const mm=ms[m]||{};
+    for(const mode of ['end','start']){const rec=mm[mode];if(rec&&rec.rooms&&Array.isArray(rec.rooms[fid]))return{month:m,mode,list:h2oCleanList(rec.rooms[fid])};}
+  }
+  return{month:'',mode:'',list:[]};
+}
+/* 신고 호실 → 저장할 방 키. 목록에서 찾으면 그 b·n, 못 찾으면 그 동의 건물(동이 없으면 가장 흔한 건물) + 입력 번호
+   (월 목록 [추가·해지]와 같은 규칙). 막아야 하는 경우(형식 오류·동 누락·없는 동)만 err */
+function hqResolve(fid,text){
+  const p=hqParseRoom(text);if(!p)return{ok:false,err:'예) 311 또는 A동 1205'};
+  const list=h2oBaseList(fid).list,hit=list.find(r=>hqSame(r,p));
+  if(hit)return{ok:true,b:hit.b,n:hit.n,inList:true,p};
+  const dongs=list.filter(r=>h2oDong(r.b));
+  if(p.dong){const d=dongs.find(r=>h2oDong(r.b)===p.dong);return d?{ok:true,b:d.b,n:p.num,inList:false,p}:{ok:false,err:`${p.dong} 이 이 시설 목록에 없습니다`};}
+  if(dongs.length)return{ok:false,err:`동을 붙여 적어 주세요 — 예) A동 ${p.num}`};
+  const cnt=new Map();list.forEach(r=>cnt.set(r.b,(cnt.get(r.b)||0)+1));
+  return{ok:true,b:([...cnt].sort((x,y)=>y[1]-x[1])[0]||[''])[0],n:p.num,inList:false,p};
 }
 
 /* ── 월마감 품의서 (2026-10-01) ──
