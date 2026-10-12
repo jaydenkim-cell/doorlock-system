@@ -5762,7 +5762,7 @@ function buildSvcAmaData(){
   /* H2O 는 2026-10월분부터 새 정산 기준(말일 확정 · 월정액 + 일할 · 익월 10일 지급, 2026-10-02 H2O 회신으로 합의).
      직방도 2026-10월분부터 말일 기준 · 익월 10일 지급(일할 없음 — 말일 객실 수만 쓴다, 2026-10-12 합의). 더엠알만 예전 문구 그대로 둔다. */
   const h2o=brands.length===1&&brands[0]==='H2O'&&tgt>=H2O_NEW_TERMS_FROM;
-  if(brands.includes('H2O')&&brands.length>1&&tgt>=H2O_NEW_TERMS_FROM){toast('e','H2O 는 따로 품의하세요','H2O 는 지급일(익월 10일)·정산 문구가 달라 다른 업체와 한 장에 쓸 수 없습니다. 브랜드 필터를 H2O 로 맞추세요.');return null;}
+  if(brands.includes('H2O')&&brands.length>1&&tgt>=H2O_NEW_TERMS_FROM){toast('e','H2O 는 따로 품의하세요','H2O 는 정산 문구(월정액 + 일할)가 달라 다른 업체와 한 장에 쓸 수 없습니다. 브랜드 필터를 H2O 로 맞추세요.');return null;}
   if(h2o){   // 청구 내역이 말일 확정본과 짝이 맞아야 한다
     const st=h2oApplyState(tgt);
     if(st==='stale'){toast('e','H2O 청구 내역이 말일 확정본과 다릅니다','H2O 월 목록에서 [저장] 뒤 [청구 내역에 반영]을 다시 누르세요.');return null;}
@@ -5773,6 +5773,7 @@ function buildSvcAmaData(){
   const zb=brands.length===1&&brands[0]==='직방'&&tgt>=ZB_NEW_TERMS_FROM;
   if(brands.includes('직방')&&brands.length>1&&tgt>=ZB_NEW_TERMS_FROM){toast('e','직방은 따로 품의하세요','직방은 말일 기준·익월 10일 지급이라 다른 업체와 한 장에 쓸 수 없습니다. 브랜드 필터를 직방으로 맞추세요.');return null;}
   if(zb&&recs.some(isProrate)){toast('e','직방은 일할이 없습니다','직방은 말일 기준 객실 수만 씁니다. 이 달 직방 일할 줄을 지운 뒤 다시 만드세요.');return null;}
+  if(zb&&ymdLocal(new Date())<ymLast(tgt))toast('w','말일 전입니다',`${tgt} 직방은 말일 운영 객실 수 기준입니다 — 말일에 객실 수를 다시 반영한 뒤 품의하세요.`);
   const won=n=>n.toLocaleString()+'원';
   const pay10=()=>nextBizDay(mo===12?`${y+1}-01-10`:`${y}-${String(mo+1).padStart(2,'0')}-10`);   // 익월 10일, 주말·공휴일이면 다음 영업일
   let calcLines,specialNote;
@@ -5792,7 +5793,7 @@ function buildSvcAmaData(){
   }else if(zb){
     execDate=pay10();
     calcLines=recs.map((r,i)=>`${i+1}. ${amaBrName(r.branch)}\n- 객실 수 : ${r.rooms}실 × ${won(svcUnit(r))} = ${won(r.rooms*svcUnit(r))} (VAT 별도)\n- 금액 : ${won(svcCalc(r).t)} (VAT 포함)`);
-    calcLines.push(`\n산출근거\n(정산 기준: 말일 기준 운영 객실 수 × 월 ${won(svcUnit(recs[0]))} · 일할 없음)`);
+    calcLines.push(`\n산출근거\n(정산 기준: 말일 기준 운영 객실 수 × 월 ${[...new Set(recs.map(svcUnit))].map(won).join('·')} · 일할 없음)`);   // 단가가 여러 개인 달도 모두 적는다
     specialNote='매월 말일 기준 운영 객실 수 (장기숙박·직원숙소 등 제외)\n말일 객실 수 전달 → 말일자 세금계산서 발행 → 익월 10일 지급 (휴일이면 다음 영업일)';
   }else{
     calcLines=recs.map((r,i)=>isProrate(r)
