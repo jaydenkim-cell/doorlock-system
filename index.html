@@ -1732,7 +1732,7 @@ async function sbSync(){
     SB_SYNCED=true;
     casRefresh();                                   // 서버값을 받아온 설정 키가 있으면 보고 있는 화면을 다시 그린다
     // localStorage → Supabase (최초 마이그레이션) — 서버에 그 키가 아예 없을 때만
-    const migrKeys=[K.B,K.O,K.R,K.U,K.A,K.SA,K.SP,K.SV];
+    const migrKeys=[K.B,K.O,K.R,K.U,K.A,K.SA,K.SP,K.SV,K.HQ];   // K.HQ: 첫 신고를 올리다 실패해도 서버에 키가 생길 때까지 다음 동기화가 올린다
     for(const k of migrKeys){
       if(!sbKeys.has(k)){const v=localStorage.getItem(k);if(v)await sbSet(k,JSON.parse(v));}
     }
