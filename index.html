@@ -6039,12 +6039,13 @@ async function h2oLoad(){
 function h2oEffective(R){
   R=R||H2OL;const out={changes:[],carry:[],lists:{},next:[],used:[]};
   if(!R||!R.month)return out;
+  const alive=hqAlive();   // 신고는 한 번만 읽는다(줄마다 읽으면 수백 건에서 화면이 느려진다)
   const month=R.month,first=month+'-01',last=ymLast(month),lo=ymPrev(month)+'-01',hi=addDays(last,40);
   const mm=getHL().months[month]||{},dates=mm.removedAt||{},addAt=mm.addedAt||{};
   const span=(a,b)=>(a===first&&b===last)?SVC_PRORATE_MAX:Math.min(SVC_PRORATE_MAX,dayDiff(a,b)+1);
   const okD=d=>isYmd(d)&&d>=lo&&d<=hi;
   const pick=(box,fid,r,dir)=>{const v=(box[fid]||{})[hKey(r)]||'';if(v)return{d:v,src:'man',q:null};
-    const q=h2oReqFor(month,fid,r,dir);if(q){out.used.push({id:q.id,sent:q.sent});return{d:q.sent,src:'req',q};}return{d:'',src:'',q:null};};
+    const q=h2oReqFor(month,fid,r,dir,alive);if(q){out.used.push({id:q.id,sent:q.sent});return{d:q.sent,src:'req',q};}return{d:'',src:'',q:null};};
   Object.values(R.fac).forEach(x=>{
     const fid=x.f.id,list=x.list.slice();out.lists[fid]=list;
     if(R.mode!=='end')return;
@@ -6059,12 +6060,13 @@ function h2oEffective(R){
       if(src==='req'&&at<first){at=first;note='지난달 메일 — 지난달 청구 확인';}
       const ok=isYmd(at)&&at>=first&&at<=last;
       out.changes.push({fid,f:x.f,r,type:'추가',from:at,to:last,days:ok?span(at,last):null,note,src,q:P.q});});
-    (x.churn||[]).forEach(r=>{const A=h2oReqFor(month,fid,r,'on'),useA=!!A&&A.sent>=first&&A.sent<=last,from=useA?A.sent:r.at;
-      if(useA)out.used.push({id:A.id,sent:A.sent});
+    (x.churn||[]).forEach(r=>{const A=h2oReqFor(month,fid,r,'on',alive);
+      if(A){out.used.push({id:A.id,sent:A.sent});if(A.sent>last)return;}   // 추가 메일이 말일 뒤면 이번 달은 추가가 아니다(그 방은 이번 달 0원) — 그래도 쓴 신고로 남겨 '저장 뒤 바뀜'이 되지 않게
+      const from=A?(A.sent<first?first:A.sent):r.at,note=A&&A.sent<first?'지난달 메일 — 지난달 청구 확인':'';
       const P=pick(dates,fid,r,'off'),d=P.d;
-      if(okD(d)&&d>last){list.push(r);out.changes.push({fid,f:x.f,r,type:'추가',from,to:last,days:span(from,last),note:'',src:useA?'req':'srv',q:useA?A:null});out.carry.push({fid,f:x.f,r,to:d,src:P.src,q:P.q});return;}
+      if(okD(d)&&d>last){list.push(r);out.changes.push({fid,f:x.f,r,type:'추가',from,to:last,days:span(from,last),note,src:A?'req':'srv',q:A||null});out.carry.push({fid,f:x.f,r,to:d,src:P.src,q:P.q});return;}
       const ok=okD(d)&&d>=from&&d<=last;
-      out.changes.push({fid,f:x.f,r,type:'추가·해지',from,to:d,days:ok?span(from,d):null,note:'',src:P.src,q:P.q});});
+      out.changes.push({fid,f:x.f,r,type:'추가·해지',from,to:d,days:ok?span(from,d):null,note,src:P.src,q:P.q});});
     (x.extra||[]).forEach(r=>{const A=pick(addAt,fid,r,'on'),P=pick(dates,fid,r,'off'),a=A.d,d=P.d;
       const ok=isYmd(a)&&isYmd(d)&&a>=first&&a<=d&&d<=last;
       out.changes.push({fid,f:x.f,r,type:'추가·해지',from:a,to:d,days:ok?span(a,d):null,note:'',man:true,src:P.src,q:P.q,srcA:A.src,qA:A.q});});
@@ -6085,7 +6087,7 @@ function h2oBulkDate(fid){
   const v=(document.getElementById(`h2o-bulk-${fid}`)||{}).value||'';if(!isYmd(v)){toast('e','날짜를 고르세요','일괄로 넣을 도달일을 고르세요.');return;}
   const x=H2OL.fac[fid];if(!x)return;
   const hl=getHL(),mm=hl.months[H2OL.month]||(hl.months[H2OL.month]={}),box=mm.removedAt||(mm.removedAt={}),fb=box[fid]||(box[fid]={});
-  let n=0;x.removed.forEach(r=>{const k=hKey(r);if(!fb[k]){fb[k]=v;n++;}});
+  let n=0;x.removed.forEach(r=>{const k=hKey(r);if(!fb[k]&&!h2oReqFor(H2OL.month,fid,r,'off')){fb[k]=v;n++;}});   // 신고 메일 날짜가 있는 줄은 덮지 않는다
   sv(K_HL,hl);h2oRender();toast('s','일괄 입력',`${x.f.short} 해지 ${n}건에 도달일 ${md(v)}을 넣었습니다.`);
 }
 /* 직접 적는 추가·해지. 형식: 'A동 1205' 또는 '1902'.
@@ -6138,7 +6140,7 @@ function h2oRecord(R){
     unit:(getSvc().brandPrices||{})['H2O']||SVC_DEF_PRICES['H2O']};
   if(R.mode==='end'){
     rec.changes=E.changes.map(c=>({fid:c.fid,b:c.r.b,n:c.r.n,type:c.type,from:c.from,to:c.to,days:c.days,note:c.note||''}));
-    rec.carry=E.carry.map(c=>({fid:c.fid,b:c.r.b,n:c.r.n,to:c.to}));
+    rec.carry=E.carry.map(c=>({fid:c.fid,b:c.r.b,n:c.r.n,to:c.to,src:c.src}));
     rec.reqUsed=E.used.map(u=>({id:u.id,sent:u.sent}));   // 날짜로 쓴 신고 — 저장 뒤 신고가 바뀌면 h2oReqDrift 가 알린다
   }
   return rec;
@@ -6250,7 +6252,9 @@ function h2oSave(){
       // 다음 달로: 월초 목록(이미 저장했다면 맞춰 고친다) · 말일 뒤 도달 해지의 날짜 · 직접 해지
       const carried={removedAt:{},adjust:{}};
       if(mN.start)mN.start={...rec,at:new Date().toISOString(),by:rec.by,changes:undefined,carry:undefined,carried:undefined,reqUsed:undefined,from:`${month} 말일 확정`};
-      (rec.carry||[]).forEach(c=>{const k=hKey(c),box=mN.removedAt||(mN.removedAt={}),fb=box[c.fid]||(box[c.fid]={});
+      (rec.carry||[]).forEach(c=>{
+        if(c.src==='req')return;   // 신고 메일 날짜는 다음 달이 신고에서 다시 읽는다 — 직접 입력으로 굳히면 신고를 고쳐도 따라가지 않는다
+        const k=hKey(c),box=mN.removedAt||(mN.removedAt={}),fb=box[c.fid]||(box[c.fid]={});
         if(!fb[k]){fb[k]=c.to;(carried.removedAt[c.fid]||(carried.removedAt[c.fid]={}))[k]=c.to;}});
       // 일반 시설: 서버에 아직 남은 해지(안 넘기면 다음 달 '추가'로 되살아난다) · 부산역: 다음 달로 넘긴 해지(서버와 상관없이 — 목록이 '월초 − 직접 해지'라서)
       const adj=mm2.adjust||{};Object.entries(adj).forEach(([fid,a])=>{const x=R.fac[fid];if(!x)return;const inEnd=new Set((rec.rooms[fid]||[]).map(hKey));
@@ -6745,23 +6749,23 @@ function hqSrvMark(x){
 }
 function hqFromSrv(i){const m=HQ_MS[i];if(!m)return;openHqReqMo({proxy:true,fid:m.fid,dir:m.dir,room:h2oLabel(m.r),sw:m.upd||''});}
 /* ── 말일 확정 연결 ── */
-/* 말일 확정이 읽는 신고 — 전달됐고, 같은 시설·방향·방이고, 메일 날짜가 그 달 범위(지난달 1일 ~ 말일+40일) 안인 것 중 가장 늦은 것 같은 날이면 id 가 큰 것(탭마다 순서가 달라도 같은 신고를 고른다) */
-function h2oReqFor(month,fid,r,dir){
+/* 말일 확정이 읽는 신고 — 전달됐고, 같은 시설·방향·방이고, 메일 날짜가 그 달 범위(지난달 1일 ~ 말일+40일) 안인 것 중 가장 늦은 것. 같은 날이면 id 가 큰 것(탭마다 순서가 달라도 같은 신고를 고른다). alive: 미리 읽어 둔 신고(줄마다 다시 읽지 않게) */
+function h2oReqFor(month,fid,r,dir,alive){
   const lo=ymPrev(month)+'-01',hi=addDays(ymLast(month),40),p=hqP(r);let best=null;
-  hqAlive().forEach(x=>{if(x.st==='전달'&&x.fid===String(fid)&&x.dir===dir&&isYmd(x.sent)&&x.sent>=lo&&x.sent<=hi&&hqSame(x,p)&&(!best||x.sent>best.sent||(x.sent===best.sent&&x.id>best.id)))best=x;});
+  (alive||hqAlive()).forEach(x=>{if(x.st==='전달'&&x.fid===String(fid)&&x.dir===dir&&isYmd(x.sent)&&x.sent>=lo&&x.sent<=hi&&hqSame(x,p)&&(!best||x.sent>best.sent||(x.sent===best.sent&&x.id>best.id)))best=x;});
   return best;
 }
 /* 저장 뒤 신고가 바뀌었나 — 저장 때 날짜로 쓴 신고(reqUsed)가 지워졌거나 '신고'로 돌아갔거나 날짜가 바뀜,
    또는 그때 신고 없이 저장한 변동 줄에 이제 전달 신고가 생김(직접 입력한 줄은 직접 입력이 이기므로 빼고 본다).
    reqUsed 가 없는 옛 저장본(2026-10-12 10월분)은 '쓴 신고 없음'으로 읽는다 */
 function h2oReqDrift(month,rec){
-  const alive=new Map(hqAlive().map(x=>[x.id,x])),used=rec.reqUsed||[];
+  const live=hqAlive(),alive=new Map(live.map(x=>[x.id,x])),used=rec.reqUsed||[];
   if(used.some(u=>{const x=alive.get(u.id);return!x||x.st!=='전달'||x.sent!==u.sent;}))return true;
   const ids=new Set(used.map(u=>u.id)),mm=getHL().months[month]||{};
   const man=(kind,c)=>!!(((mm[kind]||{})[c.fid]||{})[hKey(c)]);
   return(rec.changes||[]).some(c=>(c.type==='해지'?['off']:c.type==='추가'?['on']:['on','off']).some(d=>{
     if(man(d==='off'?'removedAt':'addedAt',c))return false;
-    const q=h2oReqFor(month,c.fid,c,d);return!!q&&!ids.has(q.id);}));
+    const q=h2oReqFor(month,c.fid,c,d,live);return!!q&&!ids.has(q.id);}));
 }
 
 /* ── 월마감 품의서 (2026-10-01) ──
