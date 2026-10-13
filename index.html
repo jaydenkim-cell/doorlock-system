@@ -416,31 +416,6 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="#fff" style="flex-shrink:0"><rect x="8.941" y="11.775" width="1.412" height="2.826"/><path d="M17.882,9.204c.446.14.92.216,1.412.216,2.599,0,4.706-2.109,4.706-4.71S21.893,0,19.294,0c-1.54,0-2.906.74-3.765,1.884H1.882v17.899s-1.882,0-1.882,0v1.413h2.719l10.457,2.804v-2.804h10.353v-1.413h-5.647v-10.578ZM17.436,3.768l1.384,1.361,2.329-2.331.998.999-3.318,3.321-2.381-2.342.989-1.008ZM11.765,22.159l-8.471-2.272V3.511l8.471,2.272v16.377ZM7.949,3.297h6.855c-.14.446-.216.921-.216,1.413,0,1.541.739,2.909,1.883,3.768v11.304h-3.294V4.699l-5.228-1.402Z"/></svg>
       <span id="l-btn-txt">Plott 계정으로 로그인</span>
     </button>
-    <div id="branch-login-form" style="display:none;margin-top:20px;padding-top:20px;border-top:1px solid #f0e8e0;">
-      <div class="ff">
-        <label>아이디</label>
-        <input type="text" id="l-id" placeholder="지점 아이디"
-          autocomplete="username"
-          onkeydown="if(event.key==='Enter')document.getElementById('l-pw').focus()">
-      </div>
-      <div class="ff">
-        <label>비밀번호</label>
-        <div style="position:relative">
-          <input type="password" id="l-pw" placeholder="비밀번호"
-            autocomplete="current-password"
-            onkeydown="if(event.key==='Enter')doLocalLogin()"
-            style="padding-right:42px">
-          <button type="button" onclick="togglePwVis()" id="pw-toggle"
-            style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:#9a9490;padding:4px"
-            title="비밀번호 보기"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
-        </div>
-      </div>
-      <button class="lbtn" onclick="doLocalLogin()">로그인</button>
-    </div>
-  </div>
-  <div class="l-ext">
-    지점 계정이신가요?&nbsp;
-    <button type="button" onclick="toggleBranchLogin()">지점 계정으로 로그인</button>
   </div>
   <div class="lc-footer">
     © 2026 핸디즈(handys). All rights reserved.
@@ -1348,11 +1323,6 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
       </div>
       <div class="fg"></div>
     </div>
-    <div class="fsec">계정 정보</div>
-    <div class="fr2">
-      <div class="fg"><label>로그인 계정 ID</label><input class="fi" id="br-account" placeholder="지점 로그인 ID"></div>
-      <div class="fg"><label>비밀번호 (변경 시만)</label><input class="fi" id="br-pw-new" type="password" placeholder="새 비밀번호"></div>
-    </div>
     <div class="fg"><label>메모</label><textarea class="fta" id="br-note" placeholder="메모"></textarea></div>
   </div>
   <div class="mfoot">
@@ -2021,7 +1991,6 @@ const stkBal=branch=>getOr().reduce((n,o)=>{
    (예전에는 회차 수량으로 22,000/55,000 을 판정했으나, 설치비 자체를 안 잡게 되어 필요 없어졌다.
     처음부터 설치까지 포함한 발주는 종전대로 rQty>=10 → 22,000 규칙을 그대로 쓴다.) */
 const getRc=()=>ld(K.R,[]);
-const getAc=()=>{let a=ld(K.A,null);if(!a){a=[{id:'admin',pw:'admin123',role:'superadmin',name:'관리자',branch:'본사'}];sv(K.A,a);}return a;};
 const getUsers=()=>ld(K.U,[]);
 const REQUIRED_SA=['admin','jayden@handys.co.kr','jayden.kim@handys.co.kr'];
 /* 바뀐 게 있을 때만 저장한다. 예전엔 isAdm() 이 불릴 때마다(화면 하나 그릴 때 수십 번) 서버에 썼다
@@ -2072,20 +2041,6 @@ function showLoginErr(msg) {
   const el = document.getElementById('lerr');
   el.textContent = msg;
   el.style.display = 'block';
-}
-
-function toggleBranchLogin() {
-  const form = document.getElementById('branch-login-form');
-  form.style.display = form.style.display === 'none' ? 'block' : 'none';
-}
-
-/* ── 비밀번호 보기/숨기기 ── */
-function togglePwVis(){
-  const inp=document.getElementById('l-pw'),btn=document.getElementById('pw-toggle');
-  const eyeOn=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`;
-  const eyeOff=`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
-  if(inp.type==='password'){inp.type='text';btn.innerHTML=eyeOff;btn.title='비밀번호 숨기기';}
-  else{inp.type='password';btn.innerHTML=eyeOn;btn.title='비밀번호 보기';}
 }
 
 /* ── PKCE helpers ── */
@@ -2192,35 +2147,6 @@ function _applyPlottUser(id, displayName, accessToken) {
   setLoginLoading(false); startApp();
 }
 
-/* ── 지점 계정 로그인 (로컬) ── */
-function doLocalLogin() {
-  const id = (document.getElementById('l-id').value || '').trim();
-  const pw = document.getElementById('l-pw').value;
-  if (!id || !pw) { showLoginErr('아이디와 비밀번호를 입력하세요.'); return; }
-  document.getElementById('lerr').style.display = 'none';
-  // ① 로컬 계정 확인
-  const accs = getAc();
-  const acc = accs.find(a => (a.id === id || a.email === id) && a.pw === pw);
-  if (acc) {
-    S = {...acc, branchLocked: acc.branch && acc.branch !== '본사'};
-    if (getSAIds().includes(acc.id)) S.role = 'superadmin';
-    startApp(); return;
-  }
-  // ② 첫 지점 로그인: 초기 비밀번호 1234
-  if (pw === '1234') {
-    const branches = getBr();
-    const matchBr = branches.find(b => b.account === id || b.name === id);
-    if (matchBr) {
-      const newAcc = {id, pw:'1234', role:'user', name:matchBr.name+' 담당자', branch:matchBr.name, branchLocked:true};
-      accs.push(newAcc);
-      sv(K.A, accs);
-      S = newAcc;
-      startApp(); return;
-    }
-  }
-  showLoginErr('아이디 또는 비밀번호가 올바르지 않습니다.');
-}
-
 function showPending() {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('pend-user-id').textContent = S.id;
@@ -2233,10 +2159,7 @@ function doLogout() {
   document.getElementById('app').classList.remove('show');
   document.getElementById('pending-screen').classList.remove('show');
   document.getElementById('login-screen').style.display = 'flex';
-  const lid = document.getElementById('l-id'); if(lid) lid.value = '';
-  const lpw = document.getElementById('l-pw'); if(lpw) lpw.value = '';
   document.getElementById('lerr').style.display = 'none';
-  document.getElementById('branch-login-form').style.display = 'none';
 }
 
 /* ── APP START ── */
@@ -3214,8 +3137,8 @@ async function syncDuckRoomsAndRender(){
 function openBrMo(id){
   const b=id?getBr().find(x=>x.id===id):null;
   document.getElementById('br-edit-id').value=id||'';document.getElementById('br-modal-title').innerHTML=id?`${CI.building} 지점 수정`:`${CI.building} 지점 추가`;document.getElementById('br-del-btn').style.display=id?'':'none';brDelId=id;
-  ['br-name','br-short','br-addr','br-loc','br-manager','br-recipient','br-phone','br-email','br-lockOld','br-lockNew','br-note','br-account'].forEach(i=>{document.getElementById(i).value=b?.[i.replace('br-','')]||'';});
-  document.getElementById('br-rooms').value=b?.rooms||'';document.getElementById('br-lockPrice').value=b?.lockPrice||'';document.getElementById('br-cDone').value=b?.cDone?'true':'false';document.getElementById('br-pw-new').value='';
+  ['br-name','br-short','br-addr','br-loc','br-manager','br-recipient','br-phone','br-email','br-lockOld','br-lockNew','br-note'].forEach(i=>{document.getElementById(i).value=b?.[i.replace('br-','')]||'';});
+  document.getElementById('br-rooms').value=b?.rooms||'';document.getElementById('br-lockPrice').value=b?.lockPrice||'';document.getElementById('br-cDone').value=b?.cDone?'true':'false';
   // 도어락 유형: 기존 지점은 extraCost 에서 유도(brLockType) → 추가자재비는 유형이 결정한다
   document.getElementById('br-lockType').value=brLockType(b);
   onLockTypeSel();
@@ -3228,12 +3151,12 @@ function onLockTypeSel(){
 }
 function saveBr(){
   const nm=document.getElementById('br-name').value.trim();if(!nm){toast('e','입력 오류','지점명은 필수입니다.');return;}
-  const brs=getBr(),eid=document.getElementById('br-edit-id').value,acct=document.getElementById('br-account').value.trim(),npw=document.getElementById('br-pw-new').value;
+  const brs=getBr(),eid=document.getElementById('br-edit-id').value;
   if(brs.some(b=>b.name===nm&&String(b.id)!==String(eid))){toast('e','입력 오류','동일한 지점명이 이미 있습니다.');return;}
   // 추가자재비는 유형에서 결정 — 화면 값이 조작돼도 규칙(일반 0 / 호텔 22,000)을 벗어나지 않는다
   const lt=(document.getElementById('br-lockType').value in LOCK_TYPES)?document.getElementById('br-lockType').value:'일반도어락';
   const data={name:nm,short:document.getElementById('br-short').value,addr:document.getElementById('br-addr').value,loc:document.getElementById('br-loc').value,rooms:parseInt(document.getElementById('br-rooms').value)||0,manager:document.getElementById('br-manager').value,recipient:document.getElementById('br-recipient').value,phone:document.getElementById('br-phone').value,email:document.getElementById('br-email').value,lockOld:document.getElementById('br-lockOld').value,lockNew:document.getElementById('br-lockNew').value,lockPrice:parseInt(document.getElementById('br-lockPrice').value)||0,instCost:INST_UNIT_ONE,   // 더 이상 지점별로 받지 않는다(instUnit 이 수량으로 정한다) — 구버전 탭 호환용으로만 남긴다
-    lockType:lt,extraCost:LOCK_TYPES[lt]??0,cDone:document.getElementById('br-cDone').value==='true',note:document.getElementById('br-note').value,account:acct};
+    lockType:lt,extraCost:LOCK_TYPES[lt]??0,cDone:document.getElementById('br-cDone').value==='true',note:document.getElementById('br-note').value};   // account(지점 로그인 ID)는 더 받지 않는다 — 있던 값은 그대로 둔다
   /* 발주·접수는 지점을 이름 문자열로 참조한다(branchId 가 없다). 이름만 바꾸면
      과거 이력이 옛 이름에 남아 한 지점이 두 덩어리로 쪼개진다 — repairBranchNames() 가
      파일에 존재한다는 것 자체가 이미 한 번 깨졌다는 증거다. 이름을 바꿀 때 같이 옮긴다. */
@@ -3264,7 +3187,6 @@ function saveBr(){
     if(oc||rcn||pc||sc)toast('i','지점명 변경',`과거 이력도 함께 옮겼습니다 (발주 ${oc} · 접수 ${rcn} · 부자재 ${pc} · 서비스요금 ${sc})`);
   }
   logAudit(eid?'지점수정':'지점추가', nm, eid?`지점 정보 수정 (ID ${eid})`:'신규 지점 등록');
-  if(acct){const accs=getAc();const ai=accs.findIndex(a=>a.branch===nm||a.id===acct);if(ai>=0){accs[ai].branch=nm;accs[ai].id=acct;if(npw)accs[ai].pw=npw;}else accs.push({id:acct,pw:npw||'1234',role:'user',name:nm+' 담당자',branch:nm});sv(K.A,accs);}
   closeMo('br-modal');populateSels();renderBr();toast('s','저장 완료','지점 정보가 저장되었습니다.');
 }
 function cfmDelBr(){const _b=getBr().find(x=>x.id==brDelId);showCfm(CI.trash,'지점 삭제','삭제하시겠습니까? 발주 데이터는 유지됩니다.',()=>{sv(K.B,getBr().filter(b=>b.id!=brDelId));logAudit('지점삭제', _b?_b.name:('ID '+brDelId), `지점 삭제 (ID ${brDelId})`);closeMo('br-modal');renderBr();toast('s','삭제 완료','지점이 삭제되었습니다.');});}
@@ -6571,7 +6493,7 @@ function hqBadge(){
 }
 function openHqReqMo(o){
   o=o||{};
-  if(!(S&&S.token)){toast('e','Plott 로그인 필요','지점 아이디로 로그인하면 신고가 본사에 전달되지 않습니다. Plott 계정으로 다시 로그인해 주세요.');return;}
+  if(!(S&&S.token)){toast('e','Plott 로그인 필요','Plott 로그인이 풀렸어요 — 다시 로그인해 주세요');return;}
   const facs=h2oFacs(ymdLocal(new Date()).substring(0,7)),sel=document.getElementById('hqq-fac');
   if(S.branchLocked&&!facs.some(f=>f.br===S.branch)){toast('e','H2O 지점이 아닙니다','이 지점은 H2O 도어락 지점이 아닙니다.');return;}
   HQ_PROXY=!!o.proxy&&isAdm();
@@ -6612,7 +6534,7 @@ function hqqCheck(){
     :`<div style="color:var(--green)">✓ ${escH(h2oLabel(x.r))}</div>`).join('');
 }
 function submitHqReq(){
-  if(!(S&&S.token)){toast('e','Plott 로그인 필요','지점 아이디로 로그인하면 신고가 본사에 전달되지 않습니다. Plott 계정으로 다시 로그인해 주세요.');return;}
+  if(!(S&&S.token)){toast('e','Plott 로그인 필요','Plott 로그인이 풀렸어요 — 다시 로그인해 주세요');return;}
   const{fid,dir,res}=hqqRead(),f=hqFac(fid),today=ymdLocal(new Date());
   if(!f||!h2oFacs(today.substring(0,7)).some(x=>x.id===fid)){toast('e','지점','H2O 지점을 고르세요.');return;}
   if(S.branchLocked&&f.br!==S.branch){toast('e','권한 없음','다른 지점으로는 신고할 수 없습니다.');return;}
@@ -6667,7 +6589,7 @@ function hqMailText(fid,items){
   const lines=['off','on'].map(d=>{const l=items.filter(x=>x.dir===d).sort(byNum).map(x=>h2oLabel(x)+'호');return l.length?`${HQ_DIR[d]}: ${l.join(', ')}`:'';}).filter(Boolean);
   return[`안녕하세요 핸디즈 ${name}입니다.`,`${f.mail||f.short} ${hqRo(reason)} 인해 금일 도어락 모드 전환 완료하였습니다.`,...lines,'위 관련 문의사항 있으시면 연락주십시오','감사합니다.',`${name} 드림`].join('\n');
 }
-const hqTok=()=>{if(S&&S.token)return true;toast('e','Plott 로그인 필요','지점 아이디로 로그인하면 처리 내용이 서버에 저장되지 않습니다. Plott 계정으로 다시 로그인해 주세요.');return false;};
+const hqTok=()=>{if(S&&S.token)return true;toast('e','Plott 로그인 필요','Plott 로그인이 풀렸어요 — 다시 로그인해 주세요');return false;};
 function openHqMail(i){
   if(!isAdm()||!hqTok())return;
   const fid=HQ_PF[i],items=hqAlive().filter(x=>x.fid===fid&&x.st!=='전달');
