@@ -1397,7 +1397,8 @@ const CAS_KEYS=new Set([K.B,K.D,K.H,K.SV,K.SA,K.SP,'doorlock_slack_wh','doorlock
 /* 은퇴 키 — 예전에 비밀을 담던 키(계정 비밀번호). 서버가 보내 줘도 저장하지 않고 올리지도 않는다(sbSync·sbSet·백업 복원, migrKeys 에서도 뺐다).
    목록에서만 빼면 sbSync 의 마지막 else(모르는 키 = 로컬 우선)가 받아 저장하고 되올린다. 앱이 열릴 때(startApp) 브라우저 사본도 지운다 */
 const SB_IGNORE=new Set([K.A]);
-const purgeRetired=()=>SB_IGNORE.forEach(k=>['','__prev__','__base__','__init__'].forEach(p=>{try{localStorage.removeItem(p+k);}catch{}}));
+const RETIRED_BLANK={[K.A]:'[]'};   // 계정 사본은 지우지 않고 빈 목록으로 — 지우면 새로고침 안 한 옛 화면(getAc)이 admin/admin123 을 다시 만든다(서버도 [])
+const purgeRetired=()=>SB_IGNORE.forEach(k=>['','__prev__','__base__','__init__'].forEach(p=>{try{if(!p&&k in RETIRED_BLANK)localStorage.setItem(k,RETIRED_BLANK[k]);else localStorage.removeItem(p+k);}catch{}}));
 const baseGet=k=>localStorage.getItem('__base__'+k);
 const baseSet=(k,h)=>localStorage.setItem('__base__'+k,h);
 /* 지금 돌고 있는 앱 코드(이 <script> 본문)의 지문. 새 버전 알림(checkAppUpdate)이 서버의 index.html 과 비교한다.
