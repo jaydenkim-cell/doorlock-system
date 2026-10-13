@@ -1869,6 +1869,7 @@ function repairOrders(){
   if(changed)sv(K.O,ors);
 }
 initData();
+purgeRetired();   // 페이지가 열릴 때 — 로그인 전에도 이 브라우저에 남은 은퇴 키 사본·지문을 지운다(startApp 에서도 한 번 더 부른다. 여러 번 불러도 결과는 같다)
 
 /* 도어락 유형 → 추가자재비. 유형이 추가자재비를 결정한다(발주·발주서·정산까지 자동 반영).
    기존 지점은 lockType 필드가 없으므로 extraCost 값에서 유형을 유도한다
@@ -4710,7 +4711,7 @@ function backupAllData(){
   const dump={_meta:{app:'doorlock-system',version:DATA_VERSION,exportedAt:new Date().toISOString(),by:(S&&S.name)||'',keyCount:0},data:{}};
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
-    if(!k||!k.startsWith('doorlock_'))continue; // __init__* / sessionStorage 값 등은 자동 제외
+    if(!k||!k.startsWith('doorlock_')||SB_IGNORE.has(k))continue; // __init__* / sessionStorage 값 등은 자동 제외 · 은퇴 키(계정 비밀번호 등 비밀)는 백업 파일에도 싣지 않는다
     const raw=localStorage.getItem(k);
     if(raw===null)continue;
     try{dump.data[k]=JSON.parse(raw);}catch{dump.data[k]=raw;}
