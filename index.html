@@ -1388,7 +1388,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
     <div class="ci" id="cfm-i">❓</div>
     <div class="ct" id="cfm-t">확인</div>
     <div class="cs" id="cfm-s">계속하시겠습니까?</div>
-    <div class="cfmr"><button class="btn bo" onclick="closeCfm(false)">취소</button><button class="btn bp" onclick="closeCfm(true)">확인</button></div>
+    <div class="cfmr"><button class="btn bo" id="cfm-no" onclick="closeCfm(false)">취소</button><button class="btn bp" id="cfm-yes" onclick="cfmYes()">확인</button></div>
   </div>
 </div>
 <div class="tw" id="tw"></div>
@@ -2035,7 +2035,7 @@ const canWriteReceipt=()=>S&&(isAdm()||S.role==='user');
 const canWriteInstall=()=>S&&(isAdm()||S.role==='user');
 
 /* ── STATE ── */
-let S=null,urgOn=false,cfmCb=null,pipeR='all',instId=null,brDelId=null;
+let S=null,urgOn=false,cfmCb=null,cfmHold=0,pipeR='all',instId=null,brDelId=null;
 
 /* ── 감사로그(상태 변경 이력) ── */
 const getLog=()=>ld(K.LOG,[]);
@@ -3984,7 +3984,8 @@ function confirmPayment(id){
 /* ── UTILS ── */
 function openMo(id){document.getElementById(id).classList.add('show');}
 function closeMo(id){document.getElementById(id).classList.remove('show');}
-function showCfm(icon,title,msg,cb){document.getElementById('cfm-i').innerHTML=icon;document.getElementById('cfm-t').textContent=title;document.getElementById('cfm-s').textContent=msg;cfmCb=cb;document.getElementById('cfm').classList.add('show');}
+function showCfm(icon,title,msg,cb,opt){opt=opt||{};document.getElementById('cfm-i').innerHTML=icon;document.getElementById('cfm-t').textContent=title;document.getElementById('cfm-s').textContent=msg;document.getElementById('cfm-no').textContent=opt.no||'취소';document.getElementById('cfm-yes').textContent=opt.yes||'확인';cfmHold=opt.hold?Date.now()+opt.hold:0;cfmCb=cb;document.getElementById('cfm').classList.add('show');}   // opt: {no,yes} 버튼 이름(없으면 취소/확인) · hold ms 동안 [확인] 클릭 무시
+function cfmYes(){if(Date.now()<cfmHold)return;closeCfm(true);}   // 이어 뜬 확인창을 빠른 두 번 클릭으로 넘기지 않게
 function closeCfm(ok){document.getElementById('cfm').classList.remove('show');if(ok&&cfmCb)cfmCb();cfmCb=null;}
 function toast(type,title,desc){const w=document.getElementById('tw'),el=document.createElement('div');const ic={s:'✅',e:'❌',i:'💡',w:'⚠️'};el.className=`toast t${type}`;el.innerHTML=`<div class="tic">${ic[type]||'ℹ️'}</div><div><div class="tt2">${title}</div><div class="td">${desc}</div></div>`;w.appendChild(el);setTimeout(()=>el.classList.add('show'),10);setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),350);},3500);}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo.show,.cfm.show').forEach(m=>m.classList.remove('show'));});
@@ -6270,7 +6271,7 @@ function h2oSave(){
   if(R.notes.length)msgs.push('※ '+R.notes.join(' / '));
   const warn=Object.values(R.fac).filter(x=>x.warn.length);
   if(warn.length)msgs.push('※ 확인 필요:\n'+warn.map(x=>`  ${x.f.short}: ${x.warn.join(' / ')}`).join('\n'));
-  const doSave=()=>showCfm(CI.calendar,`${month} ${mode==='start'?'월초 목록':'말일 확정'} 저장`,msgs.join('\n'),()=>{
+  const doSave=hold=>showCfm(CI.calendar,`${month} ${mode==='start'?'월초 목록':'말일 확정'} 저장`,msgs.join('\n'),()=>{
     const hl2=getHL(),mm2=hl2.months[month]||(hl2.months[month]={}),mN=hl2.months[next]||(hl2.months[next]={});
     if(mode==='start'&&mm2.end){toast('e','저장하지 않았습니다','그사이 말일 확정이 저장됐습니다.');return;}
     if(mode==='end'&&mN.end){toast('e','저장하지 않았습니다','그사이 다음 달 말일 확정이 저장됐습니다.');return;}
@@ -6299,11 +6300,10 @@ function h2oSave(){
     hl2.sender=(document.getElementById('h2o-sender').value||'').trim()||hl2.sender||'핸디즈 구매소싱팀 김강현';
     sv(K_HL,hl2);logAudit('H2O 월 목록 저장',month,`${mode==='start'?'월초':'말일'} ${total}실`);
     toast('s','저장 완료',`${month} ${mode==='start'?'월초 목록':'말일 확정'}을 저장했습니다.${mode==='end'?' 이어서 [청구 내역에 반영]을 누르세요.':''}`);h2oRender();
-  });
-  /* 말일 전 확정은 한 번 더 묻는다 — 날짜·추가·해지는 입력 즉시 저장되므로 [저장]을 미리 누를 이유가 없다(2026-10-12 10월분).
-     closeCfm 은 콜백을 부른 뒤 cfmCb 를 지운다 → 확인창 안에서 다음 확인창은 setTimeout 으로 한 박자 늦춰 연다 */
+  },{hold});
+  // 말일 전 확정은 한 번 더 묻는다(2026-10-12 10월분 미리 저장 재발 방지) — 다음 창은 setTimeout 으로(closeCfm 이 콜백 뒤 cfmCb 를 지움), 0.4초 [확인] 막기로 두 번 클릭에 넘어가지 않게
   if(mode==='end'&&ymdLocal(new Date())<ymLast(month)){
-    showCfm(CI.calendar,'아직 말일 전이에요',`날짜·추가·해지는 입력하는 즉시 저장돼요. ${month} 말일 확정은 ${ymNext(month)} 1~5일에 하세요.\n지금 확정하면 이 달 H2O 는 자동 반영에서 빠집니다. 그래도 지금 확정할까요?`,()=>setTimeout(doSave,0));
+    showCfm(CI.calendar,'아직 말일 전이에요',`날짜·추가·해지는 입력하는 즉시 저장돼요. 말일 확정은 ${+next.slice(5)}월 1~5일에 하세요.`,()=>setTimeout(()=>doSave(400),0),{no:'닫기',yes:'그래도 지금 확정'});
     return;
   }
   doSave();
