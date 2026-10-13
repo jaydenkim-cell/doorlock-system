@@ -6002,6 +6002,7 @@ async function h2oLoad(){
         if(!start)warn.push(`${month} 월초 목록이 없습니다 — [월초 목록]을 먼저 저장해야 추가·해지를 셀 수 있습니다`);
         const sk=new Set((start||[]).map(hKey));
         const qs=hqAlive().filter(q=>q.st==='전달'&&q.fid===f.id&&isYmd(q.sent)&&q.sent>=ymPrev(month)+'-01'&&q.sent<=addDays(last,40));   // 이 달 범위의 전달된 신고
+        const doneBefore=q=>qs.some(o=>o.dir==='off'&&hqSame(o,hqP(q))&&o.sent>=q.sent&&o.sent<first);   // 추가 신고 뒤 해지 신고까지 지난달에 끝난 방 — 이 달에 다시 넣지 않는다
         if(failed)list=(start||[]).slice();   // 조회 실패면 바뀐 게 없다고 보고 해지를 만들지 않는다(저장은 막힌다)
         else if(f.whole){
           /* 신고로 자동 처리 — 전달된 해지 + 서버에서 사라진 우리 방은 빼고, 전달된 추가 + 서버에 하나만 맞는 기기는 넣는다
@@ -6009,7 +6010,7 @@ async function h2oLoad(){
           const qOff=r=>qs.some(q=>q.dir==='off'&&hqSame(r,hqP(q)));
           list=(start||[]).filter(r=>!rmSet.has(hKey(r))&&!(qOff(r)&&!srvMap.has(hKey(r))));
           (adj.add||[]).forEach(k=>{const r=srvMap.get(k);if(r&&!list.some(x=>hKey(x)===k))list.push(r);});
-          qs.filter(q=>q.dir==='on').forEach(q=>{const hits=server.filter(r=>hqSame(r,hqP(q)));
+          qs.filter(q=>q.dir==='on'&&!doneBefore(q)).forEach(q=>{const hits=server.filter(r=>hqSame(r,hqP(q)));
             if(hits.length>1){info.push(`추가 신고가 H2O 기기 ${hits.length}대와 맞습니다: ${h2oLabel(q)} — [추가]로 직접 적으세요`);return;}
             if(hits.length!==1)return;const k=hKey(hits[0]);
             if(rmSet.has(k)){if(!sk.has(k)&&!churn.some(x=>hKey(x)===k))churn.push(hits[0]);return;}   // [해지]로 적은 방은 넣지 않는다 — 이번 달 들어왔다 나간 방이면 추가·해지
@@ -6022,7 +6023,7 @@ async function h2oLoad(){
           if(next.length)info.push(`다음 달 등록 기기 ${next.length}대는 빼고 셉니다(${next.slice(0,3).map(h2oLabel).join(', ')}${next.length>3?' …':''})`);
           list=server.filter(r=>(!(r.at>last)||sk.has(hKey(r)))&&!rmSet.has(hKey(r)));
           // 이번 달 추가됐다가 직접 해지한 방 — 추가일 ~ 도달일 일할
-          churn=server.filter(r=>rmSet.has(hKey(r))&&!sk.has(hKey(r))&&((r.at>=first&&r.at<=last)||qs.some(q=>q.dir==='on'&&hqSame(r,hqP(q)))));   // 등록일이 이 달 밖인 옛 기기도 이 달 범위의 추가 신고가 있으면 추가·해지(모드 전환은 대개 옛 기기다)
+          churn=server.filter(r=>rmSet.has(hKey(r))&&!sk.has(hKey(r))&&((r.at>=first&&r.at<=last)||qs.some(q=>q.dir==='on'&&hqSame(r,hqP(q))&&!doneBefore(q))));   // 등록일이 이 달 밖인 옛 기기도 이 달 범위의 추가 신고가 있으면 추가·해지(모드 전환은 대개 옛 기기다)
           const late=server.filter(r=>r.at>last&&sk.has(hKey(r)));
           if(late.length)info.push(`말일 뒤 다시 등록된 기기 ${late.length}대(${late.slice(0,3).map(h2oLabel).join(', ')}) — 월정액으로 셉니다. 이 달 중에 끊긴 적이 있으면 H2O 와 확인하세요`);
         }
@@ -6042,6 +6043,8 @@ async function h2oLoad(){
           const inEx=q=>(adj.extra||[]).some(k=>{const i=k.indexOf('|');return hqSame({b:k.slice(0,i),n:k.slice(i+1)},hqP(q));});
           const inMonth=q=>q.sent>=first&&q.sent<=last;   // 추가 메일이 이 달 안일 때만 한 줄로 받는다
           qs.filter(q=>q.dir==='on'&&inMonth(q)&&qs.some(o=>o.dir==='off'&&hqSame(o,hqP(q))&&o.sent>=q.sent&&o.sent>=first)&&!onSrv(q)&&!inStart(q)&&!inEx(q)).forEach(q=>RW.push({kind:'extra',q,k:hKey(q)}));   // 추가 메일이 이 달 안이면 해지 메일은 말일 뒤여도 된다(그때는 추가만 이 달, 해지는 다음 달)
+          {const seq=new Map();qs.filter(q=>q.sent>=first).sort((a,b)=>a.sent<b.sent?-1:a.sent>b.sent?1:a.id<b.id?-1:1).forEach(q=>{const p=hqP(q),k=p.dong+'|'+p.num,v=seq.get(k)||{n:0,d:'',end:false};if(v.end)return;if(v.d&&v.d!==q.dir)v.n++;v.d=q.dir;v.q=q;if(q.sent>last)v.end=true;seq.set(k,v);});
+           seq.forEach(v=>{if(v.n>=2)RW.push({kind:'multi',q:v.q});});}   // 이 달 1일부터 말일 뒤 첫 메일까지 방향이 두 번 이상 바뀐 방 — 한 구간만 센다(나머지 구간은 일할 없음)
           RW=RW.filter((w,i,a)=>a.findIndex(v=>v.kind===w.kind&&hqSame(v.q,hqP(w.q)))===i);   // 같은 방 신고가 여럿이어도 안내는 한 번
         }
       }
@@ -6471,7 +6474,7 @@ const hqAlive=()=>{const dead=tombSet(K.HQ);return getHQ().filter(x=>x&&typeof x
 const hqFac=fid=>H2O_FAC.find(f=>f.id===String(fid))||null;
 const hqId=()=>'hq_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
 /* 같은 id 는 더 새것이 이긴다: v 큰 쪽 → upd 늦은 쪽(같으면 서버). ★ 게이트웨이 v8 mergeReqs 와 같은 규칙 */
-function hqNewer(a,b){const av=Number(a&&a.v)||0,bv=Number(b&&b.v)||0;return av!==bv?av>bv:String((a&&a.upd)||'')>String((b&&b.upd)||'');}
+function hqNewer(a,b){const av=Number(a?.v)||0,bv=Number(b?.v)||0;return av!==bv?av>bv:String(a?.upd??'')>String(b?.upd??'');}
 /* 서버·로컬 신고 합치기(툼스톤 제외). push = 내 쪽에 더 새것이나 서버에 없는 줄이 있다 */
 function hqMergeRows(sbVal,localVal,dead){
   const raw=Array.isArray(sbVal)?sbVal:[];
@@ -6542,7 +6545,7 @@ function renderH2oReq(){
       +(a||mine?`<button class="btn br2 bsm" style="margin-left:2px" onclick="delHqG(${gi})">삭제</button>`:'');
     return `<tr><td>${escH(kstDate(x0.at)||'—')}</td><td style="font-weight:500">${escH(f?f.short:x0.fid)}</td>
       <td style="white-space:nowrap">${escH(HQ_DIRS[x0.dir]||'')}</td><td>${rooms}${memo?`<div style="font-size:11px;color:var(--text3)">${escH(memo)}</div>`:''}</td><td>${escH(isYmd(x0.sw)?md(x0.sw):'—')}</td>
-      <td style="font-size:12px">${slackAvatar(x0.email,x0.by)}</td><td style="white-space:nowrap">${chip}</td>${a?`<td style="white-space:nowrap">${g.items.map(hqSrvMark).join(' ')}</td>`:''}
+      <td style="font-size:12px">${slackAvatar(String(x0.email||''),String(x0.by||''))}</td><td style="white-space:nowrap">${chip}</td>${a?`<td style="white-space:nowrap">${g.items.map(hqSrvMark).join(' ')}</td>`:''}
       <td style="white-space:nowrap">${act}</td></tr>`;
   }).join(''):emp(a?9:8);
   hqBadge();
@@ -6640,7 +6643,7 @@ async function hqSlackNoti(f,dir,label,sw,by,note){
 }
 /* 삭제 = 툼스톤. 직원은 자기 신고(처리 전)만 — 서버는 툼스톤의 주인을 보지 않으므로(부자재와 같다) 화면에서 막는다 */
 function delHqG(gi){
-  const g=HQ_G[gi];if(!g)return;
+  const g=HQ_G[gi];if(!g||!hqTok())return;
   const me=String(S.email||S.id||'').toLowerCase();
   if(!isAdm()&&!g.items.every(x=>String(x.email||'').toLowerCase()===me&&x.st!=='전달')){toast('e','권한 없음','본사가 처리한 신고나 다른 사람의 신고는 지울 수 없습니다.');return;}
   const lbl=`${(hqFac(g.items[0].fid)||{}).short||''} ${g.items.map(x=>h2oLabel(x)).join(', ')}`;
@@ -6664,8 +6667,9 @@ function hqMailText(fid,items){
   const lines=['off','on'].map(d=>{const l=items.filter(x=>x.dir===d).sort(byNum).map(x=>h2oLabel(x)+'호');return l.length?`${HQ_DIR[d]}: ${l.join(', ')}`:'';}).filter(Boolean);
   return[`안녕하세요 핸디즈 ${name}입니다.`,`${f.mail||f.short} ${hqRo(reason)} 인해 금일 도어락 모드 전환 완료하였습니다.`,...lines,'위 관련 문의사항 있으시면 연락주십시오','감사합니다.',`${name} 드림`].join('\n');
 }
+const hqTok=()=>{if(S&&S.token)return true;toast('e','Plott 로그인 필요','지점 아이디로 로그인하면 처리 내용이 서버에 저장되지 않습니다. Plott 계정으로 다시 로그인해 주세요.');return false;};
 function openHqMail(i){
-  if(!isAdm())return;
+  if(!isAdm()||!hqTok())return;
   const fid=HQ_PF[i],items=hqAlive().filter(x=>x.fid===fid&&x.st!=='전달');
   if(!items.length){toast('i','보낼 신고 없음','그사이 처리됐습니다.');renderH2oReq();return;}
   HQ_MAIL={fid,ids:items.map(x=>x.id)};
@@ -6681,7 +6685,7 @@ function hqCopy(id){
   if(navigator.clipboard?.writeText)navigator.clipboard.writeText(t).then(ok).catch(()=>_fbCopy(t,ok,fail));else _fbCopy(t,ok,fail);
 }
 function hqMarkSent(){
-  if(!isAdm()||!HQ_MAIL)return;
+  if(!isAdm()||!HQ_MAIL||!hqTok())return;
   const sent=document.getElementById('hqm-sent').value,today=ymdLocal(new Date());
   if(!isYmd(sent)){toast('e','보낸 날','메일 보낸 날을 넣어 주세요.');return;}
   if(sent>today){toast('e','보낸 날','오늘 이후 날짜는 넣을 수 없습니다.');return;}
@@ -6715,7 +6719,7 @@ async function hqSentDM(f,items,sent){
   }
 }
 function hqUndoSentG(gi){
-  if(!isAdm())return;const g=HQ_G[gi];if(!g)return;
+  if(!isAdm()||!hqTok())return;const g=HQ_G[gi];if(!g)return;
   const ids=new Set(g.items.filter(x=>x.st==='전달').map(x=>x.id));if(!ids.size)return;
   showCfm(CI.calendar,'전달 취소',`${g.items.filter(x=>ids.has(x.id)).map(x=>h2oLabel(x)).join(', ')} — '신고됨'으로 되돌릴까요? 말일 확정의 날짜도 빠집니다.`,()=>{
     const arr=getHQ(),now=new Date().toISOString();
@@ -6788,10 +6792,14 @@ function hqSrvMark(x){
 }
 function hqFromSrv(i){const m=HQ_MS[i];if(!m)return;openHqReqMo({proxy:true,fid:m.fid,dir:m.dir,room:h2oLabel(m.r),sw:m.upd||''});}
 /* ── 말일 확정 연결 ── */
-/* 말일 확정이 읽는 신고 — 전달됐고, 같은 시설·방향·방이고, 메일 날짜가 그 달 범위(지난달 1일 ~ 말일+40일) 안인 것 중 가장 늦은 것. 같은 날이면 id 가 큰 것(탭마다 순서가 달라도 같은 신고를 고른다). alive: 미리 읽어 둔 신고(줄마다 다시 읽지 않게) */
+/* 말일 확정이 읽는 신고 — 전달됐고, 같은 시설·방향·방이고, 메일 날짜가 그 달 범위(지난달 1일 ~ 말일+40일) 안인 것 중 가장 늦은 것(단 말일 뒤 반대 방향 신고가 있으면 그보다 앞선 것만 — 그 뒤는 다음 달 구간) · 같은 방향 신고가 반대 방향 없이 이어지면 그중 가장 이른 것(첫 메일 날짜). 같은 날이면 id 가 큰 것(탭마다 순서가 달라도 같은 신고를 고른다). alive: 미리 읽어 둔 신고(줄마다 다시 읽지 않게) */
 function h2oReqFor(month,fid,r,dir,alive){
-  const lo=ymPrev(month)+'-01',hi=addDays(ymLast(month),40),p=hqP(r);let best=null;
-  (alive||hqAlive()).forEach(x=>{if(x.st==='전달'&&x.fid===String(fid)&&x.dir===dir&&isYmd(x.sent)&&x.sent>=lo&&x.sent<=hi&&hqSame(x,p)&&(!best||x.sent>best.sent||(x.sent===best.sent&&x.id>best.id)))best=x;});
+  const lo=ymPrev(month)+'-01',last=ymLast(month),hi=addDays(last,40),p=hqP(r);let best=null;
+  const L=(alive||hqAlive()).filter(x=>x.st==='전달'&&x.fid===String(fid)&&isYmd(x.sent)&&x.sent>=lo&&x.sent<=hi&&hqSame(x,p));
+  const cut=L.filter(x=>x.dir!==dir&&x.sent>last).reduce((m,x)=>x.sent<m?x.sent:m,'9999-12-31');   // 말일 뒤 반대 방향 신고부터는 다음 달 구간 — 그 뒤 신고는 이 달에 쓰지 않는다
+  L.forEach(x=>{if(x.dir===dir&&x.sent<cut&&(!best||x.sent>best.sent||(x.sent===best.sent&&x.id>best.id)))best=x;});
+  // 같은 방향 메일이 반대 방향 신고 없이 이어지면 첫 메일 날짜로 센다(2026-10-13 결정) — 그 신고 앞의 마지막 반대 방향 신고 뒤에서 가장 이른 같은 방향 신고
+  if(best){const ob=L.reduce((m,x)=>x.dir!==dir&&x.sent<=best.sent&&x.sent>m?x.sent:m,'');if(ob<best.sent)L.forEach(x=>{if(x.dir===dir&&x.sent>ob&&(x.sent<best.sent||(x.sent===best.sent&&x.id>best.id)))best=x;});}
   return best;
 }
 /* 저장 뒤 신고가 바뀌었나 — 저장 때 날짜로 쓴 신고(reqUsed)가 지워졌거나 '신고'로 돌아갔거나 날짜가 바뀜,
@@ -6811,6 +6819,7 @@ function h2oRwHtml(fid,w){
   const lb=escH(h2oLabel(w.q)),bt=t=>h2oLocked(H2OL&&H2OL.month)?'':` <button class="btn bo bsm" style="padding:0 6px;font-size:11px" onclick="h2oRwAct(${H2O_RW.push({fid,w})-1})">${t}</button>`;
   return w.kind==='stillOn'?`<span style="color:var(--yellow)">메일은 보냈는데 서버는 그대로: ${lb}</span>${bt('해지로 적기')}`
     :w.kind==='notOn'?`<span style="color:var(--yellow)">메일은 보냈는데 서버는 아직 객실용이 아님: ${lb} — H2O 확인</span>`
+    :w.kind==='multi'?`<span style="color:var(--yellow)">이 달 추가·해지를 여러 번 오간 방: ${lb} — 구간을 나눠 셀 수 없어 한 구간만 셉니다(차이는 H2O 와 확인)</span>`
     :w.kind==='offThenOn'?`<span style="color:var(--yellow)">해지 메일 뒤 다시 추가 메일이 있는 방: ${lb} — 이 달은 월정액으로 둡니다(차이는 H2O 와 확인)</span>`
     :`<span style="color:var(--yellow)">추가·해지 신고가 모두 있는데 목록·서버에 없는 방: ${lb}</span>${bt('추가·해지로 적기')}`;
 }
