@@ -1392,8 +1392,12 @@ const canon=v=>{
 };
 const kvHash=s=>{let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(36);};
 const vHash=v=>kvHash(canon(v));
-// 게이트웨이 GUARD_KEYS 와 같은 목록. SLACK_KEY 류는 파일 뒤쪽 const 라 여기서는 문자열로 쓴다.
-const CAS_KEYS=new Set([K.B,K.D,K.H,K.SV,K.A,K.SA,K.SP,'doorlock_slack_wh','doorlock_slack_bot','doorlock_h2o_lists']);
+// 게이트웨이 GUARD_KEYS 와 같은 목록(은퇴 키는 빼고 SB_IGNORE 로). SLACK_KEY 류는 파일 뒤쪽 const 라 여기서는 문자열로 쓴다.
+const CAS_KEYS=new Set([K.B,K.D,K.H,K.SV,K.SA,K.SP,'doorlock_slack_wh','doorlock_slack_bot','doorlock_h2o_lists']);
+/* 은퇴 키 — 예전에 비밀을 담던 키(계정 비밀번호). 서버가 보내 줘도 저장하지 않고 올리지도 않는다(sbSync·sbSet·백업 복원, migrKeys 에서도 뺐다).
+   목록에서만 빼면 sbSync 의 마지막 else(모르는 키 = 로컬 우선)가 받아 저장하고 되올린다. 앱이 열릴 때(startApp) 브라우저 사본도 지운다 */
+const SB_IGNORE=new Set([K.A]);
+const purgeRetired=()=>SB_IGNORE.forEach(k=>['','__prev__','__base__','__init__'].forEach(p=>{try{localStorage.removeItem(p+k);}catch{}}));
 const baseGet=k=>localStorage.getItem('__base__'+k);
 const baseSet=(k,h)=>localStorage.setItem('__base__'+k,h);
 /* 지금 돌고 있는 앱 코드(이 <script> 본문)의 지문. 새 버전 알림(checkAppUpdate)이 서버의 index.html 과 비교한다.
@@ -1535,6 +1539,7 @@ async function kvFn(op,extra){
    일시적 네트워크 끊김 1회까지 배너를 띄우면 아무도 안 보게 된다. */
 let PUSH_FAIL=0;
 async function sbSet(k,v){
+  if(SB_IGNORE.has(k))return;             // 은퇴 키는 어떤 길로도(옛 sv 호출·백업 복원) 올리지 않는다
   if(CAS_KEYS.has(k))return casPush(k);   // 설정 키는 지문과 함께, 키마다 한 줄로 세워서 보낸다
   try{
     if(!(S&&S.token))return;
@@ -1677,6 +1682,7 @@ async function sbSync(){
     rows.forEach(row=>{
       if(row.key===K.TS)return; // 위에서 병합 완료
       if(READONLY_KEYS.has(row.key))return; // 참조 데이터는 로컬에 담지 않는다
+      if(SB_IGNORE.has(row.key))return;       // 은퇴 키 — 받지도(저장) 올리지도 않는다
       const local=localStorage.getItem(row.key);
       const dead=new Set(Object.keys(TOMB[row.key]||{}));
       const sbVal=row.value;
@@ -1766,7 +1772,7 @@ async function sbSync(){
     SB_SYNCED=true;
     casRefresh();                                   // 서버값을 받아온 설정 키가 있으면 보고 있는 화면을 다시 그린다
     // localStorage → Supabase (최초 마이그레이션) — 서버에 그 키가 아예 없을 때만
-    const migrKeys=[K.B,K.O,K.R,K.U,K.A,K.SA,K.SP,K.SV,K.HQ];   // K.HQ: 첫 신고를 올리다 실패해도 서버에 키가 생길 때까지 다음 동기화가 올린다
+    const migrKeys=[K.B,K.O,K.R,K.U,K.SA,K.SP,K.SV,K.HQ];   // K.HQ: 첫 신고를 올리다 실패해도 서버에 키가 생길 때까지 다음 동기화가 올린다 · 은퇴 키(K.A)는 넣지 않는다
     for(const k of migrKeys){
       if(!sbKeys.has(k)){const v=localStorage.getItem(k);if(v)await sbSet(k,JSON.parse(v));}
     }
@@ -2164,6 +2170,7 @@ function doLogout() {
 
 /* ── APP START ── */
 function startApp(){
+  purgeRetired();   // 이 브라우저에 남은 은퇴 키 사본(계정 비밀번호 등)·지문을 지운다
   document.getElementById('login-screen').style.display='none';
   document.getElementById('pending-screen').classList.remove('show');
   document.getElementById('app').classList.add('show');
@@ -4730,7 +4737,7 @@ function handleRestoreFile(ev){
     let dump;
     try{dump=JSON.parse(rd.result);}catch{toast('e','복원 실패','JSON 파일을 읽을 수 없습니다. 올바른 백업 파일인지 확인하세요.');return;}
     const data=(dump&&typeof dump==='object')?dump.data:null;
-    const keys=(data&&typeof data==='object')?Object.keys(data).filter(k=>k.startsWith('doorlock_')):[];
+    const keys=(data&&typeof data==='object')?Object.keys(data).filter(k=>k.startsWith('doorlock_')&&!SB_IGNORE.has(k)):[];   // 옛 백업의 은퇴 키(계정 비밀번호)는 되살리지 않는다
     if(keys.length===0){toast('e','복원 실패','도어락 백업 파일 형식이 아닙니다. (doorlock_* 데이터가 없습니다)');return;}
     const when=((dump._meta&&dump._meta.exportedAt)||'').substring(0,19).replace('T',' ');
     showCfm(CI.trash,'백업 복원 (덮어쓰기)',`현재 저장된 데이터가 이 백업 파일 내용으로 덮어써집니다(되돌릴 수 없음). 백업 일시: ${when||'알 수 없음'} · 포함 항목 ${keys.length}개. 먼저 [전체 백업 다운로드]로 현재 상태를 저장해 두길 권장합니다. 계속하시겠습니까?`,()=>doRestoreBackup(data,keys));
