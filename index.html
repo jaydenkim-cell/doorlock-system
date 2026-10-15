@@ -652,6 +652,8 @@ b,strong{font-weight:600;}
 .tbl tfoot td{border-top:1px solid var(--plott-color-border-strong);border-bottom:none;font-weight:600;}
 .tbl tfoot tr:hover td{background:var(--plott-color-bg-muted);}
 .idc,.tbl td.idc{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);font-variant-numeric:tabular-nums;white-space:nowrap;}
+/* 표 칸 안 버튼 — 아이콘이 첫 자식인 버튼(일정입력·입고 확인)은 inline-flex 의 기준선이 아이콘 아래라 글자만 있는 이웃 버튼보다 2px 위에 앉았다 → 가운데 맞춤으로 같은 줄 버튼의 위쪽을 맞춘다 */
+.tbl td .btn{vertical-align:middle;}
 /* 접수·발주 표 — 크롬은 한글 음절 사이마다 줄을 바꿀 수 있어 좁은 칸이 한 글자씩 내려오므로 keep-all 로 낱말을 지키고, 바닥(min-width)을 둬서 좁은 화면에서는 눌리는 대신 래퍼가 가로로 스크롤되게 한다. 바닥 값은 외장 마우스를 쓰는 맥의 클래식 스크롤바(약 15px)가 안쪽 폭을 먹어도 필요 없는 스크롤이 안 생기게 쟀다(근거·수치는 app-look 시험) */
 #page-receipt .tbl{min-width:995px;}
 #page-order .tbl{min-width:1080px;}
@@ -1261,7 +1263,7 @@ b,strong{font-weight:600;}
             <span class="pt">📋 청구 내역</span>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <button class="btn bo bsm" onclick="openAmaranthModal('svc')" style="display:flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
-              <button class="btn bo bsm" onclick="exportToExcel('svc')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg> 엑셀 다운로드</button>
+              <button class="btn bo bsm" onclick="exportToExcel('svc')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> 엑셀 다운로드</button>
               <select class="fsel bsm" id="svc-f-month" onchange="renderSvc()"><option value="">전체 월</option></select>
               <select class="fsel bsm" id="svc-f-branch" onchange="renderSvc()"><option value="">전체 지점</option></select>
               <select class="fsel bsm" id="svc-f-brand" onchange="renderSvc()">
@@ -1285,7 +1287,7 @@ b,strong{font-weight:600;}
               <button class="btn bp bsm" onclick="backupAllData()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 전체 백업 다운로드 (JSON)</button>
               <button class="btn bo bsm" onclick="pickRestoreFile()" style="display:inline-flex;align-items:center;gap:5px;color:var(--yellow);border-color:var(--yellow)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 백업 파일에서 복원</button>
               <span style="width:1px;height:20px;background:var(--border)"></span>
-              <button class="btn bo bsm" onclick="exportToExcel('branches')"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg> 지점 목록 엑셀</button>
+              <button class="btn bo bsm" onclick="exportToExcel('branches')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> 지점 목록 엑셀</button>
               <input type="file" id="restore-file-inp" accept=".json,application/json" style="display:none" onchange="handleRestoreFile(event)">
             </div>
             <div style="font-size:11px;color:var(--text3);line-height:1.6">브라우저 데이터가 사라져도 복구할 수 있도록, <b>주기적으로 [전체 백업 다운로드]</b>를 눌러 JSON 파일을 안전한 곳(회사 드라이브 등)에 보관하세요. 복원하면 현재 데이터를 덮어씁니다. ⚠️ 백업 파일에는 계정·비밀번호 등 민감정보가 포함되므로 외부 유출에 주의하세요.</div>
@@ -2699,8 +2701,7 @@ function goP(p){
   FILL_FORCE=true;try{if(fns[p])fns[p]();}finally{FILL_FORCE=false;}
   if(['receipt','order','install','monthly','stock'].includes(p)){
     const tbr=document.getElementById('tb-r');
-    const xlSvg=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/></svg>`;
-    tbr.insertAdjacentHTML('beforeend',`<button class="btn bo bsm" onclick="exportToExcel('${p}')">${xlSvg} 엑셀 다운로드</button>`);
+    tbr.insertAdjacentHTML('beforeend',`<button class="btn bo bsm" onclick="exportToExcel('${p}')">${CI.download} 엑셀 다운로드</button>`);
   }
 }
 
@@ -2817,7 +2818,7 @@ function renderR(){
       else act=`<span style="color:#ea580c;font-size:12px">결제 대기중</span>`;
     }
     const mgmt=isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="editR('${r.id}')">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteR('${r.id}')">삭제</button>`:'';
-    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td style="white-space:nowrap">${isStkRc(r)?`<span class="chip ci">${CI.box}재고 확보</span>`:r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span style="color:var(--plott-color-danger500);display:inline-flex;align-items:center">${CI.bolt}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3);white-space:nowrap">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
+    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td style="white-space:nowrap">${isStkRc(r)?`<span class="chip ci">${CI.box}재고 확보</span>`:r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span style="color:var(--plott-color-danger500);display:inline-flex;align-items:center">${CI.bolt}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
   }).join('');
 }
 function setPipe(el,t){el.closest('.pipeline').querySelectorAll('.ps').forEach(s=>s.classList.remove('on'));el.classList.add('on');if(t==='r'){pipeR=el.dataset.s;renderR();}}
