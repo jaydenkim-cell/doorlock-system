@@ -656,6 +656,10 @@ b,strong{font-weight:600;}
 #page-receipt .tbl{min-width:995px;}
 #page-order .tbl{min-width:1080px;}
 #page-receipt .tbl td,#page-order .tbl td{word-break:keep-all;}
+/* 접수 표 — 칸 좌우 안쪽 여백 8→6px: 관리자 접수 표는 처리/관리 칸 버튼이 많아 1440 에서 클래식 스크롤바(15·17px)가 있으면 내용 최소 폭이 안쪽 폭을 넘었다. 왼쪽·오른쪽 끝 칸의 바깥쪽 20px 은 그대로 — 위 .tbl th:first-child 등은 (0,2,1) 이라 이 규칙(1,1,1)에 눌리므로 끝 칸은 아래 두 줄(1,2,1)로 다시 적는다 */
+#page-receipt .tbl th,#page-receipt .tbl td{padding-left:6px;padding-right:6px;}
+#page-receipt .tbl th:first-child,#page-receipt .tbl td:first-child{padding-left:20px;}
+#page-receipt .tbl th:last-child,#page-receipt .tbl td:last-child{padding-right:20px;}
 
 /* BADGE — 상태(배너 색 짝, 작은 글씨 대비 4.5:1 — 설계서 §4.3·§8-1) */
 .badge{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:6px;font-size:12px;line-height:16px;font-weight:600;white-space:nowrap;}
@@ -2741,7 +2745,7 @@ function renderD(){
   document.getElementById('d-rec').innerHTML=recent.map(r=>{
     let badge='';
     if(r.status==='설치') badge=r.expectedInstallDate?`<span class="badge b-i">설치예정 ${r.expectedInstallDate}</span>`:`<span class="badge b-i">설치일정확인중</span>`;
-    else if(r.status==='결제') badge=r.paymentDone?`<span class="badge b-d">결제완료</span>`:`<span class="badge" style="background:rgba(234,88,12,.1);color:#ea580c;border:1px solid rgba(234,88,12,.2);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">결제대기</span>`;
+    else if(r.status==='결제') badge=r.paymentDone?`<span class="badge b-d">결제완료</span>`:`<span class="badge b-w">결제대기</span>`;
     else badge=badg(r.status);
     return`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td>${badge}</td><td style="color:var(--text3)">${r.date}</td></tr>`;
   }).join('')||emp(5);
@@ -2813,7 +2817,7 @@ function renderR(){
       else act=`<span style="color:#ea580c;font-size:12px">결제 대기중</span>`;
     }
     const mgmt=isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="editR('${r.id}')">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteR('${r.id}')">삭제</button>`:'';
-    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td style="white-space:nowrap">${isStkRc(r)?`<span class="chip ci">${CI.box}재고 확보</span>`:r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:11px;white-space:nowrap">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span style="color:var(--plott-color-danger500);display:inline-flex;align-items:center">${CI.bolt}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3);white-space:nowrap">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
+    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td style="white-space:nowrap">${isStkRc(r)?`<span class="chip ci">${CI.box}재고 확보</span>`:r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span style="color:var(--plott-color-danger500);display:inline-flex;align-items:center">${CI.bolt}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3);white-space:nowrap">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
   }).join('');
 }
 function setPipe(el,t){el.closest('.pipeline').querySelectorAll('.ps').forEach(s=>s.classList.remove('on'));el.classList.add('on');if(t==='r'){pipeR=el.dataset.s;renderR();}}
@@ -3097,13 +3101,13 @@ function renderI(){
     let act='',badge='';
     if(r.status==='설치'){
       badge=r.expectedInstallDate?`<span class="badge b-i">설치예정 ${r.expectedInstallDate}</span>`:`<span class="badge b-i">설치일정확인중</span>`;
-      if(isAdm())act=`<button class="btn bp bsm" style="display:inline-flex;align-items:center;gap:4px" onclick="openExpDateMo('${r.id}')">${CI.calendar} 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button>`;
+      if(isAdm())act=`<button class="btn bp bsm" onclick="openExpDateMo('${r.id}')">${CI.calendar} 일정입력</button> <button class="btn bg bsm" onclick="openIMo('${r.id}')">완료 확인</button>`;
       else act=r.expectedInstallDate?`<span style="color:var(--purple);font-size:12px;display:inline-flex;align-items:center;gap:3px">${CI.calendar} ${r.expectedInstallDate}</span>`:`<span style="color:var(--text3);font-size:12px">설치일정 확인중</span>`;
     } else if(r.status==='발주'){
       badge=badg(r.status);
       act=`<button class="btn bg bsm" onclick="openIMo('${r.id}')">설치 완료 확인</button>`;
     } else if(r.status==='결제'){
-      badge=r.paymentDone?`<span class="badge b-d">결제완료</span>`:`<span class="badge" style="background:rgba(234,88,12,.1);color:#ea580c;border:1px solid rgba(234,88,12,.2);padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600">결제대기</span>`;
+      badge=r.paymentDone?`<span class="badge b-d">결제완료</span>`:`<span class="badge b-w">결제대기</span>`;
       if(!r.paymentDone&&isAdm())act=`<button class="btn bg bsm" onclick="confirmPayment('${r.id}')">결제완료 처리</button>`;
       else act=r.paymentDone?'<span style="color:var(--green);font-size:12px">✓</span>':'<span style="color:#ea580c;font-size:12px">결제 대기중</span>';
     }
