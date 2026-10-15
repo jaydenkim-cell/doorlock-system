@@ -598,7 +598,7 @@ b,strong{font-weight:600;}
 .bp:hover:not(:disabled){background:var(--plott-button-primary-hover-background-color);border-color:var(--plott-button-primary-hover-background-color);}
 .bp:active:not(:disabled){background:var(--plott-button-primary-pressed-background-color);border-color:var(--plott-button-primary-pressed-background-color);}
 .bo{background:var(--plott-color-bg-surface);border-color:var(--plott-color-border-strong);color:var(--plott-color-neutral800);}
-.bo:hover:not(:disabled){background:var(--plott-color-neutral50);}
+.bo:hover:not(:disabled){background:var(--plott-color-bg-muted);}
 .bg{background:var(--plott-color-bg-surface);border-color:var(--plott-color-action-primary);color:var(--plott-color-action-primary);}
 .bg:hover:not(:disabled){background:var(--plott-tag-brand-background-color);}
 .br2{background:var(--plott-color-status-danger-bg);border-color:var(--plott-color-danger200);color:var(--plott-color-danger700);}
@@ -607,54 +607,67 @@ b,strong{font-weight:600;}
 .bsm svg{width:12px;height:12px;}
 .t-warn{color:var(--plott-banner-warning-text-color);}
 
-/* KPI */
-.krow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
-.kpi{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 18px;position:relative;}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:10px 10px 0 0;}
-.kbl::before{background:var(--accent);}.kgr::before{background:var(--green);}.kye::before{background:var(--yellow);}.kre::before{background:var(--red);}
-.kl{font-size:11px;color:var(--text3);margin-bottom:8px;}
-.kv{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1;}
-.ks{font-size:11px;color:var(--text3);margin-top:5px;}
+/* KPI — 숫자 카드: 색 띠 대신 라벨 앞 상태 점 */
+.krow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:24px;}
+.kpi{background:var(--plott-card-background-color);border:1px solid var(--plott-color-border-default);border-radius:12px;padding:16px 20px;}
+.kl{display:flex;align-items:center;gap:6px;font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);margin-bottom:8px;}
+.kl::before{content:'';width:6px;height:6px;border-radius:9999px;background:var(--plott-color-neutral400);flex-shrink:0;}
+.kbl .kl::before{background:var(--plott-color-primary500);}
+.kye .kl::before{background:var(--plott-color-warning700);}
+.kre .kl::before{background:var(--plott-color-info500);}
+.kgr .kl::before{background:var(--plott-color-success500);}
+.kv{font-size:24px;line-height:32px;font-weight:800;color:var(--plott-color-action-primary);font-variant-numeric:tabular-nums;}
+.ks{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);margin-top:4px;}
 
-/* PIPELINE */
-.pipeline{display:flex;margin-bottom:18px;width:fit-content;}
-.ps{display:flex;align-items:center;gap:8px;padding:9px 18px;background:var(--white);border:1px solid var(--border);font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;transition:all .12s;white-space:nowrap;border-right:none;}
-.ps:first-child{border-radius:8px 0 0 8px;}.ps:last-child{border-right:1px solid var(--border);border-radius:0 8px 8px 0;}
-.ps.on{background:var(--accent-l);color:var(--accent);border-color:var(--accent);}
-.ps.on+.ps{border-left-color:var(--accent);}
-.ps .cnt{background:var(--bg);border-radius:10px;padding:1px 7px;font-variant-numeric:tabular-nums;font-size:11px;}
-.ps.on .cnt{background:var(--accent);color:#fff;}
+/* PIPELINE — 단계 칩 */
+.pipeline{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;}
+.ps{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--plott-tag-brand-background-color);border-radius:6px;background:var(--plott-tag-brand-background-color);color:var(--plott-tag-brand-text-color);font-size:12px;line-height:16px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.ps:hover{border-color:var(--plott-color-primary200);}
+.ps.on{background:var(--plott-color-action-primary);border-color:var(--plott-color-action-primary);color:var(--plott-color-text-inverse);}
+.ps .cnt{min-width:20px;padding:0 6px;border-radius:9999px;background:var(--plott-color-primary100);font-variant-numeric:tabular-nums;text-align:center;}
+.ps.on .cnt{background:var(--plott-color-action-primary-hover);color:var(--plott-color-text-inverse);}
 
 /* FILTER */
 .frow{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
 .finp{min-width:180px;}
 
-/* PANEL */
-.panel{background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden;}
-.ph{padding:13px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.pt{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;}
-.pb{padding:16px 18px;}
+/* PANEL — 카드 */
+.panel{background:var(--plott-card-background-color);border:1px solid var(--plott-color-border-default);border-radius:12px;margin-bottom:16px;overflow:hidden;}
+/* min-height 62 = 위아래 16 + sm 버튼 30 — 제목만 있는 머리줄(24)도 버튼이 든 머리줄과 같은 높이가 돼 나란한 패널이 안 어긋난다 */
+.ph{padding:16px 20px;min-height:62px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.pt{font-size:16px;line-height:24px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--plott-color-text-default);}
+.pt svg{color:var(--plott-color-action-primary);}
+.pb{padding:16px 20px;}
 .p2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
 
-/* TABLE */
+/* TABLE — 바탕 없는 머리줄 · 위 2px 갈색 · 줄 사이 1px */
 .tbl{width:100%;border-collapse:collapse;}
-.tbl thead tr{background:var(--surface);border-bottom:1px solid var(--border);}
-.tbl th{padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.3px;text-transform:uppercase;white-space:nowrap;}
-.tbl td{padding:10px 12px;font-size:13px;color:var(--text2);border-bottom:1px solid var(--border);}
-.tbl tr:last-child td{border-bottom:none;}
-.tbl tr:hover td{background:var(--surface);}
-/* 합계행(tfoot): tr:last-child 가 tbody 마지막 행의 하단선을 지우므로 상단선으로 구분한다 */
-.tbl tfoot td{border-top:2px solid var(--border2);}
-.tbl tfoot tr:hover td{background:var(--bg2);}
-.idc{font-variant-numeric:tabular-nums;font-size:11px;color:var(--accent);}
+.tbl th{padding:10px 8px;text-align:left;font-size:11px;line-height:16px;font-weight:600;color:var(--plott-table-header-text-color);letter-spacing:0.02em;white-space:nowrap;background:none;border-top:2px solid var(--plott-table-header-border-color);border-bottom:1px solid var(--plott-color-neutral100);}
+.tbl td{padding:12px 8px;font-size:14px;line-height:20px;color:var(--plott-color-text-default);border-bottom:1px solid var(--plott-color-neutral100);vertical-align:middle;}
+.tbl th:first-child,.tbl td:first-child{padding-left:20px;}
+.tbl th:last-child,.tbl td:last-child{padding-right:20px;}
+.tbl tbody tr:last-child td{border-bottom:none;}
+.tbl tbody tr:hover td{background:var(--plott-color-neutral50);}
+/* 합계행(tfoot): tbody 마지막 줄 아래선이 없으므로 위선으로 구분한다 */
+.tbl tfoot td{border-top:1px solid var(--plott-color-border-strong);border-bottom:none;font-weight:600;}
+.tbl tfoot tr:hover td{background:var(--plott-color-bg-muted);}
+.idc{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);font-variant-numeric:tabular-nums;white-space:nowrap;}
+/* 접수·발주 표 — 열이 많아 좁은 화면(1280)에서 글자 칸이 눌린다. 크롬은 한글 음절 사이마다 줄을 바꿀 수 있어, 칸이 좁아지면 '르컬렉티브'가 한 글자씩 내려온다(접수 표 지점 칸 44px·줄 높이 236px).
+   keep-all 로 낱말을 지키고, 표 폭의 바닥(min-width)을 둬서 그 밑으로는 눌리지 않고 래퍼(overflow-x:auto)가 가로로 스크롤되게 한다.
+   접수 1120 = 관리자 표의 낱말 최소 폭(keep-all · 긴 지점 이름 시험 자료 1113)을 덮는 값 · 발주 1080 = 한 줄로 펼친 폭(1068)을 덮는 값. 둘 다 1440 화면 안쪽 폭(1172)보다 작아 1440 에서는 스크롤이 생기지 않는다 */
+#page-receipt .tbl{min-width:1120px;}
+#page-order .tbl{min-width:1080px;}
+#page-receipt .tbl td,#page-order .tbl td{word-break:keep-all;}
 
-/* BADGE */
-.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap;}
-.badge::before{content:'';width:5px;height:5px;border-radius:50%;flex-shrink:0;}
-.b-r{background:var(--accent-l);color:var(--accent);}.b-r::before{background:var(--accent);}
-.b-o{background:var(--yellow-l);color:var(--yellow);}.b-o::before{background:var(--yellow);}
-.b-i{background:var(--purple-l);color:var(--purple);}.b-i::before{background:var(--purple);}
-.b-d{background:var(--green-l);color:var(--green);}.b-d::before{background:var(--green);}
+/* BADGE — 상태(배너 색 짝, 작은 글씨 대비 4.5:1 — 설계서 §4.3·§8-1) */
+.badge{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:6px;font-size:12px;line-height:16px;font-weight:600;white-space:nowrap;}
+.badge::before{content:'';width:6px;height:6px;border-radius:9999px;flex-shrink:0;}
+.b-r{background:var(--plott-tag-brand-background-color);color:var(--plott-color-primary700);}.b-r::before{background:var(--plott-color-primary500);}
+.b-o{background:var(--plott-banner-warning-background-color);color:var(--plott-banner-warning-text-color);}.b-o::before{background:var(--plott-color-warning700);}
+.b-i{background:var(--plott-banner-info-background-color);color:var(--plott-banner-info-text-color);}.b-i::before{background:var(--plott-color-info500);}
+.b-d{background:var(--plott-banner-success-background-color);color:var(--plott-banner-success-text-color);}.b-d::before{background:var(--plott-color-success500);}
+.b-w{background:var(--plott-banner-danger-background-color);color:var(--plott-banner-danger-text-color);}.b-w::before{background:var(--plott-color-danger500);}
+.hq-nb{margin-left:auto;min-width:20px;padding:0 6px;border-radius:9999px;background:var(--plott-color-danger700);color:var(--plott-color-text-inverse);font-size:12px;line-height:16px;font-weight:600;text-align:center;}
 
 /* MODAL */
 .mo{display:none;position:fixed;inset:0;background:rgba(10,15,30,.55);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
@@ -668,6 +681,8 @@ b,strong{font-weight:600;}
 
 /* FORM — 입력칸 공통(.fi .fs .fta .fsel .finp .role-sel) */
 .fi,.fs,.fta,.fsel,.finp,.role-sel{padding:8px 12px;border:1px solid var(--plott-color-border-default);border-radius:8px;font-size:14px;line-height:20px;color:var(--plott-color-text-default);background:var(--plott-color-bg-surface);outline:none;transition:border-color var(--plott-motion-duration-base) var(--plott-motion-easing-standard),box-shadow var(--plott-motion-duration-base) var(--plott-motion-easing-standard);}
+/* 높이는 38 로 못박는다 — 크롬은 select 에 line-height 를 안 먹여 36, 날짜·달 칸은 안쪽 편집 칸 때문에 40 이 된다. 글상자(.fta)·역할 선택(.role-sel)은 따로 둔다 */
+.fi,.fs,.fsel,.finp{height:38px;}
 .fi,.fs,.fta{width:100%;}
 .fi:focus,.fs:focus,.fta:focus,.fsel:focus,.finp:focus,.role-sel:focus{border-color:var(--plott-color-border-focus);box-shadow:var(--plott-focus-ring-default);}
 .fi::placeholder,.fta::placeholder,.finp::placeholder{color:var(--plott-color-text-tertiary);}
@@ -709,22 +724,22 @@ b,strong{font-weight:600;}
 /* @end */
 
 /* BRANCH GRID */
-.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px;}
-.bc{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 18px;cursor:pointer;transition:all .12s;position:relative;}
-.bc:hover{border-color:var(--accent);box-shadow:0 2px 8px rgba(26,86,219,.08);}
-.bc-n{font-size:14px;font-weight:700;margin-bottom:4px;}
-.bc-s{font-size:12px;color:var(--text3);}
-.bc-m{display:flex;gap:16px;margin-top:10px;font-size:12px;color:var(--text2);}
-.bc-done{position:absolute;top:14px;right:14px;font-size:11px;padding:3px 8px;border-radius:10px;font-weight:600;}
-.bdy{background:var(--green-l);color:var(--green);}
-.bdn{background:var(--yellow-l);color:var(--yellow);}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:16px;}
+.bc{background:var(--plott-card-background-color);border:1px solid var(--plott-color-border-default);border-radius:12px;padding:16px 20px;cursor:pointer;position:relative;transition:box-shadow var(--plott-motion-duration-fast) var(--plott-motion-easing-standard),border-color var(--plott-motion-duration-fast) var(--plott-motion-easing-standard);}
+.bc:hover{border-color:var(--plott-color-border-strong);box-shadow:var(--plott-shadow-sm);}
+.bc-n{font-size:14px;line-height:20px;font-weight:600;margin-bottom:4px;}
+.bc-s{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);}
+.bc-m{display:flex;gap:16px;margin-top:12px;font-size:12px;line-height:16px;color:var(--plott-color-neutral700);}
+.bc-done{position:absolute;top:16px;right:16px;font-size:12px;line-height:16px;padding:2px 8px;border-radius:6px;font-weight:600;}
+.bdy{background:var(--plott-banner-success-background-color);color:var(--plott-banner-success-text-color);}
+.bdn{background:var(--plott-banner-warning-background-color);color:var(--plott-banner-warning-text-color);}
 
-/* MONTHLY */
-.mcg{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;}
-.mcc{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
-.mcc .ml{font-size:11px;color:var(--text3);margin-bottom:6px;}
-.mcc .mv{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;}
-.mcc .ms{font-size:11px;color:var(--text3);margin-top:4px;}
+/* MONTHLY — 카드 4장이라 4칸 */
+.mcg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:24px;}
+.mcc{background:var(--plott-card-background-color);border:1px solid var(--plott-color-border-default);border-radius:12px;padding:16px 20px;}
+.mcc .ml{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);margin-bottom:8px;}
+.mcc .mv{font-size:24px;line-height:32px;font-weight:800;color:var(--plott-color-action-primary);font-variant-numeric:tabular-nums;}
+.mcc .ms{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);margin-top:4px;}
 
 /* CONFIRM */
 .cfm{display:none;position:fixed;inset:0;background:rgba(10,15,30,.5);z-index:2000;align-items:center;justify-content:center;}
@@ -744,18 +759,19 @@ b,strong{font-weight:600;}
 .tt2{font-size:13px;font-weight:600;}
 .td{font-size:11px;color:var(--text3);margin-top:1px;}
 /* ── 재고 ── */
-.stk-wrap{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-.stk-card{border:1px solid var(--bd);border-radius:10px;padding:12px 16px;min-width:116px;background:var(--bg2)}
-.stk-card.tot{border-color:var(--accent);background:var(--accent-l)}
-.stk-card.neg{border-color:#dc2626;background:rgba(220,38,38,.06)}
-.stk-b{font-size:11px;color:var(--text3);margin-bottom:4px}
-.stk-n{font-size:22px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.1}
-.stk-card.neg .stk-n{color:#dc2626}
-.stk-w{font-size:10px;color:#dc2626;margin-top:3px;font-weight:600}
-.chip{display:inline-block;font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:20px;margin-right:4px}
-.chip.ci{background:rgba(180,120,20,.12);color:#8a5d18;border:1px solid rgba(180,120,20,.25)}
-.chip.co{background:rgba(20,120,105,.12);color:#1b6259;border:1px solid rgba(20,120,105,.25)}
-.chip.cg{background:var(--bg3);color:var(--text3);border:1px solid var(--bd)}
+.stk-wrap{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.stk-card{border:1px solid var(--plott-color-border-default);border-radius:12px;padding:12px 16px;min-width:116px;background:var(--plott-card-background-color);}
+.stk-card.tot{border-color:var(--plott-color-action-primary);background:var(--plott-tag-brand-background-color);}
+.stk-card.neg{border-color:var(--plott-color-danger200);background:var(--plott-color-status-danger-bg);}
+.stk-b{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);margin-bottom:4px;}
+.stk-n{font-size:24px;line-height:32px;font-weight:800;font-variant-numeric:tabular-nums;}
+.stk-card.neg .stk-n{color:var(--plott-color-danger700);}
+.stk-w{font-size:12px;line-height:16px;color:var(--plott-color-danger700);margin-top:4px;font-weight:600;}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;line-height:16px;font-weight:600;padding:2px 8px;border-radius:6px;margin-right:4px;}
+.chip svg{width:12px;height:12px;}
+.chip.ci{background:var(--plott-tag-neutral-background-color);color:var(--plott-tag-neutral-text-color);}
+.chip.co{background:var(--plott-banner-info-background-color);color:var(--plott-banner-info-text-color);}
+.chip.cg{background:var(--plott-color-bg-muted);color:var(--plott-color-text-secondary);}
 .num-r{text-align:right;font-variant-numeric:tabular-nums}
 /* .tbl th (0,1,1) 가 .num-r (0,1,0) 보다 우선이라 헤더만 왼쪽 정렬로 남는다.
    숫자 열은 머리글과 값이 같은 변에 붙어야 어느 칸인지 읽힌다. */
@@ -6814,7 +6830,7 @@ function hqBadge(){
   let b=ni.querySelector('.hq-nb');
   const n=isAdm()?hqAlive().filter(x=>x.st!=='전달').length:0;
   if(!n){if(b)b.remove();return;}
-  if(!b){b=document.createElement('span');b.className='hq-nb';b.style.cssText='margin-left:auto;background:#e02424;color:#fff;border-radius:9px;padding:0 6px;font-size:11px;font-weight:700;line-height:18px';ni.appendChild(b);}
+  if(!b){b=document.createElement('span');b.className='hq-nb';ni.appendChild(b);}
   b.textContent=String(n);
 }
 function openHqReqMo(o){
