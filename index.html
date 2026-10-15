@@ -654,8 +654,9 @@ b,strong{font-weight:600;}
 .idc{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);font-variant-numeric:tabular-nums;white-space:nowrap;}
 /* 접수·발주 표 — 열이 많아 좁은 화면(1280)에서 글자 칸이 눌린다. 크롬은 한글 음절 사이마다 줄을 바꿀 수 있어, 칸이 좁아지면 '르컬렉티브'가 한 글자씩 내려온다(접수 표 지점 칸 44px·줄 높이 236px).
    keep-all 로 낱말을 지키고, 표 폭의 바닥(min-width)을 둬서 그 밑으로는 눌리지 않고 래퍼(overflow-x:auto)가 가로로 스크롤되게 한다.
-   접수 1120 = 관리자 표의 낱말 최소 폭(keep-all · 긴 지점 이름 시험 자료 1113)을 덮는 값 · 발주 1080 = 한 줄로 펼친 폭(1068)을 덮는 값. 둘 다 1440 화면 안쪽 폭(1172)보다 작아 1440 에서는 스크롤이 생기지 않는다 */
-#page-receipt .tbl{min-width:1120px;}
+   바닥은 '필요 없는 가로 스크롤이 안 생기는 가장 큰 값'으로 쟀다. 접수 1012 = 1280 화면 안쪽 폭 — 지점 직원 표는 한 줄 폭 1029 · 낱말 최소 폭 839 라 1280 에서, 관리자 표는 낱말 최소 폭 1089 라 1366 안쪽 폭 1098 안에 들어가 1366 에서 스크롤이 없다(1013 부터는 직원 표가 스크롤).
+   관리자 접수 표의 실제 바닥은 keep-all 낱말 최소 폭(1089 · 긴 지점 이름 시험 자료 1113)이라 1280 에서는 스크롤된다. 발주 1080 = 한 줄로 펼친 폭(1068)을 덮는 값이고 1366 안쪽 폭 아래다. 둘 다 1440 안쪽 폭(1172)보다 작아 1440 에서는 스크롤이 없다 */
+#page-receipt .tbl{min-width:1012px;}
 #page-order .tbl{min-width:1080px;}
 #page-receipt .tbl td,#page-order .tbl td{word-break:keep-all;}
 
