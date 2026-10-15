@@ -651,12 +651,8 @@ b,strong{font-weight:600;}
 /* 합계행(tfoot): tbody 마지막 줄 아래선이 없으므로 위선으로 구분한다 */
 .tbl tfoot td{border-top:1px solid var(--plott-color-border-strong);border-bottom:none;font-weight:600;}
 .tbl tfoot tr:hover td{background:var(--plott-color-bg-muted);}
-.idc{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);font-variant-numeric:tabular-nums;white-space:nowrap;}
-/* 접수·발주 표 — 열이 많아 좁은 화면(1280)에서 글자 칸이 눌린다. 크롬은 한글 음절 사이마다 줄을 바꿀 수 있어, 칸이 좁아지면 '르컬렉티브'가 한 글자씩 내려온다(접수 표 지점 칸 44px·줄 높이 236px).
-   keep-all 로 낱말을 지키고, 표 폭의 바닥(min-width)을 둬서 그 밑으로는 눌리지 않고 래퍼(overflow-x:auto)가 가로로 스크롤되게 한다.
-   바닥은 '필요 없는 가로 스크롤이 안 생기는 가장 큰 값'으로 쟀고, 윈도우 크롬의 클래식 세로 스크롤바(15~17px — 헤드리스는 숨겨서 안 보인다)가 안쪽 폭을 먹어도 안 넘게 잡았다.
-   접수 995 = 1280 화면 안쪽 폭 1012 − 17: 지점 직원 표(한 줄 폭 1029 · 낱말 최소 폭 839)가 1280 에서 스크롤바 없음·15px·17px(안쪽 폭 1012·997·995) 모두 스크롤 없이 들어간다(996 부터는 17px 에서 스크롤). 발주 1080 = 한 줄로 펼친 폭(1068)을 덮는 값 — 1366 안쪽 폭 1098·1083·1081 이 모두 1080 이상이다.
-   관리자 접수 표의 실제 바닥은 keep-all 낱말 최소 폭(1089 · 긴 지점 이름 시험 자료 1113)이라 1280 에서는 스크롤되고, 1366 에서는 스크롤바가 없을 때만 들어간다(15px 에서 6px · 17px 에서 8px 스크롤). 모두 1440 안쪽 폭(1172)보다 작아 1440 에서는 스크롤이 없다 */
+.idc,.tbl td.idc{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);font-variant-numeric:tabular-nums;white-space:nowrap;}
+/* 접수·발주 표 — 크롬은 한글 음절 사이마다 줄을 바꿀 수 있어 좁은 칸이 한 글자씩 내려오므로 keep-all 로 낱말을 지키고, 바닥(min-width)을 둬서 좁은 화면에서는 눌리는 대신 래퍼가 가로로 스크롤되게 한다. 바닥 값은 외장 마우스를 쓰는 맥의 클래식 스크롤바(약 15px)가 안쪽 폭을 먹어도 필요 없는 스크롤이 안 생기게 쟀다(근거·수치는 app-look 시험) */
 #page-receipt .tbl{min-width:995px;}
 #page-order .tbl{min-width:1080px;}
 #page-receipt .tbl td,#page-order .tbl td{word-break:keep-all;}
@@ -769,7 +765,7 @@ b,strong{font-weight:600;}
 .stk-n{font-size:24px;line-height:32px;font-weight:800;font-variant-numeric:tabular-nums;}
 .stk-card.neg .stk-n{color:var(--plott-color-danger700);}
 .stk-w{font-size:12px;line-height:16px;color:var(--plott-color-danger700);margin-top:4px;font-weight:600;}
-.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;line-height:16px;font-weight:600;padding:2px 8px;border-radius:6px;margin-right:4px;}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12px;line-height:16px;font-weight:600;padding:2px 8px;border-radius:6px;margin-right:4px;white-space:nowrap;}
 .chip svg{width:12px;height:12px;}
 .chip.ci{background:var(--plott-tag-neutral-background-color);color:var(--plott-tag-neutral-text-color);}
 .chip.co{background:var(--plott-banner-info-background-color);color:var(--plott-banner-info-text-color);}
@@ -6480,7 +6476,7 @@ function h2oRender(){
     if(locked)return chips?`<div style="font-size:11px">${chips}</div>`:'';
     const bt=(k,t,tip)=>`<button class="btn bo bsm" style="padding:1px 6px;font-size:11px" onclick="h2oAdjust('${f.id}','${k}')" title="${tip}">${t}</button>`;
     const bulk=x.removed.length>=2?`<div style="margin-top:4px;display:flex;gap:4px;align-items:center"><input type="date" id="h2o-bulk-${f.id}" style="font-size:11px"><button class="btn bo bsm" style="padding:1px 6px;font-size:11px" onclick="h2oBulkDate('${f.id}')" title="비어 있는 해지 도달일을 한 번에 채웁니다(시설 종료 등)">도달일 일괄</button></div>`:'';
-    return`<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><input class="fi" id="h2o-adj-${f.id}" placeholder="${dong?'A동 1205':'1902'}" style="width:80px;padding:2px 6px;font-size:11px">${f.whole?bt('add','추가','H2O 서버에 등록된 우리 방(건물 전체 시설)'):''}${bt('remove','해지','삭제 요청은 보냈는데 H2O 서버에 아직 남아 있는 방')}${bt('extra','추가·해지','이번 달 등록됐다가 해지돼 서버에서도 지워진 방 — 등록일·도달일을 넣습니다')}</div>${bulk}${chips?`<div style="font-size:11px">${chips}</div>`:''}`;};
+    return`<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><input class="fi" id="h2o-adj-${f.id}" placeholder="${dong?'A동 1205':'1902'}" style="width:80px;padding:2px 6px;font-size:11px;height:auto">${f.whole?bt('add','추가','H2O 서버에 등록된 우리 방(건물 전체 시설)'):''}${bt('remove','해지','삭제 요청은 보냈는데 H2O 서버에 아직 남아 있는 방')}${bt('extra','추가·해지','이번 달 등록됐다가 해지돼 서버에서도 지워진 방 — 등록일·도달일을 넣습니다')}</div>${bulk}${chips?`<div style="font-size:11px">${chips}</div>`:''}`;};
   const rows=h2oFacs(month).map(f=>{const x=H2OL.fac[f.id];if(!x)return'';const L=E.lists[f.id]||x.list;
     const cn=E.changes.filter(c=>c.fid===f.id),ad=cn.filter(c=>c.type!=='해지').length,rm=cn.filter(c=>c.type!=='추가').length;
     const msgs=x.warn.map(w=>`<span style="color:var(--red)">${escH(w)}</span>`).concat(x.info.map(w=>`<span style="color:var(--text3)">${escH(w)}</span>`)).concat((x.reqWarn||[]).map(w=>h2oRwHtml(f.id,w)));
