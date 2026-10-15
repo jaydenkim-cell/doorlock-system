@@ -565,9 +565,6 @@ b,strong{font-weight:600;}
 .rb-admin{background:var(--plott-tag-brand-background-color);color:var(--plott-tag-brand-text-color);}
 .rb-user{background:var(--plott-tag-neutral-background-color);color:var(--plott-tag-neutral-text-color);}
 .rb-pending{background:var(--plott-banner-warning-background-color);color:var(--plott-banner-warning-text-color);}
-.approve-btn{padding:6px 12px;border-radius:6px;border:1px solid var(--plott-color-action-primary);background:var(--plott-color-action-primary);color:var(--plott-color-text-inverse);font-size:12px;line-height:16px;font-weight:600;cursor:pointer;}
-.approve-btn:hover{background:var(--plott-color-action-primary-hover);}
-.reject-btn{padding:6px 12px;border-radius:6px;border:1px solid var(--plott-color-danger200);background:var(--plott-color-status-danger-bg);color:var(--plott-color-danger700);font-size:12px;line-height:16px;font-weight:600;cursor:pointer;}
 .pending-row td{background:var(--plott-banner-warning-background-color)!important;}
 .sb-nav{flex:1;overflow-y:auto;padding:4px 8px 12px;display:flex;flex-direction:column;gap:2px;}
 .sg{padding:12px 12px 4px;font-size:12px;line-height:16px;font-weight:600;color:var(--plott-color-text-secondary);}
@@ -654,6 +651,8 @@ b,strong{font-weight:600;}
 .idc,.tbl td.idc{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);font-variant-numeric:tabular-nums;white-space:nowrap;}
 /* 표 칸 안 버튼 — 아이콘이 첫 자식인 버튼(일정입력·입고 확인)은 inline-flex 의 기준선이 아이콘 아래라 글자만 있는 이웃 버튼보다 2px 위에 앉았다 → 가운데 맞춤으로 같은 줄 버튼의 위쪽을 맞춘다 */
 .tbl td .btn{vertical-align:middle;}
+/* 긴급 번개(접수 표 긴급 칸) — 시안은 안쪽을 채운 번개다. CI.zap 은 선만 그려(fill="none") 두므로 여기서 안쪽을 글자색으로 칠한다 */
+.urg svg{fill:currentColor;}
 /* 접수·발주 표 — 크롬은 한글 음절 사이마다 줄을 바꿀 수 있어 좁은 칸이 한 글자씩 내려오므로 keep-all 로 낱말을 지키고, 바닥(min-width)을 둬서 좁은 화면에서는 눌리는 대신 래퍼가 가로로 스크롤되게 한다. 바닥 값은 외장 마우스를 쓰는 맥의 클래식 스크롤바(약 15px)가 안쪽 폭을 먹어도 필요 없는 스크롤이 안 생기게 쟀다(근거·수치는 app-look 시험) */
 #page-receipt .tbl{min-width:995px;}
 #page-order .tbl{min-width:1080px;}
@@ -797,7 +796,7 @@ b,strong{font-weight:600;}
 <!-- LOGIN — Plott Design -->
 <div id="login-screen">
   <div class="l-icon">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" fill="currentColor">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="36" height="36" fill="currentColor" aria-hidden="true">
       <rect x="7.5" y="12" width="1" height="1.5"/>
       <rect x="7.5" y="15" width="1" height="1.5"/>
       <rect x="7.5" y="18" width="1" height="1.5"/>
@@ -819,7 +818,7 @@ b,strong{font-weight:600;}
     <div class="lerr" id="lerr"></div>
     <div class="lload-bar" id="lbar"><div class="lload-bar-inner"></div></div>
     <button class="lbtn" id="l-btn" onclick="doSSOLogin()">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="flex-shrink:0"><rect x="8.941" y="11.775" width="1.412" height="2.826"/><path d="M17.882,9.204c.446.14.92.216,1.412.216,2.599,0,4.706-2.109,4.706-4.71S21.893,0,19.294,0c-1.54,0-2.906.74-3.765,1.884H1.882v17.899s-1.882,0-1.882,0v1.413h2.719l10.457,2.804v-2.804h10.353v-1.413h-5.647v-10.578ZM17.436,3.768l1.384,1.361,2.329-2.331.998.999-3.318,3.321-2.381-2.342.989-1.008ZM11.765,22.159l-8.471-2.272V3.511l8.471,2.272v16.377ZM7.949,3.297h6.855c-.14.446-.216.921-.216,1.413,0,1.541.739,2.909,1.883,3.768v11.304h-3.294V4.699l-5.228-1.402Z"/></svg>
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true" style="flex-shrink:0"><rect x="8.941" y="11.775" width="1.412" height="2.826"/><path d="M17.882,9.204c.446.14.92.216,1.412.216,2.599,0,4.706-2.109,4.706-4.71S21.893,0,19.294,0c-1.54,0-2.906.74-3.765,1.884H1.882v17.899s-1.882,0-1.882,0v1.413h2.719l10.457,2.804v-2.804h10.353v-1.413h-5.647v-10.578ZM17.436,3.768l1.384,1.361,2.329-2.331.998.999-3.318,3.321-2.381-2.342.989-1.008ZM11.765,22.159l-8.471-2.272V3.511l8.471,2.272v16.377ZM7.949,3.297h6.855c-.14.446-.216.921-.216,1.413,0,1.541.739,2.909,1.883,3.768v11.304h-3.294V4.699l-5.228-1.402Z"/></svg>
       <span id="l-btn-txt">Plott 계정으로 로그인</span>
     </button>
   </div>
@@ -1118,7 +1117,7 @@ b,strong{font-weight:600;}
           <div class="mcc"><div class="ml">마감 상태</div><div class="mv" id="mc-st" style="font-size:15px;color:var(--yellow)">미마감</div><div class="ms" id="mc-ss">처리 전</div></div>
         </div>
         <div class="panel">
-          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><span style="display:inline-flex;gap:6px"><button class="btn bo bsm" id="mc-backfill" onclick="backfillClose()" style="display:none">확정 금액 저장</button><button class="btn bo bsm" id="mc-reopen" onclick="reopenMonth()" style="display:none;color:#ea580c;border-color:rgba(234,88,12,.3)">마감 취소</button><button class="btn bo bsm" onclick="openAmaranthModal('monthly')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></span></div>
+          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><span style="display:inline-flex;gap:6px"><button class="btn bo bsm" id="mc-backfill" onclick="backfillClose()" style="display:none">확정 금액 저장</button><button class="btn br2 bsm" id="mc-reopen" onclick="reopenMonth()" style="display:none">마감 취소</button><button class="btn bo bsm" onclick="openAmaranthModal('monthly')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></span></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>유형</th><th title="일괄=물건+설치 한 건 / 물건=재고 입고 / 설치=재고에서 꺼내 설치">구분2</th><th>완료건</th><th title="물건 라인은 구매 개수, 설치 라인은 설치 실수입니다">수량</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-all"></tbody><tfoot id="m-foot-all"></tfoot></table></div>
         </div>
       </div>
@@ -1264,9 +1263,9 @@ b,strong{font-weight:600;}
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <button class="btn bo bsm" onclick="openAmaranthModal('svc')" style="display:flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
               <button class="btn bo bsm" onclick="exportToExcel('svc')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> 엑셀 다운로드</button>
-              <select class="fsel bsm" id="svc-f-month" onchange="renderSvc()"><option value="">전체 월</option></select>
-              <select class="fsel bsm" id="svc-f-branch" onchange="renderSvc()"><option value="">전체 지점</option></select>
-              <select class="fsel bsm" id="svc-f-brand" onchange="renderSvc()">
+              <select class="fsel" id="svc-f-month" onchange="renderSvc()"><option value="">전체 월</option></select>
+              <select class="fsel" id="svc-f-branch" onchange="renderSvc()"><option value="">전체 지점</option></select>
+              <select class="fsel" id="svc-f-brand" onchange="renderSvc()">
                 <option value="">전체 브랜드</option>
                 <option value="직방">직방</option>
                 <option value="H2O">H2O</option>
@@ -1285,7 +1284,7 @@ b,strong{font-weight:600;}
           <div class="pb" style="display:flex;flex-direction:column;gap:12px">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <button class="btn bp bsm" onclick="backupAllData()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 전체 백업 다운로드 (JSON)</button>
-              <button class="btn bo bsm" onclick="pickRestoreFile()" style="display:inline-flex;align-items:center;gap:5px;color:var(--yellow);border-color:var(--yellow)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 백업 파일에서 복원</button>
+              <button class="btn br2 bsm" onclick="pickRestoreFile()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 백업 파일에서 복원</button>
               <span style="width:1px;height:20px;background:var(--border)"></span>
               <button class="btn bo bsm" onclick="exportToExcel('branches')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> 지점 목록 엑셀</button>
               <input type="file" id="restore-file-inp" accept=".json,application/json" style="display:none" onchange="handleRestoreFile(event)">
@@ -2652,6 +2651,8 @@ const CI={
   download:`<svg ${_s} width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>`,
   folder:`<svg ${_s} width="32" height="32"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>`,
 };
+// 글줄 안(flex 가 아닌 곳)에 앉는 경고 아이콘 — 기준선에 그냥 앉으면 글자 가운데보다 3~4px 위로 떠서 세로로 3px 내린다. 알림·확인창은 flex 안이라 CI.alert 그대로
+CI.alertIn=CI.alert.replace('<svg ','<svg style="vertical-align:-3px" ');
 function buildNav(){
   const sa=isSA(), a=isAdm();
   const itms=[];
@@ -2818,7 +2819,7 @@ function renderR(){
       else act=`<span style="color:#ea580c;font-size:12px">결제 대기중</span>`;
     }
     const mgmt=isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="editR('${r.id}')">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteR('${r.id}')">삭제</button>`:'';
-    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td style="white-space:nowrap">${isStkRc(r)?`<span class="chip ci">${CI.box}재고 확보</span>`:r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span role="img" aria-label="긴급" style="color:var(--plott-color-danger500);display:inline-flex;align-items:center">${CI.zap}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
+    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td style="white-space:nowrap">${isStkRc(r)?`<span class="chip ci">${CI.box}재고 확보</span>`:r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span class="urg" role="img" aria-label="긴급" style="color:var(--plott-color-danger500);display:inline-flex;align-items:center">${CI.zap}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
   }).join('');
 }
 function setPipe(el,t){el.closest('.pipeline').querySelectorAll('.ps').forEach(s=>s.classList.remove('on'));el.classList.add('on');if(t==='r'){pipeR=el.dataset.s;renderR();}}
@@ -3331,7 +3332,7 @@ function renderM(){
       ssEl.style.color=MS.snap?'':'var(--yellow)';
       // 마감 후 실데이터가 바뀌면 조용히 넘어가지 않고 표시한다
       if(MS.snap&&MS.drift){
-        stEl.innerHTML='마감 완료 '+CI.alert;
+        stEl.innerHTML='마감 완료 '+CI.alertIn;
         stEl.style.color='var(--red)';
         ssEl.textContent=`확정 후 실데이터 ${MS.drift>0?'+':''}${MS.drift.toLocaleString()}원 변경됨`;
         ssEl.style.color='var(--red)';
@@ -3442,7 +3443,7 @@ function renderUsers(){
       <td style="color:var(--text3)">${u.approvedAt?u.approvedAt.substring(0,10):'—'}</td>
       <td style="color:var(--text3)">${u.approvedBy||'—'}</td>
       <td>${roleSel}</td>
-      <td>${isSelf||isThisSA?'—':`<button class="reject-btn" onclick="removeUser('${u.id}')">삭제</button>`}</td>
+      <td>${isSelf||isThisSA?'—':`<button class="btn br2 bsm reject-btn" onclick="removeUser('${u.id}')">삭제</button>`}</td>
     </tr>`;
   }).join(''):`<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text3)">승인된 사용자가 없습니다</td></tr>`;
   document.getElementById('pending-tbody').innerHTML=pending.length?pending.map(u=>`
@@ -3450,9 +3451,9 @@ function renderUsers(){
       <td class="idc">${u.id}</td>
       <td style="color:var(--text3)">${u.loginAt?new Date(u.loginAt).toLocaleString('ko-KR'):'—'}</td>
       <td>
-        <button class="approve-btn" style="margin-right:6px" onclick="approveUser('${u.id}','user')">직원으로 승인</button>
-        <button class="approve-btn" style="background:var(--purple);margin-right:6px" onclick="approveUser('${u.id}','admin')">관리자로 승인</button>
-        <button class="reject-btn" onclick="removeUser('${u.id}')">거절</button>
+        <button class="btn bp bsm approve-btn" style="margin-right:6px" onclick="approveUser('${u.id}','user')">직원으로 승인</button>
+        <button class="btn bp bsm approve-btn" style="margin-right:6px" onclick="approveUser('${u.id}','admin')">관리자로 승인</button>
+        <button class="btn br2 bsm reject-btn" onclick="removeUser('${u.id}')">거절</button>
       </td>
     </tr>`).join(''):`<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--green)">대기 중인 사용자 없음 ✓</td></tr>`;
 }
@@ -3522,13 +3523,13 @@ async function syncDuckRooms(){
 function renderBr(){
   renderSlackStatus();   // 슬랙은 서버 비밀 — 설정돼 있는지만 보여 준다(값은 내려오지 않는다)
   // 툴바 버튼
-  document.getElementById('tb-r').innerHTML=`<button class="btn" onclick="syncDuckRoomsAndRender()" style="font-size:12px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button><button class="btn bo" onclick="repairBranchNames()" style="font-size:12px;margin-left:6px">지점명 복구</button>`;
+  document.getElementById('tb-r').innerHTML=`<button class="btn bo bsm" onclick="syncDuckRoomsAndRender()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button><button class="btn bo bsm" onclick="repairBranchNames()" style="margin-left:6px">지점명 복구</button>`;
   // Duck 캐시 적용 후 렌더
   syncDuckRooms().then(duck=>{
     const brs=getActiveBr();
     const syncAt=duck?.updatedAt?`<span style="font-size:11px;color:var(--text3);padding:4px 8px">마지막 Duck 동기화: ${duck.updatedAt.substring(0,10)}</span>`:'';
     document.getElementById('bgrid').innerHTML=`<div class="bc" onclick="openBrMo(null)" style="border:2px dashed var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;min-height:110px;flex-direction:column;gap:8px;color:var(--text3)"><div style="font-size:28px">+</div><div style="font-size:13px;font-weight:600">지점 추가</div></div>`
-      +brs.map(b=>`<div class="bc" data-brc data-name="${(b.name||'').toLowerCase()}" data-loc="${(b.loc||'').toLowerCase()}" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div style="margin:4px 0"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${brLockType(b)==='호텔도어락'?'rgba(147,51,234,.1)':'rgba(26,86,219,.08)'};color:${brLockType(b)==='호텔도어락'?'var(--purple)':'var(--accent)'}">${brLockType(b)}${brExtra(b)?' · 자재 '+brExtra(b).toLocaleString()+'원':''}</span></div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div><div style="margin-top:8px;text-align:right"><button class="btn bo bsm" onclick="event.stopPropagation();closeBranch(${b.id})" style="font-size:11px;color:#ea580c;border-color:rgba(234,88,12,.3)">지점 종료</button></div></div>`).join('');
+      +brs.map(b=>`<div class="bc" data-brc data-name="${(b.name||'').toLowerCase()}" data-loc="${(b.loc||'').toLowerCase()}" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div style="margin:4px 0"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${brLockType(b)==='호텔도어락'?'rgba(147,51,234,.1)':'rgba(26,86,219,.08)'};color:${brLockType(b)==='호텔도어락'?'var(--purple)':'var(--accent)'}">${brLockType(b)}${brExtra(b)?' · 자재 '+brExtra(b).toLocaleString()+'원':''}</span></div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div><div style="margin-top:8px;text-align:right"><button class="btn br2 bsm" onclick="event.stopPropagation();closeBranch(${b.id})">지점 종료</button></div></div>`).join('');
     document.getElementById('duck-sync-at')?.remove();   // 다시 그릴 때마다 줄이 쌓이지 않게
     if(syncAt)document.getElementById('bgrid').insertAdjacentHTML('beforebegin',`<div id="duck-sync-at" style="display:flex;justify-content:flex-end;margin-bottom:4px">${syncAt}</div>`);
     filterBr();
@@ -3642,7 +3643,7 @@ function renderArchive(){
   el.innerHTML=brs.map(b=>{
     const oc=getOr().filter(o=>o.branch===b.name).length;
     const rc=getRc().filter(r=>r.branch===b.name).length;
-    return`<div class="bc" style="opacity:.9"><span class="bc-done" style="background:rgba(234,88,12,.12);color:#ea580c">종료 ${b.closedDate||''}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.clipboard} 접수 ${rc}건</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.box} 발주 ${oc}건</span></div><div style="margin-top:10px;display:flex;gap:6px;justify-content:flex-end"><button class="btn bo bsm" onclick="openBrMo(${b.id})" style="font-size:11px">정보 보기</button><button class="btn bp bsm" onclick="reopenBranch(${b.id})" style="font-size:11px">↻ 재개</button></div></div>`;
+    return`<div class="bc" style="opacity:.9"><span class="bc-done" style="background:rgba(234,88,12,.12);color:#ea580c">종료 ${b.closedDate||''}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.clipboard} 접수 ${rc}건</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.box} 발주 ${oc}건</span></div><div style="margin-top:10px;display:flex;gap:6px;justify-content:flex-end"><button class="btn bo bsm" onclick="openBrMo(${b.id})">정보 보기</button><button class="btn bp bsm" onclick="reopenBranch(${b.id})">↻ 재개</button></div></div>`;
   }).join('');
 }
 
@@ -3690,7 +3691,7 @@ function addDraftRow(){
     <td><input class="fi" id="dr-sub-${idx}" readonly style="background:var(--surface);font-weight:700;font-variant-numeric:tabular-nums;font-size:12px;width:100%"></td>
     <td><input class="fi" id="dr-open-${idx}" type="date" style="width:100%"></td>
     <td><input class="fi" id="dr-memo-${idx}" placeholder="메모" style="width:100%"></td>
-    <td><button class="btn br2 bsm" onclick="delDraftRow(${idx})" style="padding:4px 8px">✕</button></td>`;
+    <td><button class="btn br2 bsm" onclick="delDraftRow(${idx})">✕</button></td>`;
   document.getElementById('draft-tbody').appendChild(tr);
   calcDraftTotal();
 }
@@ -4088,7 +4089,7 @@ function toastUndo(msg,undoCb){
   const el=document.createElement('div');
   el.className='toast toast-i show';
   el.id=uid;
-  el.innerHTML=`<span class="tic">${CI.trash}</span><div style="flex:1"><div class="tt2">${msg}</div><div class="td">실수로 삭제했나요?</div></div><button onclick="doUndo('${uid}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0">되돌리기</button>`;
+  el.innerHTML=`<span class="tic">${CI.trash}</span><div style="flex:1"><div class="tt2">${msg}</div><div class="td">실수로 삭제했나요?</div></div><button class="btn bp bsm" onclick="doUndo('${uid}')" style="flex-shrink:0">되돌리기</button>`;
   tw.appendChild(el);
   const timer=setTimeout(()=>el.remove(),5000);
   el._timer=timer;
@@ -5393,7 +5394,7 @@ function svcAutoPreview(){
         chip.style.cssText='display:inline-flex;align-items:center;gap:5px;border:1px solid var(--bd);border-radius:20px;padding:2px 6px 2px 10px';
         const t=document.createElement('span');t.textContent=`${o.id} (${o.n}실)`;
         const b=document.createElement('button');
-        b.className='btn bo bsm';b.style.cssText='padding:1px 7px;font-size:11px';
+        b.className='btn bo bsm';
         b.textContent='무시';b.title='지점 계정의 도어락을 복사해둔 계정 등, 정상인 경우 끕니다';
         b.addEventListener('click',()=>svcIgnoreSoliti(o.id,true));
         chip.appendChild(t);chip.appendChild(b);w.appendChild(chip);
@@ -5403,7 +5404,7 @@ function svcAutoPreview(){
       const s2=document.createElement('span');
       s2.textContent=`무시 중인 계정 ${hid}개`;
       const b2=document.createElement('button');
-      b2.className='btn bo bsm';b2.style.cssText='padding:1px 7px;font-size:11px;margin-left:6px';
+      b2.className='btn bo bsm';b2.style.cssText='margin-left:6px';
       b2.textContent='다시 보기';
       b2.addEventListener('click',()=>{
         const d=getSvc();d.solitiIgnore={};saveSvc(d);svcAutoPreview();
@@ -5834,7 +5835,7 @@ function renderSvc(){
           <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
           <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
           <td><input id="se-note-${r.id}" type="text" value="${escH(r.note||'')}" style="width:140px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" placeholder="비고"></td>
-          <td style="white-space:nowrap"><button class="btn bp bsm" onclick="saveEditSvc(${r.id})" style="padding:2px 8px;font-size:11px;margin-right:4px">저장</button><button class="btn bo bsm" onclick="cancelSvcEdit()" style="padding:2px 8px;font-size:11px">취소</button></td>
+          <td style="white-space:nowrap"><button class="btn bp bsm" onclick="saveEditSvc(${r.id})" style="margin-right:4px">저장</button><button class="btn bo bsm" onclick="cancelSvcEdit()">취소</button></td>
         </tr>`;
       }
       return`<tr>
@@ -5847,7 +5848,7 @@ function renderSvc(){
         <td style="text-align:right">${fmt(vat)}</td>
         <td style="text-align:right;font-weight:600">${fmt(ex+vat)}</td>
         <td style="font-size:11px;color:var(--text3)">${escH(r.note||'')}</td>
-        <td style="white-space:nowrap"><button class="btn bo bsm" onclick="editSvcEntry(${r.id})" style="padding:2px 8px;font-size:11px;margin-right:4px">수정</button><button class="btn bo bsm" onclick="deleteSvcEntry(${r.id})" style="padding:2px 8px;font-size:11px">삭제</button></td>
+        <td style="white-space:nowrap"><button class="btn bo bsm" onclick="editSvcEntry(${r.id})" style="margin-right:4px">수정</button><button class="btn bo bsm" onclick="deleteSvcEntry(${r.id})">삭제</button></td>
       </tr>`;
     }).join('');
   const st=svcTotal(recs);
@@ -6497,8 +6498,8 @@ function h2oRender(){
     const kl={add:'추가',remove:'해지',extra:'추가·해지'};
     const chips=x.manual.map(a=>{const i=a.k.indexOf('|');return`<span class="chip cg" style="margin:2px 4px 0 0">${escH(h2oLabel({b:a.k.slice(0,i),n:a.k.slice(i+1)}))} ${kl[a.kind]}${locked?'':` <a href="javascript:void 0" data-fid="${escH(f.id)}" data-k="${escH(a.k)}" onclick="h2oAdjUndoEl(this)" title="직접 적은 것 취소" style="color:var(--red);text-decoration:none">✕</a>`}</span>`;}).join('');
     if(locked)return chips?`<div style="font-size:11px">${chips}</div>`:'';
-    const bt=(k,t,tip)=>`<button class="btn bo bsm" style="padding:1px 6px;font-size:11px" onclick="h2oAdjust('${f.id}','${k}')" title="${tip}">${t}</button>`;
-    const bulk=x.removed.length>=2?`<div style="margin-top:4px;display:flex;gap:4px;align-items:center"><input type="date" id="h2o-bulk-${f.id}" style="font-size:11px"><button class="btn bo bsm" style="padding:1px 6px;font-size:11px" onclick="h2oBulkDate('${f.id}')" title="비어 있는 해지 도달일을 한 번에 채웁니다(시설 종료 등)">도달일 일괄</button></div>`:'';
+    const bt=(k,t,tip)=>`<button class="btn bo bsm" onclick="h2oAdjust('${f.id}','${k}')" title="${tip}">${t}</button>`;
+    const bulk=x.removed.length>=2?`<div style="margin-top:4px;display:flex;gap:4px;align-items:center"><input type="date" id="h2o-bulk-${f.id}" style="font-size:11px"><button class="btn bo bsm" onclick="h2oBulkDate('${f.id}')" title="비어 있는 해지 도달일을 한 번에 채웁니다(시설 종료 등)">도달일 일괄</button></div>`:'';
     return`<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><input class="fi" id="h2o-adj-${f.id}" placeholder="${dong?'A동 1205':'1902'}" style="width:80px;padding:2px 6px;font-size:11px;height:auto">${f.whole?bt('add','추가','H2O 서버에 등록된 우리 방(건물 전체 시설)'):''}${bt('remove','해지','삭제 요청은 보냈는데 H2O 서버에 아직 남아 있는 방')}${bt('extra','추가·해지','이번 달 등록됐다가 해지돼 서버에서도 지워진 방 — 등록일·도달일을 넣습니다')}</div>${bulk}${chips?`<div style="font-size:11px">${chips}</div>`:''}`;};
   const rows=h2oFacs(month).map(f=>{const x=H2OL.fac[f.id];if(!x)return'';const L=E.lists[f.id]||x.list;
     const cn=E.changes.filter(c=>c.fid===f.id),ad=cn.filter(c=>c.type!=='해지').length,rm=cn.filter(c=>c.type!=='추가').length;
@@ -6688,7 +6689,7 @@ function h2oMail(){
 function showMailDraft(body){
   let mo=document.getElementById('mo-h2o-mail');
   if(!mo){mo=document.createElement('div');mo.className='mo';mo.id='mo-h2o-mail';
-    mo.innerHTML='<div class="mb" style="width:720px;max-width:95vw"><div class="mh"><span class="mt2">'+CI.mail+' H2O 메일 초안</span></div><div style="padding:12px 16px"><textarea id="h2o-mail-body" style="width:100%;height:420px;font-size:13px;line-height:1.5;padding:10px;border:1px solid var(--border);border-radius:6px"></textarea><div style="font-size:11px;color:var(--text3);margin-top:6px">고칠 곳을 고친 뒤 [복사]를 눌러 메일에 붙여 넣으세요. 엑셀 파일은 [엑셀 다운로드]로 따로 받아 첨부합니다.</div></div><div class="mf" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 16px"><button class="btn bo" onclick="closeMo(\'mo-h2o-mail\')">닫기</button><button class="btn bp" onclick="copyMailDraft()">복사</button></div></div>';
+    mo.innerHTML='<div class="mb" style="width:720px;max-width:95vw"><div class="mh"><span class="mt2">'+CI.mail+' H2O 메일 초안</span></div><div class="mbody"><textarea id="h2o-mail-body" style="width:100%;height:420px;font-size:13px;line-height:1.5;padding:10px;border:1px solid var(--border);border-radius:6px"></textarea><div style="font-size:11px;color:var(--text3);margin-top:6px">고칠 곳을 고친 뒤 [복사]를 눌러 메일에 붙여 넣으세요. 엑셀 파일은 [엑셀 다운로드]로 따로 받아 첨부합니다.</div></div><div class="mf mfoot"><button class="btn bo" onclick="closeMo(\'mo-h2o-mail\')">닫기</button><button class="btn bp" onclick="copyMailDraft()">복사</button></div></div>';
     document.body.appendChild(mo);}
   document.getElementById('h2o-mail-body').value=body;openMo('mo-h2o-mail');
 }
@@ -6821,7 +6822,7 @@ function renderH2oReq(){
   const tb=document.getElementById('hq-body');
   if(tb)tb.innerHTML=HQ_G.length?HQ_G.map((g,gi)=>{
     const x0=g.items[0],f=hqFac(x0.fid),nSent=g.items.filter(x=>x.st==='전달').length,nNew=g.items.length-nSent;
-    const rooms=g.items.map(x=>escH(h2oLabel(x))+(x.dir==='off'&&x.inList===false?'<span role="img" title="신고 때 목록에 없던 방" style="color:var(--yellow)">'+CI.alert+'</span>':'')).join(', ');
+    const rooms=g.items.map(x=>escH(h2oLabel(x))+(x.dir==='off'&&x.inList===false?'<span role="img" title="신고 때 목록에 없던 방" aria-label="신고 때 목록에 없던 방" style="color:var(--yellow)">'+CI.alertIn+'</span>':'')).join(', ');
     const memo=[...new Set(g.items.map(x=>x.note).filter(Boolean))].join(' / ');
     const sentD=[...new Set(g.items.filter(x=>x.st==='전달').map(x=>md(x.sent)))].join(', ');
     const chip=(nNew?`<span class="chip cg">○ 신고됨${nSent?' '+nNew:''}</span>`:'')+(nSent?`<span class="chip co">✓ 전달 ${escH(sentD)}</span>`:'');
@@ -6842,7 +6843,7 @@ function hqRenderPending(){
   const by=new Map();pend.forEach(x=>by.set(x.fid,(by.get(x.fid)||0)+1));
   HQ_PF=[...by.keys()];
   el.innerHTML=`<div class="panel" style="margin-bottom:12px"><div class="pb" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px">
-    <b style="color:var(--yellow)">${CI.alert} H2O에 아직 안 알린 신고 ${pend.length}건</b>
+    <b style="color:var(--yellow)">${CI.alertIn} H2O에 아직 안 알린 신고 ${pend.length}건</b>
     ${HQ_PF.map((fid,i)=>`<span>${escH((hqFac(fid)||{}).short||fid)} ${by.get(fid)}건 <button class="btn bp bsm" onclick="openHqMail(${i})">메일 쓰기</button></span>`).join('')}</div></div>`;
 }
 /* 관리자 메뉴 옆 숫자 = 아직 H2O 에 안 알린 신고 수 */
@@ -6893,7 +6894,7 @@ function hqqRead(){
 function hqqCheck(){
   const el=document.getElementById('hqq-check');if(!el)return;
   el.innerHTML=hqqRead().res.map(x=>x.err?`<div style="color:var(--red)">✕ ${escH(x.t)} — ${escH(x.err)}</div>`
-    :x.warn?`<div style="color:var(--yellow)">${CI.alert} ${escH(h2oLabel(x.r))} — ${escH(x.warn)}</div>`
+    :x.warn?`<div style="color:var(--yellow)">${CI.alertIn} ${escH(h2oLabel(x.r))} — ${escH(x.warn)}</div>`
     :`<div style="color:var(--green)">✓ ${escH(h2oLabel(x.r))}</div>`).join('');
 }
 function submitHqReq(){
@@ -7066,7 +7067,7 @@ function hqRenderSrv(){
   const fail=Object.entries(HQ_SRV.byFac).filter(([,v])=>v.failed).map(([k,v])=>`${(hqFac(k)||{}).short||k}(${v.why})`);
   el.innerHTML=`<div class="panel" style="margin-bottom:12px"><div class="pb" style="font-size:12px;line-height:1.8">
     <div style="color:var(--text3)">H2O 서버 ${escH(tKst(HQ_SRV.at))} 기준${fail.length?` · <span style="color:var(--red)">조회 실패: ${escH(fail.join(', '))}</span>`:''}</div>
-    ${HQ_MS.length?HQ_MS.map((m,i)=>`<div>${CI.alert} <b>${m.dir==='off'?'신고 없이 홈용이 된 방':'신고 없이 객실용이 된 방'}</b>: ${escH((hqFac(m.fid)||{}).short||m.fid)} ${escH(h2oLabel(m.r))} <span style="color:var(--text3)">(${escH(m.note)})</span> <button class="btn bo bsm" onclick="hqFromSrv(${i})">신고 만들기</button></div>`).join('')
+    ${HQ_MS.length?HQ_MS.map((m,i)=>`<div>${CI.alertIn} <b>${m.dir==='off'?'신고 없이 홈용이 된 방':'신고 없이 객실용이 된 방'}</b>: ${escH((hqFac(m.fid)||{}).short||m.fid)} ${escH(h2oLabel(m.r))} <span style="color:var(--text3)">(${escH(m.note)})</span> <button class="btn bo bsm" onclick="hqFromSrv(${i})">신고 만들기</button></div>`).join('')
       :fail.length?'<div style="color:var(--text3)">확인한 시설에는 신고 없이 바뀐 방이 없습니다</div>':'<div style="color:var(--green)">✓ 신고 없이 바뀐 방이 없습니다</div>'}
   </div></div>`;
 }
@@ -7076,7 +7077,7 @@ function hqSrvMark(x){
   if(!s||s.failed)return'<span style="color:var(--text3)">—</span>';
   const on=s.installed.some(d=>hqSame(d,hqP(x))),ok=x.dir==='off'?!on:on;
   return ok?`<span style="color:var(--green)" title="${escH(h2oLabel(x))} 서버 반영">✓</span>`
-    :`<span role="img" style="color:var(--yellow)" title="${escH(h2oLabel(x))} — ${x.dir==='off'?'서버는 아직 객실용':'서버는 아직 객실용 아님'}">${CI.alert}</span>`;
+    :`<span role="img" style="color:var(--yellow)" title="${escH(h2oLabel(x))} — ${x.dir==='off'?'서버는 아직 객실용':'서버는 아직 객실용 아님'}" aria-label="${escH(h2oLabel(x))} — ${x.dir==='off'?'서버는 아직 객실용':'서버는 아직 객실용 아님'}">${CI.alert}</span>`;
 }
 function hqFromSrv(i){const m=HQ_MS[i];if(!m)return;openHqReqMo({proxy:true,fid:m.fid,dir:m.dir,room:h2oLabel(m.r),sw:m.upd||''});}
 /* ── 말일 확정 연결 ── */
@@ -7104,7 +7105,7 @@ function h2oReqDrift(month,rec){
 }
 let H2O_RW=[];   // 말일 확정 화면의 신고 어긋남 버튼 — onclick 은 이 배열 번호만 넘긴다. h2oRender 가 그릴 때마다 비운다
 function h2oRwHtml(fid,w){
-  const lb=escH(h2oLabel(w.q)),bt=t=>h2oLocked(H2OL&&H2OL.month)?'':` <button class="btn bo bsm" style="padding:0 6px;font-size:11px" onclick="h2oRwAct(${H2O_RW.push({fid,w})-1})">${t}</button>`;
+  const lb=escH(h2oLabel(w.q)),bt=t=>h2oLocked(H2OL&&H2OL.month)?'':` <button class="btn bo bsm" onclick="h2oRwAct(${H2O_RW.push({fid,w})-1})">${t}</button>`;
   return w.kind==='stillOn'?`<span style="color:var(--yellow)">메일은 보냈는데 서버는 그대로: ${lb}</span>${bt('해지로 적기')}`
     :w.kind==='notOn'?`<span style="color:var(--yellow)">메일은 보냈는데 서버는 아직 객실용이 아님: ${lb} — H2O 확인</span>`
     :w.kind==='multi'?`<span style="color:var(--yellow)">이 달 추가·해지를 여러 번 오간 방: ${lb} — 구간을 나눠 셀 수 없어 한 구간만 셉니다(차이는 H2O 와 확인)</span>`
@@ -7116,7 +7117,7 @@ function h2oRwAct(i){const a=H2O_RW[i];if(!a||H2O_BUSY||!H2OL||H2OL.mode!=='end'
 function h2oPendLine(month,mode){
   if(mode!=='end'||h2oLocked(month))return'';
   const last=ymLast(month),n=hqAlive().filter(q=>q.st!=='전달'&&h2oFacs(month).some(f=>f.id===q.fid)&&(!isYmd(q.sw)||q.sw<=last)).length;   // 이 달 말일까지 바꾼 방만(다음 달에 바꾼 방은 다음 달 일)
-  return n?`<div style="margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--bg2);font-size:12px;font-weight:600;color:var(--yellow)">${CI.alert} 아직 H2O에 안 알린 신고 ${n}건 — <a href="javascript:void 0" onclick="goP('h2oreq')">[H2O 모드 전환]</a>에서 메일부터 보내세요(그 방은 날짜가 없어 [저장]이 막힙니다)</div>`:'';
+  return n?`<div style="margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--bg2);font-size:12px;font-weight:600;color:var(--yellow)">${CI.alertIn} 아직 H2O에 안 알린 신고 ${n}건 — <a href="javascript:void 0" onclick="goP('h2oreq')">[H2O 모드 전환]</a>에서 메일부터 보내세요(그 방은 날짜가 없어 [저장]이 막힙니다)</div>`:'';
 }
 /* 불러온 뒤 신고가 바뀌었나 — 부산역 자동 반영·추가·해지·안내는 [불러오기] 때 정해진다. 바뀌었으면 다시 불러와야 저장한다. 처리 전 신고는 계산에 안 들어가므로 보지 않는다(정리하는 동안 직원이 신고해도 저장이 막히지 않게). */
 const h2oReqSnap=month=>{const lo=ymPrev(month)+'-01',hi=addDays(ymLast(month),40),fs=h2oFacs(month);
