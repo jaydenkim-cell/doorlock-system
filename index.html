@@ -832,7 +832,7 @@ b,strong{font-weight:600;}
 <div id="pending-screen">
 <div class="pend-card">
   <span class="pend-wordmark" role="img" aria-label="plott"></span>
-  <div class="pi"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+  <div class="pi"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
   <div class="pt">승인 대기 중</div>
   <div class="ps">
     핸디즈 계정 인증은 완료되었습니다.<br>
@@ -871,12 +871,12 @@ b,strong{font-weight:600;}
           <div class="kpi kgr"><div class="kl">결제 완료</div><div class="kv" id="d-don">0</div><div class="ks">이번달 <span id="d-pay-wait" style="font-size:11px;color:#ea580c"></span></div></div>
         </div>
         <div class="p2">
-          <div class="panel"><div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 최근 접수</span><button class="btn bo bsm" onclick="goP('receipt')">전체 →</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>상태</th><th>일자</th></tr></thead><tbody id="d-rec"></tbody></table></div></div>
-          <div class="panel"><div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 긴급 미처리</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>일자</th><th></th></tr></thead><tbody id="d-urg"></tbody></table></div></div>
+          <div class="panel"><div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 최근 접수</span><button class="btn bo bsm" onclick="goP('receipt')">전체 →</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>상태</th><th>일자</th></tr></thead><tbody id="d-rec"></tbody></table></div></div>
+          <div class="panel"><div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 긴급 미처리</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>일자</th><th></th></tr></thead><tbody id="d-urg"></tbody></table></div></div>
         </div>
         <div class="panel">
           <div class="ph">
-            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="9" y1="13" x2="9.01" y2="13"/><line x1="15" y1="13" x2="15.01" y2="13"/></svg> 지점별 현황</span>
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="9" y1="13" x2="9.01" y2="13"/><line x1="15" y1="13" x2="15.01" y2="13"/></svg> 지점별 현황</span>
             <div style="display:flex;gap:8px;align-items:center">
               <input class="finp" id="db-m" type="month" onchange="renderD()" style="width:130px">
               <select class="fsel" id="db-b" onchange="renderD()" style="width:120px"><option value="">전체 지점</option></select>
@@ -901,7 +901,7 @@ b,strong{font-weight:600;}
           <input class="finp" id="fr-s" placeholder="객실번호 / ID 검색..." oninput="renderR()">
         </div>
         <div class="panel" style="margin-bottom:0">
-          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 접수 목록</span><button class="btn bp bsm" onclick="openRMo()">+ 접수 등록</button></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 접수 목록</span><button class="btn bp bsm" onclick="openRMo()">+ 접수 등록</button></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>접수ID</th><th>지점</th><th>객실</th><th>유형</th><th>수량</th><th>오픈예정</th><th>상태</th><th>긴급</th><th>접수자</th><th>접수일</th><th>처리/관리</th></tr></thead><tbody id="r-body"></tbody></table></div>
         </div>
       </div>
@@ -915,13 +915,13 @@ b,strong{font-weight:600;}
         </div>
         <div class="panel" style="margin-bottom:0">
           <div class="ph">
-            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> 발주 목록</span>
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> 발주 목록</span>
             <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
               <label style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text3);cursor:pointer;margin-right:10px">
                 <input type="checkbox" id="o-stk-show" onchange="stkShow=this.checked;renderO()"> 재고 라인 함께 보기</label>
               <button class="btn bp bsm" id="new-ord-btn" onclick="openOMo(null)">+ 발주 등록</button>
-              <button class="btn bo bsm" id="draft-btn" onclick="goToDraft()" style="display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 발주서 작성</button>
-              <button class="btn bo bsm" id="ord-ama-btn" onclick="openAmaranthModal('order')" style="display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
+              <button class="btn bo bsm" id="draft-btn" onclick="goToDraft()" style="display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 발주서 작성</button>
+              <button class="btn bo bsm" id="ord-ama-btn" onclick="openAmaranthModal('order')" style="display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
             </div>
           </div>
           <div style="overflow-x:auto"><table class="tbl">
@@ -936,7 +936,7 @@ b,strong{font-weight:600;}
         <!-- 기본 설정 패널 -->
         <div class="p2" style="margin-bottom:16px">
           <div class="panel">
-            <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 발주처 정보</span><button class="btn bo bsm" onclick="saveDraftCfg()">설정 저장</button></div>
+            <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> 발주처 정보</span><button class="btn bo bsm" onclick="saveDraftCfg()">설정 저장</button></div>
             <div class="pb">
               <div class="fr2">
                 <div class="fg"><label>회사명</label><input class="fi" id="drc-ord-company" placeholder="발주처 회사명"></div>
@@ -950,7 +950,7 @@ b,strong{font-weight:600;}
             </div>
           </div>
           <div class="panel">
-            <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20V9l6-4v4l6-4v4l6-4v15H2z"/><rect x="6" y="14" width="3" height="6"/><rect x="12" y="14" width="3" height="6"/></svg> 공급사 정보</span></div>
+            <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 20V9l6-4v4l6-4v4l6-4v15H2z"/><rect x="6" y="14" width="3" height="6"/><rect x="12" y="14" width="3" height="6"/></svg> 공급사 정보</span></div>
             <div class="pb">
               <div class="fr2">
                 <div class="fg"><label>회사명</label><input class="fi" id="drc-sup-company" placeholder="공급사 회사명"></div>
@@ -968,7 +968,7 @@ b,strong{font-weight:600;}
         <!-- 발주서 작성 패널 -->
         <div class="panel">
           <div class="ph">
-            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 발주 내역 작성</span>
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 발주 내역 작성</span>
             <div style="display:flex;gap:8px;align-items:center">
               <div class="fg" style="margin:0;display:flex;align-items:center;gap:8px">
                 <label style="white-space:nowrap;font-size:12px;color:var(--text2)">발주일</label>
@@ -1013,10 +1013,10 @@ b,strong{font-weight:600;}
           <div class="pb" style="padding-top:12px">
             <div class="fg"><label>특이사항 / 메모</label><textarea class="fta" id="draft-note" placeholder="발주서 하단에 표시될 특이사항" style="height:60px"></textarea></div>
             <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
-              <button class="btn bp" onclick="genDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 미리보기 생성</button>
-              <button class="btn bo" onclick="sendDraftMail()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg> 이메일 발송</button>
-              <button class="btn bo" onclick="printDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/></svg> 인쇄</button>
-              <button class="btn bo" onclick="openAmaranthModal('draft')" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
+              <button class="btn bp" onclick="genDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 미리보기 생성</button>
+              <button class="btn bo" onclick="sendDraftMail()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg> 이메일 발송</button>
+              <button class="btn bo" onclick="printDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/></svg> 인쇄</button>
+              <button class="btn bo" onclick="openAmaranthModal('draft')" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
             </div>
           </div>
         </div>
@@ -1028,7 +1028,7 @@ b,strong{font-weight:600;}
       <div class="page" id="page-install">
         <div class="frow"><select class="fsel" id="fi-b" onchange="renderI()"><option value="">전체 지점</option></select><input class="finp" id="fi-s" placeholder="객실번호 / 지점 / 접수ID 검색..." oninput="renderI()"></div>
         <div class="panel" style="margin-bottom:0">
-          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 설치 현황</span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 설치 현황</span></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>접수ID</th><th>지점</th><th>객실</th><th>설치완료일</th><th>상태</th><th>처리</th></tr></thead><tbody id="i-body"></tbody></table></div>
         </div>
       </div>
@@ -1118,7 +1118,7 @@ b,strong{font-weight:600;}
           <div class="mcc"><div class="ml">마감 상태</div><div class="mv" id="mc-st" style="font-size:15px;color:var(--yellow)">미마감</div><div class="ms" id="mc-ss">처리 전</div></div>
         </div>
         <div class="panel">
-          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><span style="display:inline-flex;gap:6px"><button class="btn bo bsm" id="mc-backfill" onclick="backfillClose()" style="display:none">확정 금액 저장</button><button class="btn bo bsm" id="mc-reopen" onclick="reopenMonth()" style="display:none;color:#ea580c;border-color:rgba(234,88,12,.3)">마감 취소</button><button class="btn bo bsm" onclick="openAmaranthModal('monthly')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></span></div>
+          <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><span style="display:inline-flex;gap:6px"><button class="btn bo bsm" id="mc-backfill" onclick="backfillClose()" style="display:none">확정 금액 저장</button><button class="btn bo bsm" id="mc-reopen" onclick="reopenMonth()" style="display:none;color:#ea580c;border-color:rgba(234,88,12,.3)">마감 취소</button><button class="btn bo bsm" onclick="openAmaranthModal('monthly')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></span></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr><th>지점</th><th>유형</th><th title="일괄=물건+설치 한 건 / 물건=재고 입고 / 설치=재고에서 꺼내 설치">구분2</th><th>완료건</th><th title="물건 라인은 구매 개수, 설치 라인은 설치 실수입니다">수량</th><th>도어락</th><th>설치비</th><th>자재비</th><th>합계(별도)</th><th>부가세(10%)</th><th>합계(포함)</th></tr></thead><tbody id="m-body-all"></tbody><tfoot id="m-foot-all"></tfoot></table></div>
         </div>
       </div>
@@ -1129,7 +1129,7 @@ b,strong{font-weight:600;}
         <div class="mcg" id="svc-summary"></div>
         <!-- 단가 설정 -->
         <div class="panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt">💲 브랜드 단가 설정</span><button class="btn bp bsm" onclick="saveSvcPrices()">저장</button></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>브랜드 단가 설정</span><button class="btn bp bsm" onclick="saveSvcPrices()">저장</button></div>
           <div class="pb" style="display:flex;gap:16px;flex-wrap:wrap">
             <div style="display:flex;flex-direction:column;gap:4px">
               <label style="font-size:11px;font-weight:600;color:var(--text2)">직방 (실당/월, 부가세별도)</label>
@@ -1148,7 +1148,7 @@ b,strong{font-weight:600;}
         </div>
         <!-- H2O 월 객실 목록 (월초·말일 목록 → 엑셀·메일 초안·청구 반영) -->
         <div class="panel" id="h2o-panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt">📮 H2O 월 객실 목록</span><span id="h2o-status" style="font-size:11px;color:var(--text3)"></span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>H2O 월 객실 목록</span><span id="h2o-status" style="font-size:11px;color:var(--text3)"></span></div>
           <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
             <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:600;color:var(--text2)">대상 월</label>
               <input class="fi" id="h2o-month" type="month" style="width:140px" onchange="h2oReset()"></div>
@@ -1170,7 +1170,7 @@ b,strong{font-weight:600;}
         <!-- 항목 입력 -->
         <!-- 자동 불러오기 (솔리티 + duck) -->
         <div class="panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt">⚡ 자동 불러오기</span>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>자동 불러오기</span>
             <span style="font-size:11px;color:var(--text3)">솔리티 등록 객실을 빼서 직방·H2O 실수를 계산합니다 · 엑셀 불필요</span></div>
           <div class="pb">
             <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
@@ -1188,7 +1188,7 @@ b,strong{font-weight:600;}
 
         <!-- YOLO 도어락 목록 업로드 -->
         <div class="panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt">📥 YOLO 도어락 목록 올리기</span>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>YOLO 도어락 목록 올리기</span>
             <span style="font-size:11px;color:var(--text3)">게스트 서비스 관리 › 통합 도어락 관리 › 엑셀 다운로드 · 지점별 파일 여러 개를 한 번에</span></div>
           <div class="pb">
             <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
@@ -1206,7 +1206,7 @@ b,strong{font-weight:600;}
         </div>
 
         <div class="panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt">➕ 청구 항목 입력</span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M12 5v14"/></svg>청구 항목 입력</span></div>
           <!-- 신규 추가 -->
           <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
             <div style="display:flex;flex-direction:column;gap:4px">
@@ -1260,9 +1260,9 @@ b,strong{font-weight:600;}
         <!-- 필터 + 청구 내역 -->
         <div class="panel">
           <div class="ph">
-            <span class="pt">📋 청구 내역</span>
+            <span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>청구 내역</span>
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <button class="btn bo bsm" onclick="openAmaranthModal('svc')" style="display:flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
+              <button class="btn bo bsm" onclick="openAmaranthModal('svc')" style="display:flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
               <button class="btn bo bsm" onclick="exportToExcel('svc')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> 엑셀 다운로드</button>
               <select class="fsel bsm" id="svc-f-month" onchange="renderSvc()"><option value="">전체 월</option></select>
               <select class="fsel bsm" id="svc-f-branch" onchange="renderSvc()"><option value="">전체 지점</option></select>
@@ -1281,20 +1281,20 @@ b,strong{font-weight:600;}
       <!-- 지점 관리 (admin) -->
       <div class="page" id="page-branches">
         <div class="panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt">💾 데이터 백업 · 내보내기</span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>데이터 백업 · 내보내기</span></div>
           <div class="pb" style="display:flex;flex-direction:column;gap:12px">
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <button class="btn bp bsm" onclick="backupAllData()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 전체 백업 다운로드 (JSON)</button>
-              <button class="btn bo bsm" onclick="pickRestoreFile()" style="display:inline-flex;align-items:center;gap:5px;color:var(--yellow);border-color:var(--yellow)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 백업 파일에서 복원</button>
+              <button class="btn bp bsm" onclick="backupAllData()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 전체 백업 다운로드 (JSON)</button>
+              <button class="btn bo bsm" onclick="pickRestoreFile()" style="display:inline-flex;align-items:center;gap:5px;color:var(--yellow);border-color:var(--yellow)"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 백업 파일에서 복원</button>
               <span style="width:1px;height:20px;background:var(--border)"></span>
               <button class="btn bo bsm" onclick="exportToExcel('branches')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> 지점 목록 엑셀</button>
               <input type="file" id="restore-file-inp" accept=".json,application/json" style="display:none" onchange="handleRestoreFile(event)">
             </div>
-            <div style="font-size:11px;color:var(--text3);line-height:1.6">브라우저 데이터가 사라져도 복구할 수 있도록, <b>주기적으로 [전체 백업 다운로드]</b>를 눌러 JSON 파일을 안전한 곳(회사 드라이브 등)에 보관하세요. 복원하면 현재 데이터를 덮어씁니다. ⚠️ 백업 파일에는 계정·비밀번호 등 민감정보가 포함되므로 외부 유출에 주의하세요.</div>
+            <div style="font-size:11px;color:var(--text3);line-height:1.6">브라우저 데이터가 사라져도 복구할 수 있도록, <b>주기적으로 [전체 백업 다운로드]</b>를 눌러 JSON 파일을 안전한 곳(회사 드라이브 등)에 보관하세요. 복원하면 현재 데이터를 덮어씁니다. <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> 백업 파일에는 계정·비밀번호 등 민감정보가 포함되므로 외부 유출에 주의하세요.</div>
           </div>
         </div>
         <div class="panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt">🔔 Slack 알림 설정</span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Slack 알림 설정</span></div>
           <div class="pb" style="display:flex;flex-direction:column;gap:10px">
             <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12px">
               <span>DM(봇 토큰) <b id="slack-st-bot" style="color:var(--text3)">확인 중…</b></span>
@@ -1327,7 +1327,7 @@ b,strong{font-weight:600;}
         </div>
         <div class="panel" style="margin-bottom:0">
           <div class="ph">
-            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg> 변경 이력</span>
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg> 변경 이력</span>
             <span id="log-cnt" style="font-size:12px;color:var(--text3)"></span>
           </div>
           <div style="overflow-x:auto"><table class="tbl">
@@ -1341,7 +1341,7 @@ b,strong{font-weight:600;}
       <div class="page" id="page-users">
         <div class="panel" style="margin-bottom:16px">
           <div class="ph">
-            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 사용자 목록</span>
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 사용자 목록</span>
             <button class="btn bp bsm" onclick="openAddUserMo()">+ 직접 추가</button>
           </div>
           <div class="user-table-wrap">
@@ -1357,7 +1357,7 @@ b,strong{font-weight:600;}
           </div>
         </div>
         <div class="panel">
-          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 승인 대기 중</span><span id="pend-cnt" style="font-size:12px;color:var(--yellow);font-weight:700;margin-left:8px"></span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 승인 대기 중</span><span id="pend-cnt" style="font-size:12px;color:var(--yellow);font-weight:700;margin-left:8px"></span></div>
           <div class="user-table-wrap">
             <table class="tbl">
               <thead><tr><th>계정 ID</th><th>로그인 시각</th><th>처리</th></tr></thead>
@@ -1374,7 +1374,7 @@ b,strong{font-weight:600;}
 <!-- 접수 등록 모달 -->
 <div class="mo" id="mo-r">
 <div class="mb">
-  <div class="mh"><span class="mt2" id="mo-r-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 설치 접수 등록</span><button class="mx" onclick="closeMo('mo-r')">✕</button></div>
+  <div class="mh"><span class="mt2" id="mo-r-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 설치 접수 등록</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-r')">✕</button></div>
   <div class="mbody">
     <input type="hidden" id="r-edit-id">
     <div class="fr2">
@@ -1382,7 +1382,7 @@ b,strong{font-weight:600;}
       <div class="fg"><label>객실번호 <span class="req">*</span></label><input class="fi" id="r-room" placeholder="예: 302호"></div>
     </div>
     <div class="fr2">
-      <div class="fg"><label>요청 유형</label><select class="fs" id="r-type" onchange="onRType()"><option>신규 설치</option><option>교체(노후화)</option><option>교체(고장)</option><option>추가 설치</option><option value="재고 확보">📦 재고 확보 (설치 안 함)</option></select></div>
+      <div class="fg"><label>요청 유형</label><select class="fs" id="r-type" onchange="onRType()"><option>신규 설치</option><option>교체(노후화)</option><option>교체(고장)</option><option>추가 설치</option><option value="재고 확보">재고 확보 (설치 안 함)</option></select></div>
       <div class="fg"><label>수량 <span class="req">*</span></label><input class="fi" id="r-qty" type="number" value="1" min="1" placeholder="수량 입력"></div>
     </div>
     <div class="fr2" id="r-open-row">
@@ -1397,7 +1397,7 @@ b,strong{font-weight:600;}
     </div>
     <div class="fg">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--red-l);border:1px solid #fecaca;border-radius:7px;cursor:pointer" onclick="toggleUrg()">
-        <div><div style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 긴급 요청</div><div style="font-size:11px;color:#f87171;margin-top:1px">당일 처리 — 담당자 즉시 알림</div></div>
+        <div><div style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 긴급 요청</div><div style="font-size:11px;color:#f87171;margin-top:1px">당일 처리 — 담당자 즉시 알림</div></div>
         <div id="tgl" style="width:40px;height:22px;background:var(--border2);border-radius:11px;position:relative;transition:background .2s"><div id="tgld" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)"></div></div>
       </div>
     </div>
@@ -1410,7 +1410,7 @@ b,strong{font-weight:600;}
 <!-- 발주 등록/수정 모달 (기존 modal id 유지) -->
 <div class="mo" id="modal">
 <div class="mb" style="width:640px">
-  <div class="mh"><span class="mt2" id="modal-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> 발주 등록</span><button class="mx" onclick="closeMo('modal')">✕</button></div>
+  <div class="mh"><span class="mt2" id="modal-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg> 발주 등록</span><button class="mx" aria-label="닫기" onclick="closeMo('modal')">✕</button></div>
   <div class="mbody">
     <input type="hidden" id="edit-order-id">
     <div class="fr2">
@@ -1450,7 +1450,7 @@ b,strong{font-weight:600;}
 <!-- 예상 설치일정 입력 모달 -->
 <div class="mo" id="mo-exp">
 <div class="mb">
-  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg> 예상 설치일정 입력</span><button class="mx" onclick="closeMo('mo-exp')">✕</button></div>
+  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg> 예상 설치일정 입력</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-exp')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="exp-noti">접수 ID: —</div>
     <div class="fg"><label>예상 설치일 <span class="req">*</span></label><input class="fi" id="exp-date" type="date"></div>
@@ -1462,7 +1462,7 @@ b,strong{font-weight:600;}
 
 <div class="mo" id="mo-i">
 <div class="mb">
-  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 설치 완료 확인</span><button class="mx" onclick="closeMo('mo-i')">✕</button></div>
+  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 설치 완료 확인</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-i')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="inst-noti">접수 ID: —</div>
     <div class="fr2">
@@ -1478,7 +1478,7 @@ b,strong{font-weight:600;}
 <!-- 재고 입고 -->
 <div class="mo" id="mo-stk">
 <div class="mb">
-  <div class="mh"><span class="mt2">재고 입고 등록</span><button class="mx" onclick="closeMo('mo-stk')">✕</button></div>
+  <div class="mh"><span class="mt2">재고 입고 등록</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-stk')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px">
       입고일이 <strong>계산서 날짜</strong>입니다. 물건값만 그 달 정산에 잡히고, 설치비·자재비는 실제 설치한 달에 잡힙니다.
@@ -1509,7 +1509,7 @@ b,strong{font-weight:600;}
 <!-- 재고 발주 입고 확인 -->
 <div class="mo" id="mo-recv">
 <div class="mb">
-  <div class="mh"><span class="mt2">📦 입고 확인</span><button class="mx" onclick="closeMo('mo-recv')">✕</button></div>
+  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>입고 확인</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-recv')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
       <span id="recv-noti"></span><br>
@@ -1533,7 +1533,7 @@ b,strong{font-weight:600;}
 <!-- 부자재 신청 (지점·본사) -->
 <div class="mo" id="mo-pt-req">
 <div class="mb">
-  <div class="mh"><span class="mt2">부자재 신청</span><button class="mx" onclick="closeMo('mo-pt-req')">✕</button></div>
+  <div class="mh"><span class="mt2">부자재 신청</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-pt-req')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
       도어락 <strong>커버·모듈</strong>은 솔리티에서 무상으로 받는 품목입니다. 신청하면 본사에서 확인 후 발송하고,
@@ -1559,7 +1559,7 @@ b,strong{font-weight:600;}
 <!-- 솔리티 부자재 입고 (본사) -->
 <div class="mo" id="mo-pt-in">
 <div class="mb">
-  <div class="mh"><span class="mt2">솔리티 입고 등록</span><button class="mx" onclick="closeMo('mo-pt-in')">✕</button></div>
+  <div class="mh"><span class="mt2">솔리티 입고 등록</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-pt-in')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
       솔리티에서 <strong>무상</strong>으로 받은 수량입니다. 금액은 어디에도 잡히지 않고 <strong>보유 수량만</strong> 늘어납니다.
@@ -1584,7 +1584,7 @@ b,strong{font-weight:600;}
 <!-- H2O 모드 전환 신고 -->
 <div class="mo" id="mo-hq-req">
 <div class="mb">
-  <div class="mh"><span class="mt2" id="hqq-title">H2O 모드 전환 신고</span><button class="mx" onclick="closeMo('mo-hq-req')">✕</button></div>
+  <div class="mh"><span class="mt2" id="hqq-title">H2O 모드 전환 신고</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-hq-req')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
       도어락을 <strong>객실용↔홈용으로 바꾼 뒤</strong> 신고해 주세요. 본사가 H2O 에 알리면 <strong>슬랙으로 알려드립니다</strong>.
@@ -1610,7 +1610,7 @@ b,strong{font-weight:600;}
 <!-- H2O 전환 메일 · 보냈어요 (관리자) -->
 <div class="mo" id="mo-hq-mail">
 <div class="mb" style="width:640px;max-width:95vw">
-  <div class="mh"><span class="mt2" id="hqm-title">✉️ H2O 전환 메일</span><button class="mx" onclick="closeMo('mo-hq-mail')">✕</button></div>
+  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg><span id="hqm-title">H2O 전환 메일</span></span><button class="mx" aria-label="닫기" onclick="closeMo('mo-hq-mail')">✕</button></div>
   <div class="mbody">
     <div class="fg"><label>받는 사람</label>
       <div style="display:flex;gap:6px"><input class="fi" id="hqm-to" readonly><button class="btn bo bsm" style="white-space:nowrap;flex-shrink:0" onclick="hqCopy('hqm-to')">복사</button></div></div>
@@ -1627,7 +1627,7 @@ b,strong{font-weight:600;}
 <!-- 재고 실사 반영 -->
 <div class="mo" id="mo-adj">
 <div class="mb" style="max-width:640px">
-  <div class="mh"><span class="mt2">실사 반영</span><button class="mx" onclick="closeMo('mo-adj')">✕</button></div>
+  <div class="mh"><span class="mt2">실사 반영</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-adj')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px">
       지점에서 회신받은 <strong>실물 수량</strong>을 적으세요. 장부와 다른 지점만 조정 기록이 생깁니다.
@@ -1647,7 +1647,7 @@ b,strong{font-weight:600;}
 <!-- 재고 출고(설치) -->
 <div class="mo" id="mo-out">
 <div class="mb">
-  <div class="mh"><span class="mt2">재고에서 설치</span><button class="mx" onclick="closeMo('mo-out')">✕</button></div>
+  <div class="mh"><span class="mt2">재고에서 설치</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-out')">✕</button></div>
   <div class="mbody">
     <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="out-noti">지점을 선택하세요.</div>
     <div class="fr2">
@@ -1678,7 +1678,7 @@ b,strong{font-weight:600;}
 <!-- 지점 관리 모달 (br-modal — 기존 필드 완전 유지) -->
 <div class="mo" id="br-modal">
 <div class="mb" style="width:660px">
-  <div class="mh"><span class="mt2" id="br-modal-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="9" y1="13" x2="9.01" y2="13"/><line x1="15" y1="13" x2="15.01" y2="13"/></svg> 지점 정보</span><button class="mx" onclick="closeMo('br-modal')">✕</button></div>
+  <div class="mh"><span class="mt2" id="br-modal-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="9" y1="13" x2="9.01" y2="13"/><line x1="15" y1="13" x2="15.01" y2="13"/></svg> 지점 정보</span><button class="mx" aria-label="닫기" onclick="closeMo('br-modal')">✕</button></div>
   <div class="mbody">
     <input type="hidden" id="br-edit-id">
     <div class="fr2">
@@ -1734,7 +1734,7 @@ b,strong{font-weight:600;}
 <!-- 사용자 직접 추가 모달 -->
 <div class="mo" id="mo-adduser">
 <div class="mb" style="width:460px">
-  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 사용자 직접 추가</span><button class="mx" onclick="closeMo('mo-adduser')">✕</button></div>
+  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> 사용자 직접 추가</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-adduser')">✕</button></div>
   <div class="mbody">
     <div class="fg"><label>이름 <span class="req">*</span></label><input class="fi" id="au-name" placeholder="홍길동"></div>
     <div class="fg"><label>계정 ID / 이메일 <span class="req">*</span></label><input class="fi" id="au-id" placeholder="user@handys.co.kr"></div>
@@ -2607,22 +2607,22 @@ function migrateLockTypes(){
 }
 
 const NI={
-  dashboard:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>`,
-  receipt:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`,
-  order:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
-  draft:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
-  install:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
-  monthly:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>`,
-  branches:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
-  users:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
-  svc:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
-  archive:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="22" height="5" rx="1"/><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
-  box:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M10 12h4"/></svg>`,
-  log:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>`,
-  swap:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M7 16V4M7 4L3 8M7 4l4 4"/><path d="M17 8v12M17 20l4-4M17 20l-4-4"/></svg>`,
+  dashboard:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>`,
+  receipt:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`,
+  order:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+  draft:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>`,
+  install:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+  monthly:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>`,
+  branches:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  users:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  svc:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>`,
+  archive:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="3" width="22" height="5" rx="1"/><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><line x1="10" y1="12" x2="14" y2="12"/></svg>`,
+  box:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M10 12h4"/></svg>`,
+  log:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>`,
+  swap:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16V4M7 4L3 8M7 4l4 4"/><path d="M17 8v12M17 20l4-4M17 20l-4-4"/></svg>`,
 };
 // 콘텐츠 영역 아이콘 (15px, currentColor)
-const _s='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"';
+const _s='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
 const CI={
   clipboard:`<svg ${_s} width="15" height="15"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>`,
   bolt:`<svg ${_s} width="13" height="13"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
@@ -2818,7 +2818,7 @@ function renderR(){
       else act=`<span style="color:#ea580c;font-size:12px">결제 대기중</span>`;
     }
     const mgmt=isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="editR('${r.id}')">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteR('${r.id}')">삭제</button>`:'';
-    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td style="white-space:nowrap">${isStkRc(r)?`<span class="chip ci">${CI.box}재고 확보</span>`:r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span style="color:var(--plott-color-danger500);display:inline-flex;align-items:center">${CI.bolt}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
+    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td style="white-space:nowrap">${isStkRc(r)?`<span class="chip ci">${CI.box}재고 확보</span>`:r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span role="img" aria-label="긴급" style="color:var(--plott-color-danger500);display:inline-flex;align-items:center">${CI.zap}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
   }).join('');
 }
 function setPipe(el,t){el.closest('.pipeline').querySelectorAll('.ps').forEach(s=>s.classList.remove('on'));el.classList.add('on');if(t==='r'){pipeR=el.dataset.s;renderR();}}
@@ -3331,7 +3331,7 @@ function renderM(){
       ssEl.style.color=MS.snap?'':'var(--yellow)';
       // 마감 후 실데이터가 바뀌면 조용히 넘어가지 않고 표시한다
       if(MS.snap&&MS.drift){
-        stEl.textContent='마감 완료 ⚠';
+        stEl.innerHTML='마감 완료 '+CI.alert;
         stEl.style.color='var(--red)';
         ssEl.textContent=`확정 후 실데이터 ${MS.drift>0?'+':''}${MS.drift.toLocaleString()}원 변경됨`;
         ssEl.style.color='var(--red)';
@@ -3522,7 +3522,7 @@ async function syncDuckRooms(){
 function renderBr(){
   renderSlackStatus();   // 슬랙은 서버 비밀 — 설정돼 있는지만 보여 준다(값은 내려오지 않는다)
   // 툴바 버튼
-  document.getElementById('tb-r').innerHTML=`<button class="btn" onclick="syncDuckRoomsAndRender()" style="font-size:12px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button><button class="btn bo" onclick="repairBranchNames()" style="font-size:12px;margin-left:6px">지점명 복구</button>`;
+  document.getElementById('tb-r').innerHTML=`<button class="btn" onclick="syncDuckRoomsAndRender()" style="font-size:12px;display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button><button class="btn bo" onclick="repairBranchNames()" style="font-size:12px;margin-left:6px">지점명 복구</button>`;
   // Duck 캐시 적용 후 렌더
   syncDuckRooms().then(duck=>{
     const brs=getActiveBr();
@@ -3638,7 +3638,7 @@ function reopenBranch(id){
 function renderArchive(){
   const el=document.getElementById('archive-grid');if(!el)return;
   const brs=getClosedBr();
-  if(!brs.length){el.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text3)"><div style="font-size:32px;margin-bottom:8px">📁</div>종료된 지점이 없습니다.<div style="font-size:12px;margin-top:6px">[지점 관리]에서 각 지점의 <b>[지점 종료]</b> 버튼을 누르면 이곳으로 이동합니다.</div></div>`;return;}
+  if(!brs.length){el.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:48px;color:var(--text3)"><div style="margin-bottom:8px">${CI.folder}</div>종료된 지점이 없습니다.<div style="font-size:12px;margin-top:6px">[지점 관리]에서 각 지점의 <b>[지점 종료]</b> 버튼을 누르면 이곳으로 이동합니다.</div></div>`;return;}
   el.innerHTML=brs.map(b=>{
     const oc=getOr().filter(o=>o.branch===b.name).length;
     const rc=getRc().filter(r=>r.branch===b.name).length;
@@ -3964,7 +3964,7 @@ function onOrdChkChange(){
   }
   const ab=document.getElementById('ord-ama-btn');
   if(ab){
-    const AMA_ICO='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>';
+    const AMA_ICO='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>';
     if(cnt>0){
       ab.className='btn bp bsm';
       ab.innerHTML=`${AMA_ICO} 선택 ${cnt}건 → 품의서 복사`;
@@ -4221,7 +4221,7 @@ function submitR(){
 }
 
 /* ── INSTALL MODAL ── */
-function openIMo(id){instId=id;document.getElementById('inst-noti').innerHTML=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> 접수 ID: <strong>${id}</strong>`;document.getElementById('inst-date').value=new Date().toISOString().substring(0,10);document.getElementById('inst-model').value='';document.getElementById('inst-memo').value='';openMo('mo-i');}
+function openIMo(id){instId=id;document.getElementById('inst-noti').innerHTML=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> 접수 ID: <strong>${id}</strong>`;document.getElementById('inst-date').value=new Date().toISOString().substring(0,10);document.getElementById('inst-model').value='';document.getElementById('inst-memo').value='';openMo('mo-i');}
 function submitI(){
   const rcs=getRc(),r=rcs.find(x=>x.id===instId);if(!r)return;
   // 이 버튼은 지점 직원도 누른다(renderI). 권한은 그대로 두되 마감월 침범만 막는다.
@@ -4251,7 +4251,7 @@ let expId='';
 function openExpDateMo(id){
   expId=id;
   const r=getRc().find(x=>x.id===id);
-  document.getElementById('exp-noti').innerHTML=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${r?.branch||''} ${r?.room||''} (${id})`;
+  document.getElementById('exp-noti').innerHTML=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> ${r?.branch||''} ${r?.room||''} (${id})`;
   document.getElementById('exp-date').value=r?.expectedInstallDate||'';
   document.getElementById('exp-memo').value=r?.expectedInstallMemo||'';
   openMo('mo-exp');
@@ -5229,7 +5229,7 @@ async function svcAutoFetch(force){
     AUTO.orphan=[...accMap].filter(([id,r])=>r.length>0&&!usedIds.has(id))
                            .map(([id,r])=>({id,n:r.length}));
     st.textContent=`duck ${(AUTO.updatedAt||'').substring(0,16).replace('T',' ')} · 솔리티 ${(AUTO.solitiAt||'').substring(0,16).replace('T',' ')}`
-      +(sol.stale?' · ⚠ 솔리티 조회 실패로 이전 값 사용':'');
+      +(sol.stale?' · 솔리티 조회 실패로 이전 값 사용':'');
   }catch(e){
     AUTO.err=String(e&&e.message||e);
     st.textContent='실패: '+AUTO.err;
@@ -6688,7 +6688,7 @@ function h2oMail(){
 function showMailDraft(body){
   let mo=document.getElementById('mo-h2o-mail');
   if(!mo){mo=document.createElement('div');mo.className='mo';mo.id='mo-h2o-mail';
-    mo.innerHTML='<div class="mb" style="width:720px;max-width:95vw"><div class="mh"><span class="mt2">✉️ H2O 메일 초안</span></div><div style="padding:12px 16px"><textarea id="h2o-mail-body" style="width:100%;height:420px;font-size:13px;line-height:1.5;padding:10px;border:1px solid var(--border);border-radius:6px"></textarea><div style="font-size:11px;color:var(--text3);margin-top:6px">고칠 곳을 고친 뒤 [복사]를 눌러 메일에 붙여 넣으세요. 엑셀 파일은 [엑셀 다운로드]로 따로 받아 첨부합니다.</div></div><div class="mf" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 16px"><button class="btn bo" onclick="closeMo(\'mo-h2o-mail\')">닫기</button><button class="btn bp" onclick="copyMailDraft()">복사</button></div></div>';
+    mo.innerHTML='<div class="mb" style="width:720px;max-width:95vw"><div class="mh"><span class="mt2">'+CI.mail+' H2O 메일 초안</span></div><div style="padding:12px 16px"><textarea id="h2o-mail-body" style="width:100%;height:420px;font-size:13px;line-height:1.5;padding:10px;border:1px solid var(--border);border-radius:6px"></textarea><div style="font-size:11px;color:var(--text3);margin-top:6px">고칠 곳을 고친 뒤 [복사]를 눌러 메일에 붙여 넣으세요. 엑셀 파일은 [엑셀 다운로드]로 따로 받아 첨부합니다.</div></div><div class="mf" style="display:flex;gap:8px;justify-content:flex-end;padding:12px 16px"><button class="btn bo" onclick="closeMo(\'mo-h2o-mail\')">닫기</button><button class="btn bp" onclick="copyMailDraft()">복사</button></div></div>';
     document.body.appendChild(mo);}
   document.getElementById('h2o-mail-body').value=body;openMo('mo-h2o-mail');
 }
@@ -6821,7 +6821,7 @@ function renderH2oReq(){
   const tb=document.getElementById('hq-body');
   if(tb)tb.innerHTML=HQ_G.length?HQ_G.map((g,gi)=>{
     const x0=g.items[0],f=hqFac(x0.fid),nSent=g.items.filter(x=>x.st==='전달').length,nNew=g.items.length-nSent;
-    const rooms=g.items.map(x=>escH(h2oLabel(x))+(x.dir==='off'&&x.inList===false?'<span title="신고 때 목록에 없던 방" style="color:var(--yellow)">⚠</span>':'')).join(', ');
+    const rooms=g.items.map(x=>escH(h2oLabel(x))+(x.dir==='off'&&x.inList===false?'<span role="img" title="신고 때 목록에 없던 방" style="color:var(--yellow)">'+CI.alert+'</span>':'')).join(', ');
     const memo=[...new Set(g.items.map(x=>x.note).filter(Boolean))].join(' / ');
     const sentD=[...new Set(g.items.filter(x=>x.st==='전달').map(x=>md(x.sent)))].join(', ');
     const chip=(nNew?`<span class="chip cg">○ 신고됨${nSent?' '+nNew:''}</span>`:'')+(nSent?`<span class="chip co">✓ 전달 ${escH(sentD)}</span>`:'');
@@ -6842,7 +6842,7 @@ function hqRenderPending(){
   const by=new Map();pend.forEach(x=>by.set(x.fid,(by.get(x.fid)||0)+1));
   HQ_PF=[...by.keys()];
   el.innerHTML=`<div class="panel" style="margin-bottom:12px"><div class="pb" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px">
-    <b style="color:var(--yellow)">⚠ H2O에 아직 안 알린 신고 ${pend.length}건</b>
+    <b style="color:var(--yellow)">${CI.alert} H2O에 아직 안 알린 신고 ${pend.length}건</b>
     ${HQ_PF.map((fid,i)=>`<span>${escH((hqFac(fid)||{}).short||fid)} ${by.get(fid)}건 <button class="btn bp bsm" onclick="openHqMail(${i})">메일 쓰기</button></span>`).join('')}</div></div>`;
 }
 /* 관리자 메뉴 옆 숫자 = 아직 H2O 에 안 알린 신고 수 */
@@ -6893,7 +6893,7 @@ function hqqRead(){
 function hqqCheck(){
   const el=document.getElementById('hqq-check');if(!el)return;
   el.innerHTML=hqqRead().res.map(x=>x.err?`<div style="color:var(--red)">✕ ${escH(x.t)} — ${escH(x.err)}</div>`
-    :x.warn?`<div style="color:var(--yellow)">⚠ ${escH(h2oLabel(x.r))} — ${escH(x.warn)}</div>`
+    :x.warn?`<div style="color:var(--yellow)">${CI.alert} ${escH(h2oLabel(x.r))} — ${escH(x.warn)}</div>`
     :`<div style="color:var(--green)">✓ ${escH(h2oLabel(x.r))}</div>`).join('');
 }
 function submitHqReq(){
@@ -6959,7 +6959,7 @@ function openHqMail(i){
   const fid=HQ_PF[i],items=hqAlive().filter(x=>x.fid===fid&&x.st!=='전달');
   if(!items.length){toast('i','보낼 신고 없음','그사이 처리됐습니다.');renderH2oReq();return;}
   HQ_MAIL={fid,ids:items.map(x=>x.id)};
-  document.getElementById('hqm-title').textContent=`✉️ H2O 전환 메일 — ${(hqFac(fid)||{}).short||fid} ${items.length}건`;
+  document.getElementById('hqm-title').textContent=`H2O 전환 메일 — ${(hqFac(fid)||{}).short||fid} ${items.length}건`;
   document.getElementById('hqm-to').value=HQ_TO;
   document.getElementById('hqm-body').value=hqMailText(fid,items);
   document.getElementById('hqm-sent').value=ymdLocal(new Date());
@@ -7066,7 +7066,7 @@ function hqRenderSrv(){
   const fail=Object.entries(HQ_SRV.byFac).filter(([,v])=>v.failed).map(([k,v])=>`${(hqFac(k)||{}).short||k}(${v.why})`);
   el.innerHTML=`<div class="panel" style="margin-bottom:12px"><div class="pb" style="font-size:12px;line-height:1.8">
     <div style="color:var(--text3)">H2O 서버 ${escH(tKst(HQ_SRV.at))} 기준${fail.length?` · <span style="color:var(--red)">조회 실패: ${escH(fail.join(', '))}</span>`:''}</div>
-    ${HQ_MS.length?HQ_MS.map((m,i)=>`<div>⚠ <b>${m.dir==='off'?'신고 없이 홈용이 된 방':'신고 없이 객실용이 된 방'}</b>: ${escH((hqFac(m.fid)||{}).short||m.fid)} ${escH(h2oLabel(m.r))} <span style="color:var(--text3)">(${escH(m.note)})</span> <button class="btn bo bsm" onclick="hqFromSrv(${i})">신고 만들기</button></div>`).join('')
+    ${HQ_MS.length?HQ_MS.map((m,i)=>`<div>${CI.alert} <b>${m.dir==='off'?'신고 없이 홈용이 된 방':'신고 없이 객실용이 된 방'}</b>: ${escH((hqFac(m.fid)||{}).short||m.fid)} ${escH(h2oLabel(m.r))} <span style="color:var(--text3)">(${escH(m.note)})</span> <button class="btn bo bsm" onclick="hqFromSrv(${i})">신고 만들기</button></div>`).join('')
       :fail.length?'<div style="color:var(--text3)">확인한 시설에는 신고 없이 바뀐 방이 없습니다</div>':'<div style="color:var(--green)">✓ 신고 없이 바뀐 방이 없습니다</div>'}
   </div></div>`;
 }
@@ -7076,7 +7076,7 @@ function hqSrvMark(x){
   if(!s||s.failed)return'<span style="color:var(--text3)">—</span>';
   const on=s.installed.some(d=>hqSame(d,hqP(x))),ok=x.dir==='off'?!on:on;
   return ok?`<span style="color:var(--green)" title="${escH(h2oLabel(x))} 서버 반영">✓</span>`
-    :`<span style="color:var(--yellow)" title="${escH(h2oLabel(x))} — ${x.dir==='off'?'서버는 아직 객실용':'서버는 아직 객실용 아님'}">⚠</span>`;
+    :`<span role="img" style="color:var(--yellow)" title="${escH(h2oLabel(x))} — ${x.dir==='off'?'서버는 아직 객실용':'서버는 아직 객실용 아님'}">${CI.alert}</span>`;
 }
 function hqFromSrv(i){const m=HQ_MS[i];if(!m)return;openHqReqMo({proxy:true,fid:m.fid,dir:m.dir,room:h2oLabel(m.r),sw:m.upd||''});}
 /* ── 말일 확정 연결 ── */
@@ -7116,7 +7116,7 @@ function h2oRwAct(i){const a=H2O_RW[i];if(!a||H2O_BUSY||!H2OL||H2OL.mode!=='end'
 function h2oPendLine(month,mode){
   if(mode!=='end'||h2oLocked(month))return'';
   const last=ymLast(month),n=hqAlive().filter(q=>q.st!=='전달'&&h2oFacs(month).some(f=>f.id===q.fid)&&(!isYmd(q.sw)||q.sw<=last)).length;   // 이 달 말일까지 바꾼 방만(다음 달에 바꾼 방은 다음 달 일)
-  return n?`<div style="margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--bg2);font-size:12px;font-weight:600;color:var(--yellow)">⚠ 아직 H2O에 안 알린 신고 ${n}건 — <a href="javascript:void 0" onclick="goP('h2oreq')">[H2O 모드 전환]</a>에서 메일부터 보내세요(그 방은 날짜가 없어 [저장]이 막힙니다)</div>`:'';
+  return n?`<div style="margin-top:6px;padding:6px 10px;border-radius:6px;background:var(--bg2);font-size:12px;font-weight:600;color:var(--yellow)">${CI.alert} 아직 H2O에 안 알린 신고 ${n}건 — <a href="javascript:void 0" onclick="goP('h2oreq')">[H2O 모드 전환]</a>에서 메일부터 보내세요(그 방은 날짜가 없어 [저장]이 막힙니다)</div>`:'';
 }
 /* 불러온 뒤 신고가 바뀌었나 — 부산역 자동 반영·추가·해지·안내는 [불러오기] 때 정해진다. 바뀌었으면 다시 불러와야 저장한다. 처리 전 신고는 계산에 안 들어가므로 보지 않는다(정리하는 동안 직원이 신고해도 저장이 막히지 않게). */
 const h2oReqSnap=month=>{const lo=ymPrev(month)+'-01',hi=addDays(ymLast(month),40),fs=h2oFacs(month);
@@ -7220,8 +7220,8 @@ function copyAmaranthHtml(){
   if(wrap.dataset.sup!=null){d.supAmt=Number(wrap.dataset.sup);d.vatAmt=Number(wrap.dataset.vat);}
   const html=wrap.dataset.formType==='svc'?buildServiceFeeHtml(d):buildPurchaseOrderHtml(d);
   const btn=document.getElementById('amaranth-copy-btn');
-  const ok=()=>{btn.textContent='✓ 복사 완료!';setTimeout(()=>{btn.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;vertical-align:middle"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>HTML 복사 (아마란스 붙여넣기용)';},2500);};
-  const fail=()=>{btn.textContent='❌ 복사 실패';setTimeout(()=>{btn.textContent='HTML 복사 (아마란스 붙여넣기용)';},2500);};
+  const ok=()=>{btn.textContent='✓ 복사 완료!';setTimeout(()=>{btn.innerHTML='<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:6px;vertical-align:middle"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>HTML 복사 (아마란스 붙여넣기용)';},2500);};
+  const fail=()=>{btn.textContent='복사 실패';setTimeout(()=>{btn.textContent='HTML 복사 (아마란스 붙여넣기용)';},2500);};
   if(navigator.clipboard?.writeText){navigator.clipboard.writeText(html).then(ok).catch(()=>_fbCopy(html,ok,fail));}
   else{_fbCopy(html,ok,fail);}
 }
@@ -7455,7 +7455,7 @@ function onOutChange(){
       +list.map(r=>{
           const hasOrd=getOr().some(o=>o.receiptId===r.id&&!o.insOf);
           return `<option value="${r.id}">${r.id} · ${r.room} · ${r.type||''} (${r.status})`
-               + `${hasOrd?' ⚠ 발주 있음':''}</option>`;
+               + `${hasOrd?' · 발주 있음':''}</option>`;
         }).join('');
     if(list.some(r=>r.id===keep))rcSel.value=keep;
   }
@@ -7494,7 +7494,7 @@ function saveOut(){
     // 발주는 됐는데 입고 확인만 안 된 경우 [+ 재고 입고]로 또 등록하면 물건값이 두 번 잡힌다
     const _pend=getStkIn().filter(o=>o.branch===br&&!o.recvDate).reduce((n,o)=>n+(Number(o.qty)||0),0);
     toast('e',_pend>0?'입고 확인 전':'입고 기록 없음',_pend>0
-      ?`${br} 에 발주된 재고 ${_pend}개가 아직 입고 확인 전입니다. 접수 화면에서 [📦 입고 확인]을 먼저 하세요. `
+      ?`${br} 에 발주된 재고 ${_pend}개가 아직 입고 확인 전입니다. 접수 화면에서 [입고 확인]을 먼저 하세요. `
        +`여기서 [+ 재고 입고]로 또 등록하면 물건값이 두 번 잡힙니다.`
       :`${br} 에 재고 입고 기록이 없습니다. 먼저 [+ 재고 입고]로 등록하세요.`);
     return;
@@ -7689,12 +7689,12 @@ document.addEventListener('visibilitychange',()=>{if(S&&!document.hidden)checkAp
 <!-- 아마란스 품의서 복사 모달 -->
 <div class="mo" id="mo-amaranth">
 <div class="mb" style="width:860px;max-width:95vw;display:flex;flex-direction:column;max-height:92vh">
-  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="margin-right:5px;vertical-align:middle"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>아마란스 품의서 복사</span><button class="mx" onclick="closeMo('mo-amaranth')">✕</button></div>
+  <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:5px;vertical-align:middle"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>아마란스 품의서 복사</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-amaranth')">✕</button></div>
   <div style="padding:8px 20px 4px;font-size:11px;color:var(--text3);background:var(--surface);border-bottom:1px solid var(--border)">값 수정 후 아래 버튼 클릭 → 아마란스 품의서 편집기에서 <b style="color:var(--text2)">HTML 소스 붙여넣기</b></div>
   <div id="amaranth-preview-wrap" style="padding:16px 20px;overflow-y:auto;flex:1"></div>
   <div class="mfoot" style="gap:8px">
     <button class="btn bo" onclick="closeMo('mo-amaranth')">닫기</button>
-    <button class="btn bp" id="amaranth-copy-btn" onclick="copyAmaranthHtml()" style="display:flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>HTML 복사 (아마란스 붙여넣기용)</button>
+    <button class="btn bp" id="amaranth-copy-btn" onclick="copyAmaranthHtml()" style="display:flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>HTML 복사 (아마란스 붙여넣기용)</button>
   </div>
 </div>
 </div>
