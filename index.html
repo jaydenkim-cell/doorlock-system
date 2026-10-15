@@ -867,7 +867,7 @@ b,strong{font-weight:600;}
           <div class="kpi kbl"><div class="kl">이번달 접수</div><div class="kv" id="d-tot">0</div><div class="ks">전체 지점</div></div>
           <div class="kpi kye"><div class="kl">발주 진행</div><div class="kv" id="d-ord">0</div><div class="ks">처리 대기</div></div>
           <div class="kpi kre"><div class="kl">설치 진행</div><div class="kv" id="d-ins">0</div><div class="ks">설치일정확인중</div></div>
-          <div class="kpi kgr"><div class="kl">결제 완료</div><div class="kv" id="d-don">0</div><div class="ks">이번달 <span id="d-pay-wait" style="font-size:11px;color:#ea580c"></span></div></div>
+          <div class="kpi kgr"><div class="kl">결제 완료</div><div class="kv" id="d-don">0</div><div class="ks">이번달 <span id="d-pay-wait" style="font-size:12px;color:var(--plott-color-danger700)"></span></div></div>
         </div>
         <div class="p2">
           <div class="panel"><div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 2H5a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg> 최근 접수</span><button class="btn bo bsm" onclick="goP('receipt')">전체 →</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>지점</th><th>객실</th><th>상태</th><th>일자</th></tr></thead><tbody id="d-rec"></tbody></table></div></div>
@@ -1001,9 +1001,9 @@ b,strong{font-weight:600;}
                   </td>
                 </tr>
                 <tr id="draft-total-row" style="background:var(--accent-l);display:none">
-                  <td colspan="5" style="text-align:right;font-weight:700;padding:10px 12px;color:var(--text2)">합 계</td>
-                  <td style="font-variant-numeric:tabular-nums;font-weight:700;padding:10px 8px" id="draft-total-extra">0</td>
-                  <td style="font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent);padding:10px 8px" id="draft-total-sum">0원</td>
+                  <td colspan="5" style="text-align:right;font-weight:600;padding:10px 12px;color:var(--text2)">합 계</td>
+                  <td style="font-variant-numeric:tabular-nums;font-weight:600;padding:10px 8px" id="draft-total-extra">0</td>
+                  <td style="font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent);padding:10px 8px" id="draft-total-sum">0원</td>
                   <td colspan="2"></td>
                 </tr></tfoot>
               </table>
@@ -1044,7 +1044,7 @@ b,strong{font-weight:600;}
         <div class="stk-wrap" id="stk-cards"></div>
         <div class="panel" style="margin-bottom:0">
           <div class="ph"><span class="pt">입출고 원장</span>
-            <span style="font-size:11px;color:var(--text3)">잔량은 저장하지 않고 이 원장을 합산해 계산합니다</span></div>
+            <span style="font-size:12px;color:var(--text3)">잔량은 저장하지 않고 이 원장을 합산해 계산합니다</span></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr>
             <th>일자</th><th>구분</th><th>지점</th><th>내용</th>
             <th class="num-r">수량</th><th class="num-r">입고분 잔량</th><th class="num-r">금액</th>
@@ -1067,7 +1067,7 @@ b,strong{font-weight:600;}
         <div class="stk-wrap" id="pt-cards"></div>
         <div class="panel" style="margin-bottom:0">
           <div class="ph"><span class="pt">신청·발송 내역</span>
-            <span style="font-size:11px;color:var(--text3)" id="pt-hint"></span></div>
+            <span style="font-size:12px;color:var(--text3)" id="pt-hint"></span></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr>
             <th>신청일</th><th>지점</th><th>품목</th><th class="num-r">수량</th>
             <th>상태</th><th>신청자</th><th>발송일</th><th>메모</th><th>처리</th>
@@ -1075,7 +1075,7 @@ b,strong{font-weight:600;}
         </div>
         <div class="panel" id="pt-in-panel">
           <div class="ph"><span class="pt">솔리티 입고 이력</span>
-            <span style="font-size:11px;color:var(--text3)">무상 공급분 — 금액은 잡지 않습니다</span></div>
+            <span style="font-size:12px;color:var(--text3)">무상 공급분 — 금액은 잡지 않습니다</span></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr>
             <th>입고일</th><th>품목</th><th class="num-r">수량</th><th>메모</th><th>처리</th>
           </tr></thead><tbody id="pt-in-body"></tbody></table></div>
@@ -1096,7 +1096,7 @@ b,strong{font-weight:600;}
         <div id="hq-srv"></div>
         <div class="panel" style="margin-bottom:0">
           <div class="ph"><span class="pt">전환 신고 내역</span>
-            <span style="font-size:11px;color:var(--text3)" id="hq-hint"></span></div>
+            <span style="font-size:12px;color:var(--text3)" id="hq-hint"></span></div>
           <div style="overflow-x:auto"><table class="tbl"><thead><tr>
             <th>신고일</th><th>지점</th><th>방향</th><th>호실</th><th>바꾼 날</th><th>신고자</th><th>상태</th><th id="hq-srv-th">서버</th><th>처리</th>
           </tr></thead><tbody id="hq-body"></tbody></table></div>
@@ -1114,7 +1114,7 @@ b,strong{font-weight:600;}
           <div class="mcc" style="border-left:3px solid var(--accent)"><div class="ml">신규설치 (코드 6200)</div><div class="mv" id="mc-new" style="color:var(--accent)">0원</div><div class="ms" id="mc-new-sub">0건 · 별도 0원</div></div>
           <div class="mcc" style="border-left:3px solid var(--yellow)"><div class="ml">교체설치 (코드 6055)</div><div class="mv" id="mc-rep" style="color:var(--yellow)">0원</div><div class="ms" id="mc-rep-sub">0건 · 별도 0원</div></div>
           <div class="mcc"><div class="ml">전체 합계 (부가세 포함)</div><div class="mv" id="mc-cv">0원</div><div class="ms" id="mc-tax">부가세 0원</div></div>
-          <div class="mcc"><div class="ml">마감 상태</div><div class="mv" id="mc-st" style="font-size:15px;color:var(--yellow)">미마감</div><div class="ms" id="mc-ss">처리 전</div></div>
+          <div class="mcc"><div class="ml">마감 상태</div><div class="mv" id="mc-st" style="font-size:16px;color:var(--yellow)">미마감</div><div class="ms" id="mc-ss">처리 전</div></div>
         </div>
         <div class="panel">
           <div class="ph"><span class="pt" style="display:inline-flex;align-items:center;gap:6px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg> 정산 내역</span><span style="display:inline-flex;gap:6px"><button class="btn bo bsm" id="mc-backfill" onclick="backfillClose()" style="display:none">확정 금액 저장</button><button class="btn br2 bsm" id="mc-reopen" onclick="reopenMonth()" style="display:none">마감 취소</button><button class="btn bo bsm" onclick="openAmaranthModal('monthly')" style="display:inline-flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button><button class="btn bp bsm" onclick="doClose()">월마감 실행</button></span></div>
@@ -1131,31 +1131,31 @@ b,strong{font-weight:600;}
           <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>브랜드 단가 설정</span><button class="btn bp bsm" onclick="saveSvcPrices()">저장</button></div>
           <div class="pb" style="display:flex;gap:16px;flex-wrap:wrap">
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">직방 (실당/월, 부가세별도)</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)">직방 (실당/월, 부가세별도)</label>
               <input class="fi" id="svc-p-zbang" type="number" style="width:120px" placeholder="2000">
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">H2O (실당/월, 부가세별도)</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)">H2O (실당/월, 부가세별도)</label>
               <input class="fi" id="svc-p-h2o" type="number" style="width:120px" placeholder="3000">
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">더엠알 (실당/월, 부가세별도)</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)">더엠알 (실당/월, 부가세별도)</label>
               <input class="fi" id="svc-p-mr" type="number" style="width:120px" placeholder="3000">
             </div>
           </div>
-          <div class="pb" style="padding-top:4px;font-size:11px;color:var(--text3)">※ 직방·H2O: 운영실수 기준 / 더엠알: 건물 전체 객실 기준 / 부가세 10% 자동 계산</div>
+          <div class="pb" style="padding-top:4px;font-size:12px;color:var(--text3)">※ 직방·H2O: 운영실수 기준 / 더엠알: 건물 전체 객실 기준 / 부가세 10% 자동 계산</div>
         </div>
         <!-- H2O 월 객실 목록 (월초·말일 목록 → 엑셀·메일 초안·청구 반영) -->
         <div class="panel" id="h2o-panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>H2O 월 객실 목록</span><span id="h2o-status" style="font-size:11px;color:var(--text3)"></span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>H2O 월 객실 목록</span><span id="h2o-status" style="font-size:12px;color:var(--text3)"></span></div>
           <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
-            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:600;color:var(--text2)">대상 월</label>
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:12px;font-weight:600;color:var(--text2)">대상 월</label>
               <input class="fi" id="h2o-month" type="month" style="width:140px" onchange="h2oReset()"></div>
-            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:600;color:var(--text2)">구분</label>
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:12px;font-weight:600;color:var(--text2)">구분</label>
               <select class="fsel" id="h2o-mode" style="width:120px" onchange="h2oReset()"><option value="start">월초 목록</option><option value="end">말일 확정</option></select></div>
-            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:600;color:var(--text2)">H2O 담당자</label>
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:12px;font-weight:600;color:var(--text2)">H2O 담당자</label>
               <input class="fi" id="h2o-contact" type="text" style="width:90px" placeholder="유아름"></div>
-            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:11px;font-weight:600;color:var(--text2)">보내는 사람</label>
+            <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:12px;font-weight:600;color:var(--text2)">보내는 사람</label>
               <input class="fi" id="h2o-sender" type="text" style="width:170px" placeholder="핸디즈 구매소싱팀 김강현"></div>
             <button class="btn bp bsm" onclick="h2oLoad()">불러오기</button>
             <button class="btn bo bsm" onclick="h2oSave()">저장</button>
@@ -1164,17 +1164,17 @@ b,strong{font-weight:600;}
             <button class="btn bo bsm" id="h2o-apply-btn" onclick="h2oApply()" style="display:none">청구 내역에 반영</button>
           </div>
           <div class="pb" id="h2o-preview" style="padding-top:0"></div>
-          <div class="pb" style="padding-top:4px;font-size:11px;color:var(--text3)">① 매월 1~2일: [월초 목록] 불러오기 → 저장 → 엑셀·메일 초안으로 H2O 에 송부 &nbsp; ② 말일: [말일 확정] 불러오기 → 해지 호실의 삭제 요청 도달일 입력 → 저장 → 엑셀·메일 초안 → 청구 내역에 반영</div>
+          <div class="pb" style="padding-top:4px;font-size:12px;color:var(--text3)">① 매월 1~2일: [월초 목록] 불러오기 → 저장 → 엑셀·메일 초안으로 H2O 에 송부 &nbsp; ② 말일: [말일 확정] 불러오기 → 해지 호실의 삭제 요청 도달일 입력 → 저장 → 엑셀·메일 초안 → 청구 내역에 반영</div>
         </div>
         <!-- 항목 입력 -->
         <!-- 자동 불러오기 (솔리티 + duck) -->
         <div class="panel" style="margin-bottom:16px">
           <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>자동 불러오기</span>
-            <span style="font-size:11px;color:var(--text3)">솔리티 등록 객실을 빼서 직방·H2O 실수를 계산합니다 · 엑셀 불필요</span></div>
+            <span style="font-size:12px;color:var(--text3)">솔리티 등록 객실을 빼서 직방·H2O 실수를 계산합니다 · 엑셀 불필요</span></div>
           <div class="pb">
             <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
               <div style="display:flex;flex-direction:column;gap:4px">
-                <label style="font-size:11px;font-weight:600;color:var(--text2)">반영할 청구월</label>
+                <label style="font-size:12px;font-weight:600;color:var(--text2)">반영할 청구월</label>
                 <input class="fi" id="auto-month" type="month" style="width:140px">
               </div>
               <button class="btn bp" onclick="svcAutoFetch(false)">불러오기</button>
@@ -1188,11 +1188,11 @@ b,strong{font-weight:600;}
         <!-- YOLO 도어락 목록 업로드 -->
         <div class="panel" style="margin-bottom:16px">
           <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>YOLO 도어락 목록 올리기</span>
-            <span style="font-size:11px;color:var(--text3)">게스트 서비스 관리 › 통합 도어락 관리 › 엑셀 다운로드 · 지점별 파일 여러 개를 한 번에</span></div>
+            <span style="font-size:12px;color:var(--text3)">게스트 서비스 관리 › 통합 도어락 관리 › 엑셀 다운로드 · 지점별 파일 여러 개를 한 번에</span></div>
           <div class="pb">
             <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
               <div style="display:flex;flex-direction:column;gap:4px">
-                <label style="font-size:11px;font-weight:600;color:var(--text2)">반영할 청구월</label>
+                <label style="font-size:12px;font-weight:600;color:var(--text2)">반영할 청구월</label>
                 <input class="fi" id="yolo-month" type="month" style="width:140px">
               </div>
               <input type="file" id="yolo-files" accept=".xlsx,.xls,.csv" multiple style="display:none" onchange="svcHandleYolo(event)">
@@ -1209,15 +1209,15 @@ b,strong{font-weight:600;}
           <!-- 신규 추가 -->
           <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">청구월</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)">청구월</label>
               <input class="fi" id="svc-inp-month" type="month" style="width:140px">
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">지점</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)">지점</label>
               <select class="fsel" id="svc-inp-branch" style="width:160px"></select>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">브랜드</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)">브랜드</label>
               <select class="fsel" id="svc-inp-brand" style="width:110px">
                 <option value="직방">직방</option>
                 <option value="H2O">H2O</option>
@@ -1225,18 +1225,18 @@ b,strong{font-weight:600;}
               </select>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">구분</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)">구분</label>
               <select class="fsel" id="svc-inp-kind" style="width:96px" onchange="svcKindChange()">
                 <option value="monthly">월정액</option>
                 <option value="prorate">일할</option>
               </select>
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)" id="svc-inp-rooms-lbl">운영실수</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)" id="svc-inp-rooms-lbl">운영실수</label>
               <input class="fi" id="svc-inp-rooms" type="number" min="1" style="width:90px" placeholder="0">
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">비고</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)">비고</label>
               <input class="fi" id="svc-inp-note" type="text" style="width:200px" placeholder="직방 30실, 솔리티 20실">
             </div>
             <button class="btn bp bsm" onclick="addSvcEntry()" style="margin-bottom:2px">신규 추가</button>
@@ -1244,16 +1244,16 @@ b,strong{font-weight:600;}
           <!-- 이전 월 불러오기 -->
           <div class="pb" style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">원본 월 선택</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)">원본 월 선택</label>
               <select class="fsel" id="svc-copy-src" style="width:150px"><option value="">월 선택...</option></select>
             </div>
             <span style="font-size:16px;color:var(--text3);margin-bottom:6px">→</span>
             <div style="display:flex;flex-direction:column;gap:4px">
-              <label style="font-size:11px;font-weight:600;color:var(--text2)">복사할 대상 월</label>
+              <label style="font-size:12px;font-weight:600;color:var(--text2)">복사할 대상 월</label>
               <input class="fi" id="svc-copy-tgt" type="month" style="width:140px">
             </div>
             <button class="btn bo bsm" onclick="copySvcMonth()" style="margin-bottom:2px">불러오기</button>
-            <span style="font-size:11px;color:var(--text3);align-self:center">이전 월 데이터를 복사 후 수정해서 등록하세요</span>
+            <span style="font-size:12px;color:var(--text3);align-self:center">이전 월 데이터를 복사 후 수정해서 등록하세요</span>
           </div>
         </div>
         <!-- 필터 + 청구 내역 -->
@@ -1289,7 +1289,7 @@ b,strong{font-weight:600;}
               <button class="btn bo bsm" onclick="exportToExcel('branches')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> 지점 목록 엑셀</button>
               <input type="file" id="restore-file-inp" accept=".json,application/json" style="display:none" onchange="handleRestoreFile(event)">
             </div>
-            <div style="font-size:11px;color:var(--text3);line-height:1.6">브라우저 데이터가 사라져도 복구할 수 있도록, <b>주기적으로 [전체 백업 다운로드]</b>를 눌러 JSON 파일을 안전한 곳(회사 드라이브 등)에 보관하세요. 복원하면 현재 데이터를 덮어씁니다. <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> 백업 파일에는 계정·비밀번호 등 민감정보가 포함되므로 외부 유출에 주의하세요.</div>
+            <div style="font-size:12px;color:var(--text3);line-height:1.6">브라우저 데이터가 사라져도 복구할 수 있도록, <b>주기적으로 [전체 백업 다운로드]</b>를 눌러 JSON 파일을 안전한 곳(회사 드라이브 등)에 보관하세요. 복원하면 현재 데이터를 덮어씁니다. <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> 백업 파일에는 계정·비밀번호 등 민감정보가 포함되므로 외부 유출에 주의하세요.</div>
           </div>
         </div>
         <div class="panel" style="margin-bottom:16px">
@@ -1301,7 +1301,7 @@ b,strong{font-weight:600;}
               <button class="btn bo bsm" id="slack-test-dm" onclick="testSlackDM()">테스트 DM</button>
               <button class="btn bo bsm" id="slack-test-noti" onclick="testSlackNoti()">테스트 알림</button>
             </div>
-            <div id="slack-st-msg" style="font-size:11px;color:var(--text3);line-height:1.6">봇 토큰·웹훅 주소는 서버(비밀 저장소)에만 있고 이 화면·브라우저로 내려오지 않습니다.</div>
+            <div id="slack-st-msg" style="font-size:12px;color:var(--text3);line-height:1.6">봇 토큰·웹훅 주소는 서버(비밀 저장소)에만 있고 이 화면·브라우저로 내려오지 않습니다.</div>
           </div>
         </div>
         <div class="frow" style="margin-bottom:12px"><input class="finp" id="fb-s" placeholder="지점명 / 지역 검색..." oninput="filterBr()"></div>
@@ -1311,7 +1311,7 @@ b,strong{font-weight:600;}
       <!-- 종료 지점 (아카이브, admin) -->
       <div class="page" id="page-archive">
         <div class="panel" style="margin-bottom:16px">
-          <div class="pb" style="padding:14px 16px;color:var(--text2);font-size:13px;line-height:1.65">종료(폐업)된 지점을 모아둔 곳입니다. 과거 발주·청구 이력은 그대로 <b>보존</b>되며, 기본 화면·드롭다운에는 표시되지 않습니다. 다시 운영하려면 각 지점의 <b>[재개]</b> 버튼을 누르세요.</div>
+          <div class="pb" style="padding:14px 16px;color:var(--text2);font-size:14px;line-height:1.65">종료(폐업)된 지점을 모아둔 곳입니다. 과거 발주·청구 이력은 그대로 <b>보존</b>되며, 기본 화면·드롭다운에는 표시되지 않습니다. 다시 운영하려면 각 지점의 <b>[재개]</b> 버튼을 누르세요.</div>
         </div>
         <div class="bgrid" id="archive-grid"></div>
       </div>
@@ -1356,7 +1356,7 @@ b,strong{font-weight:600;}
           </div>
         </div>
         <div class="panel">
-          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 승인 대기 중</span><span id="pend-cnt" style="font-size:12px;color:var(--yellow);font-weight:700;margin-left:8px"></span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 승인 대기 중</span><span id="pend-cnt" style="font-size:12px;color:var(--yellow);font-weight:600;margin-left:8px"></span></div>
           <div class="user-table-wrap">
             <table class="tbl">
               <thead><tr><th>계정 ID</th><th>로그인 시각</th><th>처리</th></tr></thead>
@@ -1389,15 +1389,15 @@ b,strong{font-weight:600;}
       <div class="fg"></div>
     </div>
     <div class="fg" id="r-stk-hint" style="display:none">
-      <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);line-height:1.6">
+      <div style="background:var(--accent-l);border:1px solid var(--plott-color-primary100);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);line-height:1.6">
         지점 창고에 보관할 <strong>예비 도어락</strong>입니다. 객실에 달지 않으므로 <strong>설치비·자재비는 붙지 않습니다</strong>.<br>
         물건값은 본사가 <strong>입고 확인</strong>한 뒤 계산서 날짜가 속한 달에 잡힙니다.
       </div>
     </div>
     <div class="fg">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--red-l);border:1px solid #fecaca;border-radius:7px;cursor:pointer" onclick="toggleUrg()">
-        <div><div style="font-size:13px;font-weight:700;color:var(--red);display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 긴급 요청</div><div style="font-size:11px;color:#f87171;margin-top:1px">당일 처리 — 담당자 즉시 알림</div></div>
-        <div id="tgl" style="width:40px;height:22px;background:var(--border2);border-radius:11px;position:relative;transition:background .2s"><div id="tgld" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:#fff;border-radius:50%;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--red-l);border:1px solid #fecaca;border-radius:8px;cursor:pointer" onclick="toggleUrg()">
+        <div><div style="font-size:14px;font-weight:600;color:var(--red);display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 긴급 요청</div><div style="font-size:12px;color:#f87171;margin-top:1px">당일 처리 — 담당자 즉시 알림</div></div>
+        <div id="tgl" style="width:40px;height:22px;background:var(--border2);border-radius:12px;position:relative;transition:background .2s"><div id="tgld" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:var(--plott-color-bg-surface);border-radius:50%;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)"></div></div>
       </div>
     </div>
     <div class="fg"><label>메모</label><textarea class="fta" id="r-memo" placeholder="특이사항"></textarea></div>
@@ -1426,7 +1426,7 @@ b,strong{font-weight:600;}
     </div>
     <div class="fr2">
       <div class="fg"><label>추가자재비 (VAT포함)</label><input class="fi" id="m-extra" type="number" placeholder="0" oninput="calcT()"></div>
-      <div class="fg"><label>합계 금액</label><input class="fi" id="m-total" readonly style="background:var(--surface);font-weight:700;color:var(--accent)"></div>
+      <div class="fg"><label>합계 금액</label><input class="fi" id="m-total" readonly style="background:var(--surface);font-weight:600;color:var(--accent)"></div>
     </div>
     <div class="fr2">
       <div class="fg"><label>발주일 <span class="req">*</span></label><input class="fi" id="m-order-date" type="date"></div>
@@ -1434,10 +1434,10 @@ b,strong{font-weight:600;}
     </div>
     <div class="fr2">
       <div class="fg"><label>설치완료일</label><input class="fi" id="m-done-date" type="date"></div>
-      <div class="fg"><label>설치 상태 <span style="font-size:10px;color:var(--text3);font-weight:400">(전용 버튼으로만 변경)</span></label><div class="fi" id="m-installed-view" style="background:var(--surface);color:var(--text3);display:flex;align-items:center;pointer-events:none">—</div><input type="hidden" id="m-installed"></div>
+      <div class="fg"><label>설치 상태 <span style="font-size:12px;color:var(--text3);font-weight:400">(전용 버튼으로만 변경)</span></label><div class="fi" id="m-installed-view" style="background:var(--surface);color:var(--text3);display:flex;align-items:center;pointer-events:none">—</div><input type="hidden" id="m-installed"></div>
     </div>
     <div class="fr2">
-      <div class="fg"><label>결제 상태 <span style="font-size:10px;color:var(--text3);font-weight:400">(전용 버튼으로만 변경)</span></label><div class="fi" id="m-paid-view" style="background:var(--surface);color:var(--text3);display:flex;align-items:center;pointer-events:none">—</div><input type="hidden" id="m-paid"></div>
+      <div class="fg"><label>결제 상태 <span style="font-size:12px;color:var(--text3);font-weight:400">(전용 버튼으로만 변경)</span></label><div class="fi" id="m-paid-view" style="background:var(--surface);color:var(--text3);display:flex;align-items:center;pointer-events:none">—</div><input type="hidden" id="m-paid"></div>
       <div class="fg"><label>메모</label><input class="fi" id="m-memo" placeholder="메모"></div>
     </div>
   </div>
@@ -1451,7 +1451,7 @@ b,strong{font-weight:600;}
 <div class="mb">
   <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg> 예상 설치일정 입력</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-exp')">✕</button></div>
   <div class="mbody">
-    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="exp-noti">접수 ID: —</div>
+    <div style="background:var(--accent-l);border:1px solid var(--plott-color-primary100);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="exp-noti">접수 ID: —</div>
     <div class="fg"><label>예상 설치일 <span class="req">*</span></label><input class="fi" id="exp-date" type="date"></div>
     <div class="fg"><label>메모 (선택)</label><input class="fi" id="exp-memo" placeholder="예: 오전 10시 방문 예정"></div>
   </div>
@@ -1463,7 +1463,7 @@ b,strong{font-weight:600;}
 <div class="mb">
   <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg> 설치 완료 확인</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-i')">✕</button></div>
   <div class="mbody">
-    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="inst-noti">접수 ID: —</div>
+    <div style="background:var(--accent-l);border:1px solid var(--plott-color-primary100);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="inst-noti">접수 ID: —</div>
     <div class="fr2">
       <div class="fg"><label>설치 완료일 <span class="req">*</span></label><input class="fi" id="inst-date" type="date"></div>
       <div class="fg"><label>설치 모델명</label><input class="fi" id="inst-model" placeholder="예: 솔리티 SL-5000"></div>
@@ -1479,7 +1479,7 @@ b,strong{font-weight:600;}
 <div class="mb">
   <div class="mh"><span class="mt2">재고 입고 등록</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-stk')">✕</button></div>
   <div class="mbody">
-    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px">
+    <div style="background:var(--accent-l);border:1px solid var(--plott-color-primary100);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px">
       입고일이 <strong>계산서 날짜</strong>입니다. 물건값만 그 달 정산에 잡히고, 설치비·자재비는 실제 설치한 달에 잡힙니다.
     </div>
     <div class="fr2">
@@ -1495,11 +1495,11 @@ b,strong{font-weight:600;}
       <div class="fg"><label>계산서 번호</label><input class="fi" id="stk-invno" placeholder="선택"></div>
     </div>
     <div class="fg"><label>메모</label><input class="fi" id="stk-note" placeholder="예: 9월 대량입고"></div>
-    <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-top:4px;cursor:pointer">
+    <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-top:4px;cursor:pointer">
       <input type="checkbox" id="stk-opening" onchange="calcStk()">
       <span>기초재고 (이미 비용처리된 기존 보유분 — <strong>수량만</strong> 잡고 정산에서 제외)</span>
     </label>
-    <div style="margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:13px" id="stk-sum">—</div>
+    <div style="margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:14px" id="stk-sum">—</div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-stk')">취소</button><button class="btn bp" onclick="saveStk()">입고 등록</button></div>
 </div>
@@ -1510,7 +1510,7 @@ b,strong{font-weight:600;}
 <div class="mb">
   <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>입고 확인</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-recv')">✕</button></div>
   <div class="mbody">
-    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
+    <div style="background:var(--accent-l);border:1px solid var(--plott-color-primary100);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
       <span id="recv-noti"></span><br>
       물건이 실제로 들어온 날(=<strong>계산서 날짜</strong>)을 적으세요. 이 날짜가 속한 달 정산에 물건값이 잡히고 지점 재고가 늘어납니다.
     </div>
@@ -1523,7 +1523,7 @@ b,strong{font-weight:600;}
       <div class="fg"><label>계산서 번호</label><input class="fi" id="recv-invno" placeholder="선택"></div>
     </div>
     <div class="fg"><label>공급처</label><input class="fi" id="recv-vendor" value="(주)솔리티"></div>
-    <div style="margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:13px" id="recv-sum">—</div>
+    <div style="margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:14px" id="recv-sum">—</div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-recv')">취소</button><button class="btn bp" onclick="submitRecv()">입고 확인</button></div>
 </div>
@@ -1534,7 +1534,7 @@ b,strong{font-weight:600;}
 <div class="mb">
   <div class="mh"><span class="mt2">부자재 신청</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-pt-req')">✕</button></div>
   <div class="mbody">
-    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
+    <div style="background:var(--accent-l);border:1px solid var(--plott-color-primary100);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
       도어락 <strong>커버·모듈</strong>은 솔리티에서 무상으로 받는 품목입니다. 신청하면 본사에서 확인 후 발송하고,
       발송 시 <strong>슬랙으로 알려드립니다</strong>. 비용은 발생하지 않습니다.
     </div>
@@ -1547,7 +1547,7 @@ b,strong{font-weight:600;}
         <div class="fg" style="margin:0"><label style="font-size:12px;color:var(--text3)">모듈</label>
           <input class="fi" id="ptq-qty-모듈" type="number" min="0" value="0" placeholder="0"></div>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:6px">필요한 품목만 수량을 넣으세요. 0은 신청되지 않습니다.</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px">필요한 품목만 수량을 넣으세요. 0은 신청되지 않습니다.</div>
     </div>
     <div class="fg"><label>메모</label><input class="fi" id="ptq-note" placeholder="예: 302호 커버 파손"></div>
   </div>
@@ -1560,7 +1560,7 @@ b,strong{font-weight:600;}
 <div class="mb">
   <div class="mh"><span class="mt2">솔리티 입고 등록</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-pt-in')">✕</button></div>
   <div class="mbody">
-    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
+    <div style="background:var(--accent-l);border:1px solid var(--plott-color-primary100);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
       솔리티에서 <strong>무상</strong>으로 받은 수량입니다. 금액은 어디에도 잡히지 않고 <strong>보유 수량만</strong> 늘어납니다.
     </div>
     <div class="fg" style="max-width:220px"><label>입고일 <span class="req">*</span></label><input class="fi" id="pti-date" type="date"></div>
@@ -1572,7 +1572,7 @@ b,strong{font-weight:600;}
         <div class="fg" style="margin:0"><label style="font-size:12px;color:var(--text3)">모듈</label>
           <input class="fi" id="pti-qty-모듈" type="number" min="0" value="0" placeholder="0"></div>
       </div>
-      <div style="font-size:11px;color:var(--text3);margin-top:6px">받은 품목만 수량을 넣으세요. 0은 등록되지 않습니다.</div>
+      <div style="font-size:12px;color:var(--text3);margin-top:6px">받은 품목만 수량을 넣으세요. 0은 등록되지 않습니다.</div>
     </div>
     <div class="fg"><label>메모</label><input class="fi" id="pti-note" placeholder="예: 9월 정기 공급"></div>
   </div>
@@ -1585,12 +1585,12 @@ b,strong{font-weight:600;}
 <div class="mb">
   <div class="mh"><span class="mt2" id="hqq-title">H2O 모드 전환 신고</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-hq-req')">✕</button></div>
   <div class="mbody">
-    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
+    <div style="background:var(--accent-l);border:1px solid var(--plott-color-primary100);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px;line-height:1.6">
       도어락을 <strong>객실용↔홈용으로 바꾼 뒤</strong> 신고해 주세요. 본사가 H2O 에 알리면 <strong>슬랙으로 알려드립니다</strong>.
     </div>
     <div class="fg"><label>지점 <span class="req">*</span></label><select class="fs" id="hqq-fac" onchange="hqqCheck()"></select></div>
     <div class="fg"><label>방향 <span class="req">*</span></label>
-      <div style="display:flex;gap:18px;font-size:13px">
+      <div style="display:flex;gap:18px;font-size:14px">
         <label style="display:inline-flex;gap:5px;align-items:center;font-weight:400;margin:0;color:inherit"><input type="radio" name="hqq-dir" value="off" onchange="hqqDir()">객실용 → 홈용 (해지)</label>
         <label style="display:inline-flex;gap:5px;align-items:center;font-weight:400;margin:0;color:inherit"><input type="radio" name="hqq-dir" value="on" onchange="hqqDir()">홈용 → 객실용 (추가)</label>
       </div></div>
@@ -1614,10 +1614,10 @@ b,strong{font-weight:600;}
     <div class="fg"><label>받는 사람</label>
       <div style="display:flex;gap:6px"><input class="fi" id="hqm-to" readonly><button class="btn bo bsm" style="white-space:nowrap;flex-shrink:0" onclick="hqCopy('hqm-to')">복사</button></div></div>
     <div class="fg"><label>본문 <span style="font-weight:400;color:var(--text3)">(고친 뒤 복사해 메일에 붙여 넣으세요)</span></label>
-      <textarea class="fi" id="hqm-body" style="height:200px;font-size:13px;line-height:1.6;resize:vertical"></textarea>
+      <textarea class="fi" id="hqm-body" style="height:200px;font-size:14px;line-height:1.6;resize:vertical"></textarea>
       <div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn bo bsm" onclick="hqCopy('hqm-body')">본문 복사</button></div></div>
     <div class="fg" style="max-width:220px"><label>보낸 날 <span class="req">*</span></label><input class="fi" id="hqm-sent" type="date"></div>
-    <div style="font-size:11px;color:var(--text3);line-height:1.6">요금은 추가·해지 모두 <b>메일 보낸 날</b> 기준입니다. 이미 보낸 건이면 본문은 무시하고 보낸 날만 맞춰 [보냈어요]를 누르세요. 문안에서 방을 빼도 [보냈어요]는 이 창의 신고를 모두 기록합니다 — 빼야 하면 그 신고를 지우세요.</div>
+    <div style="font-size:12px;color:var(--text3);line-height:1.6">요금은 추가·해지 모두 <b>메일 보낸 날</b> 기준입니다. 이미 보낸 건이면 본문은 무시하고 보낸 날만 맞춰 [보냈어요]를 누르세요. 문안에서 방을 빼도 [보냈어요]는 이 창의 신고를 모두 기록합니다 — 빼야 하면 그 신고를 지우세요.</div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-hq-mail')">닫기</button><button class="btn bp" onclick="hqMarkSent()">보냈어요</button></div>
 </div>
@@ -1628,7 +1628,7 @@ b,strong{font-weight:600;}
 <div class="mb" style="max-width:640px">
   <div class="mh"><span class="mt2">실사 반영</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-adj')">✕</button></div>
   <div class="mbody">
-    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px">
+    <div style="background:var(--accent-l);border:1px solid var(--plott-color-primary100);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px">
       지점에서 회신받은 <strong>실물 수량</strong>을 적으세요. 장부와 다른 지점만 조정 기록이 생깁니다.
       조정은 <strong>수량만</strong> 움직이고 정산 금액에는 들어가지 않습니다.
     </div>
@@ -1637,7 +1637,7 @@ b,strong{font-weight:600;}
       <th>지점</th><th class="num-r">장부</th><th class="num-r" style="width:110px">실물</th><th class="num-r">차이</th>
     </tr></thead><tbody id="adj-body"></tbody></table></div>
     <div class="fg" style="margin-top:12px"><label>사유·메모</label><input class="fi" id="adj-note" placeholder="예: 9월 실사 — 긴급 교체 사용분"></div>
-    <div style="margin-top:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:13px" id="adj-sum">실물 수량을 입력하세요.</div>
+    <div style="margin-top:12px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:14px" id="adj-sum">실물 수량을 입력하세요.</div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-adj')">취소</button><button class="btn bp" onclick="saveAdj()">조정 등록</button></div>
 </div>
@@ -1648,14 +1648,14 @@ b,strong{font-weight:600;}
 <div class="mb">
   <div class="mh"><span class="mt2">재고에서 설치</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-out')">✕</button></div>
   <div class="mbody">
-    <div style="background:var(--accent-l);border:1px solid rgba(26,86,219,.15);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="out-noti">지점을 선택하세요.</div>
+    <div style="background:var(--accent-l);border:1px solid var(--plott-color-primary100);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--accent);margin-bottom:14px" id="out-noti">지점을 선택하세요.</div>
     <div class="fr2">
       <div class="fg"><label>지점 <span class="req">*</span></label><select class="fi" id="out-branch" onchange="onOutChange()"></select></div>
       <div class="fg"><label>설치 완료일 <span class="req">*</span></label><input class="fi" id="out-date" type="date"></div>
     </div>
     <div class="fg"><label>연결할 접수</label>
       <select class="fi" id="out-receipt" onchange="onOutReceipt()"></select>
-      <div style="font-size:11.5px;color:var(--text3);margin-top:5px">
+      <div style="font-size:12px;color:var(--text3);margin-top:5px">
         지점 요청으로 설치하는 경우 반드시 연결하세요. 연결하면 그 접수가 <strong>설치 완료</strong>로 처리되어,
         같은 건이 발주로 한 번 더 잡히는 일이 없습니다.
       </div>
@@ -1668,7 +1668,7 @@ b,strong{font-weight:600;}
       <div class="fg"><label>설치처</label><select class="fi" id="out-vendor" onchange="onOutChange()">
         <option value="(주)솔리티">(주)솔리티</option><option value="지점직접">지점직접 (지점비용 별도 상신)</option></select></div>
     </div>
-    <div style="margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:13px" id="out-sum">—</div>
+    <div style="margin-top:14px;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:14px" id="out-sum">—</div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-out')">취소</button><button class="btn bg" onclick="saveOut()">설치 등록</button></div>
 </div>
@@ -1704,12 +1704,12 @@ b,strong{font-weight:600;}
     </div>
     <div class="fr2">
       <div class="fg"><label>도어락 유형</label><select class="fs" id="br-lockType" onchange="onLockTypeSel()"><option value="일반도어락">일반도어락 (추가자재 없음)</option><option value="호텔도어락">호텔도어락 (추가자재 22,000원)</option></select></div>
-      <div class="fg"><label>추가자재비 <span style="font-size:10px;color:var(--text3);font-weight:400">· 유형에 따라 자동</span></label><input class="fi" id="br-extraCost" type="number" placeholder="0" readonly style="background:var(--surface)"></div>
+      <div class="fg"><label>추가자재비 <span style="font-size:12px;color:var(--text3);font-weight:400">· 유형에 따라 자동</span></label><input class="fi" id="br-extraCost" type="number" placeholder="0" readonly style="background:var(--surface)"></div>
     </div>
     <div class="fr2">
       <div class="fg"><label>도어락 단가</label><input class="fi" id="br-lockPrice" type="number" placeholder="0"></div>
       <div class="fg"><label>설치비</label>
-        <div style="padding:9px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:7px;font-size:12px;color:var(--text3);line-height:1.5">
+        <div style="padding:9px 12px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;font-size:12px;color:var(--text3);line-height:1.5">
           한 번에 <strong>10개 미만 55,000원</strong> · <strong>10개 이상 22,000원</strong><br>(부가세 포함 · 전 지점 공통)
         </div></div>
     </div>
@@ -1769,7 +1769,7 @@ const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doo
 const escH=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const getSlackProfile=(email)=>{const sp=ld(K.SP,{});return sp[(email||'').toLowerCase()]||null;};
 const getUserEmailByName=(name)=>{if(!name)return null;const users=ld(K.U,[]);const u=users.find(u=>u.name===name);return u?.email||null;};
-const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${escH(p.avatar)}" alt="${escH(p.name||name||'')}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${escH(p.name||name||email||'—')}`;const initials=escH((name||email||'?').charAt(0).toUpperCase());return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${escH(name||email||'—')}</span>`;};
+const slackAvatar=(email,name)=>{const resolvedEmail=email||getUserEmailByName(name);const p=getSlackProfile(resolvedEmail);if(p?.avatar)return`<img src="${escH(p.avatar)}" alt="${escH(p.name||name||'')}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:6px;object-fit:cover">${escH(p.name||name||email||'—')}`;const initials=escH((name||email||'?').charAt(0).toUpperCase());return`<span style="display:inline-flex;align-items:center;gap:6px"><span style="width:24px;height:24px;border-radius:50%;background:var(--accent-l);color:var(--accent);font-size:12px;font-weight:600;display:inline-flex;align-items:center;justify-content:center">${initials}</span>${escH(name||email||'—')}</span>`;};
 const DATA_VERSION='v4';
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}};
 /* ── 설정 키 3-way 동기화 (2026-10-01) ──
@@ -1952,7 +1952,7 @@ function showPushFail(){
   if(document.getElementById('push-fail-bar'))return;
   const el=document.createElement('div');
   el.id='push-fail-bar';
-  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#b3261e;color:#fff;padding:11px 16px;font-size:13px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#b3261e;color:var(--plott-color-text-inverse);padding:11px 16px;font-size:14px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.25)';
   el.textContent='서버 저장에 연속 실패했습니다. 지금 입력한 내용이 다른 사람에게 전달되지 않습니다 — 새로고침 후 다시 로그인하세요.';
   document.body.appendChild(el);
 }
@@ -1980,11 +1980,11 @@ function showUpdateBar(){
   if(document.getElementById('app-update-bar'))return;
   const el=document.createElement('div');
   el.id='app-update-bar';
-  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99998;background:#1a56db;color:#fff;padding:10px 16px;font-size:13px;font-weight:600;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99998;background:var(--plott-color-action-primary);color:var(--plott-color-text-inverse);padding:10px 16px;font-size:14px;font-weight:600;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.25)';
   el.innerHTML='<span>도어락 통합관리가 새 버전으로 바뀌었습니다. 입력 중인 내용을 마친 뒤 새로고침해 주세요.</span>';
   const b=document.createElement('button');
   b.textContent='새로고침';
-  b.style.cssText='background:#fff;color:#1a56db;border:0;border-radius:6px;padding:5px 14px;font-weight:700;cursor:pointer';
+  b.style.cssText='background:var(--plott-color-bg-surface);color:var(--plott-color-action-primary);border:0;border-radius:6px;padding:5px 14px;font-weight:600;cursor:pointer';
   b.onclick=()=>location.reload();
   el.appendChild(b);
   document.body.appendChild(el);
@@ -2816,10 +2816,10 @@ function renderR(){
     } else if(r.status==='결제'){
       if(!r.paymentDone&&isAdm())act=`<button class="btn bg bsm" onclick="confirmPayment('${r.id}')">결제완료 처리</button>`;
       else if(r.paymentDone)act=`<span style="color:var(--green);font-size:12px">✓ 결제완료</span>${isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="revertPayment('${r.id}')">↩ 설치로</button>`:''}`;
-      else act=`<span style="color:#ea580c;font-size:12px">결제 대기중</span>`;
+      else act=`<span style="color:var(--plott-color-danger700);font-size:12px">결제 대기중</span>`;
     }
     const mgmt=isAdm()?`<button class="btn bo bsm" style="margin-left:4px" onclick="editR('${r.id}')">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteR('${r.id}')">삭제</button>`:'';
-    return`<tr><td class="idc">${r.id}</td><td style="font-weight:500">${r.branch}</td><td>${r.room}</td><td style="white-space:nowrap">${isStkRc(r)?`<span class="chip ci">${CI.box}재고 확보</span>`:r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span class="urg" role="img" aria-label="긴급" style="color:var(--plott-color-danger500);display:inline-flex;align-items:center">${CI.zap}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
+    return`<tr><td class="idc">${r.id}</td><td style="font-weight:600">${r.branch}</td><td>${r.room}</td><td style="white-space:nowrap">${isStkRc(r)?`<span class="chip ci">${CI.box}재고 확보</span>`:r.type}</td><td style="text-align:center">${r.qty||1}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.openDate||'—'}</td><td>${badge}</td><td>${r.urgent?`<span class="urg" role="img" aria-label="긴급" style="color:var(--plott-color-danger500);display:inline-flex;align-items:center">${CI.zap}</span>`:'—'}</td><td style="font-size:12px">${slackAvatar(r.regEmail,r.regBy)}</td><td style="color:var(--text3);font-size:12px;white-space:nowrap">${r.date}</td><td style="white-space:nowrap">${act}${mgmt}</td></tr>`;
   }).join('');
 }
 function setPipe(el,t){el.closest('.pipeline').querySelectorAll('.ps').forEach(s=>s.classList.remove('on'));el.classList.add('on');if(t==='r'){pipeR=el.dataset.s;renderR();}}
@@ -3008,7 +3008,7 @@ function renderO(){
     const e=!isA?'':(isStkAny(o)
       ?`<button class="btn bo bsm" onclick="goP('stock')">재고 화면에서</button>`
       :`<button class="btn bo bsm" onclick="openOMo(${o.id})">수정</button><button class="btn br2 bsm" style="margin-left:2px" onclick="deleteO(${o.id})">삭제</button>`);
-    return`<tr><td style="text-align:center"><input type="checkbox" class="ord-chk" value="${o.id}" onchange="onOrdChkChange()" style="cursor:pointer"></td><td style="font-weight:500">${o.branch}</td><td>${o.room}</td><td style="text-align:center">${o.qty||1}</td><td>${o.type||'신규'}</td><td style="font-variant-numeric:tabular-nums">${(o.price||0).toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${(o.install||0).toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${(o.extra||0).toLocaleString()}</td><td style="font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent)">${tot.toLocaleString()}</td><td style="color:var(--text3)">${o.orderDate||'—'}</td><td style="color:var(--text3)">${o.openDate||'—'}</td><td style="color:var(--green)">${o.doneDate||'—'}</td><td>${i}</td><td>${p}</td><td style="color:var(--text3);font-size:11px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.note||''}</td><td style="white-space:nowrap">${e}</td></tr>`;
+    return`<tr><td style="text-align:center"><input type="checkbox" class="ord-chk" value="${o.id}" onchange="onOrdChkChange()" style="cursor:pointer"></td><td style="font-weight:600">${o.branch}</td><td>${o.room}</td><td style="text-align:center">${o.qty||1}</td><td>${o.type||'신규'}</td><td style="font-variant-numeric:tabular-nums">${(o.price||0).toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${(o.install||0).toLocaleString()}</td><td style="font-variant-numeric:tabular-nums">${(o.extra||0).toLocaleString()}</td><td style="font-variant-numeric:tabular-nums;font-weight:600;color:var(--accent)">${tot.toLocaleString()}</td><td style="color:var(--text3)">${o.orderDate||'—'}</td><td style="color:var(--text3)">${o.openDate||'—'}</td><td style="color:var(--green)">${o.doneDate||'—'}</td><td>${i}</td><td>${p}</td><td style="color:var(--text3);font-size:12px;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.note||''}</td><td style="white-space:nowrap">${e}</td></tr>`;
   }).join('');
 }
 
@@ -3111,7 +3111,7 @@ function renderI(){
     } else if(r.status==='결제'){
       badge=r.paymentDone?`<span class="badge b-d">결제완료</span>`:`<span class="badge b-w">결제대기</span>`;
       if(!r.paymentDone&&isAdm())act=`<button class="btn bg bsm" onclick="confirmPayment('${r.id}')">결제완료 처리</button>`;
-      else act=r.paymentDone?'<span style="color:var(--green);font-size:12px">✓</span>':'<span style="color:#ea580c;font-size:12px">결제 대기중</span>';
+      else act=r.paymentDone?'<span style="color:var(--green);font-size:12px">✓</span>':'<span style="color:var(--plott-color-danger700);font-size:12px">결제 대기중</span>';
     }
     return`<tr><td class="idc">${r.id}</td><td>${r.branch}</td><td>${r.room}</td><td style="color:var(--green)">${r.installDate||'—'}</td><td>${badge}</td><td>${act}</td></tr>`;
   }).join('');
@@ -3302,8 +3302,8 @@ function renderM(){
   const REPM={label:'교체',color:'var(--yellow)',sub:'수선비/지점출금 · 6055',bg:'rgba(245,158,11,.1)'};
   const allRows=MS.rows.map(r=>{
     const m=r.isNew?NEWM:REPM;
-    const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;background:${m.bg};color:${m.color}">${m.label}</span><div style="font-size:10px;color:var(--text3);margin-top:2px">${m.sub}</div>`;
-    return`<tr><td style="font-weight:600">${r.branch}</td><td style="white-space:nowrap">${badge}</td><td style="white-space:nowrap;font-size:11px;color:var(--text3)">${r.lineKind||'일괄'}${(r.vendor&&r.vendor!=='(주)솔리티')?'<br>'+r.vendor:''}</td><td>${r.cnt}건</td><td style="${mono}">${r.qty==null?'—':r.qty+(r.lineKind==='물건'?'개':'실')}</td><td style="${mono}">${r.p.toLocaleString()}</td><td style="${mono}">${r.i.toLocaleString()}</td><td style="${mono}">${r.e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${r.ex.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${r.tax.toLocaleString()}</td><td style="${mono};font-weight:700;color:${m.color}">${r.t.toLocaleString()}</td></tr>`;
+    const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;background:${m.bg};color:${m.color}">${m.label}</span><div style="font-size:12px;color:var(--text3);margin-top:2px">${m.sub}</div>`;
+    return`<tr><td style="font-weight:600">${r.branch}</td><td style="white-space:nowrap">${badge}</td><td style="white-space:nowrap;font-size:12px;color:var(--text3)">${r.lineKind||'일괄'}${(r.vendor&&r.vendor!=='(주)솔리티')?'<br>'+r.vendor:''}</td><td>${r.cnt}건</td><td style="${mono}">${r.qty==null?'—':r.qty+(r.lineKind==='물건'?'개':'실')}</td><td style="${mono}">${r.p.toLocaleString()}</td><td style="${mono}">${r.i.toLocaleString()}</td><td style="${mono}">${r.e.toLocaleString()}</td><td style="${mono};color:var(--text2)">${r.ex.toLocaleString()}</td><td style="${mono};color:var(--text3);font-size:12px">${r.tax.toLocaleString()}</td><td style="${mono};font-weight:600;color:${m.color}">${r.t.toLocaleString()}</td></tr>`;
   }).join('');
 
   // 5) 요약 카드 — 공급가액·부가세 모두 표의 열 합계와 정확히 일치(전표 합산 기준)
@@ -3319,7 +3319,7 @@ function renderM(){
   const tbody=document.getElementById('m-body-all');
   if(tbody)tbody.innerHTML=allRows||emp(11);
   const tfootM=document.getElementById('m-foot-all');
-  if(tfootM)tfootM.innerHTML=MS.rows.length?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="3" style="text-align:right">합계</td><td>${tt.cnt}건</td><td style="${mono}" title="물건 라인의 '개'와 설치 라인의 '실'이 섞인 합이라 단위를 붙이지 않습니다">${tt.qty||'—'}</td><td style="${mono}">${tt.p.toLocaleString()}</td><td style="${mono}">${tt.i.toLocaleString()}</td><td style="${mono}">${tt.e.toLocaleString()}</td><td style="${mono}">${tt.ex.toLocaleString()}</td><td style="${mono}">${tt.tax.toLocaleString()}</td><td style="${mono}">${tt.t.toLocaleString()}</td></tr>`:'';
+  if(tfootM)tfootM.innerHTML=MS.rows.length?`<tr style="font-weight:600;background:var(--bg2)"><td colspan="3" style="text-align:right">합계</td><td>${tt.cnt}건</td><td style="${mono}" title="물건 라인의 '개'와 설치 라인의 '실'이 섞인 합이라 단위를 붙이지 않습니다">${tt.qty||'—'}</td><td style="${mono}">${tt.p.toLocaleString()}</td><td style="${mono}">${tt.i.toLocaleString()}</td><td style="${mono}">${tt.e.toLocaleString()}</td><td style="${mono}">${tt.ex.toLocaleString()}</td><td style="${mono}">${tt.tax.toLocaleString()}</td><td style="${mono}">${tt.t.toLocaleString()}</td></tr>`:'';
 
   // 7) 마감 상태 카드 + 버튼 (월을 바꿀 때마다 갱신 — 이전엔 doClose 에서만 갱신돼 값이 남아 있었다)
   const stEl=document.getElementById('mc-st'),ssEl=document.getElementById('mc-ss');
@@ -3527,9 +3527,9 @@ function renderBr(){
   // Duck 캐시 적용 후 렌더
   syncDuckRooms().then(duck=>{
     const brs=getActiveBr();
-    const syncAt=duck?.updatedAt?`<span style="font-size:11px;color:var(--text3);padding:4px 8px">마지막 Duck 동기화: ${duck.updatedAt.substring(0,10)}</span>`:'';
-    document.getElementById('bgrid').innerHTML=`<div class="bc" onclick="openBrMo(null)" style="border:2px dashed var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;min-height:110px;flex-direction:column;gap:8px;color:var(--text3)"><div style="font-size:28px">+</div><div style="font-size:13px;font-weight:600">지점 추가</div></div>`
-      +brs.map(b=>`<div class="bc" data-brc data-name="${(b.name||'').toLowerCase()}" data-loc="${(b.loc||'').toLowerCase()}" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div style="margin:4px 0"><span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;background:${brLockType(b)==='호텔도어락'?'rgba(147,51,234,.1)':'rgba(26,86,219,.08)'};color:${brLockType(b)==='호텔도어락'?'var(--purple)':'var(--accent)'}">${brLockType(b)}${brExtra(b)?' · 자재 '+brExtra(b).toLocaleString()+'원':''}</span></div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div><div style="margin-top:8px;text-align:right"><button class="btn br2 bsm" onclick="event.stopPropagation();closeBranch(${b.id})">지점 종료</button></div></div>`).join('');
+    const syncAt=duck?.updatedAt?`<span style="font-size:12px;color:var(--text3);padding:4px 8px">마지막 Duck 동기화: ${duck.updatedAt.substring(0,10)}</span>`:'';
+    document.getElementById('bgrid').innerHTML=`<div class="bc" onclick="openBrMo(null)" style="border:2px dashed var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;min-height:110px;flex-direction:column;gap:8px;color:var(--text3)"><div style="font-size:32px">+</div><div style="font-size:14px;font-weight:600">지점 추가</div></div>`
+      +brs.map(b=>`<div class="bc" data-brc data-name="${(b.name||'').toLowerCase()}" data-loc="${(b.loc||'').toLowerCase()}" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div style="margin:4px 0"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;background:${brLockType(b)==='호텔도어락'?'rgba(147,51,234,.1)':'rgba(26,86,219,.08)'};color:${brLockType(b)==='호텔도어락'?'var(--purple)':'var(--accent)'}">${brLockType(b)}${brExtra(b)?' · 자재 '+brExtra(b).toLocaleString()+'원':''}</span></div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div><div style="margin-top:8px;text-align:right"><button class="btn br2 bsm" onclick="event.stopPropagation();closeBranch(${b.id})">지점 종료</button></div></div>`).join('');
     document.getElementById('duck-sync-at')?.remove();   // 다시 그릴 때마다 줄이 쌓이지 않게
     if(syncAt)document.getElementById('bgrid').insertAdjacentHTML('beforebegin',`<div id="duck-sync-at" style="display:flex;justify-content:flex-end;margin-bottom:4px">${syncAt}</div>`);
     filterBr();
@@ -3643,7 +3643,7 @@ function renderArchive(){
   el.innerHTML=brs.map(b=>{
     const oc=getOr().filter(o=>o.branch===b.name).length;
     const rc=getRc().filter(r=>r.branch===b.name).length;
-    return`<div class="bc" style="opacity:.9"><span class="bc-done" style="background:rgba(234,88,12,.12);color:#ea580c">종료 ${b.closedDate||''}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.clipboard} 접수 ${rc}건</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.box} 발주 ${oc}건</span></div><div style="margin-top:10px;display:flex;gap:6px;justify-content:flex-end"><button class="btn bo bsm" onclick="openBrMo(${b.id})">정보 보기</button><button class="btn bp bsm" onclick="reopenBranch(${b.id})">↻ 재개</button></div></div>`;
+    return`<div class="bc" style="opacity:.9"><span class="bc-done" style="background:rgba(234,88,12,.12);color:var(--plott-color-danger700)">종료 ${b.closedDate||''}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.clipboard} 접수 ${rc}건</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.box} 발주 ${oc}건</span></div><div style="margin-top:10px;display:flex;gap:6px;justify-content:flex-end"><button class="btn bo bsm" onclick="openBrMo(${b.id})">정보 보기</button><button class="btn bp bsm" onclick="reopenBranch(${b.id})">↻ 재개</button></div></div>`;
   }).join('');
 }
 
@@ -3688,7 +3688,7 @@ function addDraftRow(){
     <td><input class="fi" id="dr-price-${idx}" type="number" placeholder="0" style="width:100%" oninput="calcDraftRow(${idx})"></td>
     <td><input class="fi" id="dr-install-${idx}" type="number" placeholder="0" style="width:100%" oninput="calcDraftRow(${idx})"></td>
     <td><input class="fi" id="dr-extra-${idx}" type="number" placeholder="0" style="width:100%" oninput="calcDraftRow(${idx})"></td>
-    <td><input class="fi" id="dr-sub-${idx}" readonly style="background:var(--surface);font-weight:700;font-variant-numeric:tabular-nums;font-size:12px;width:100%"></td>
+    <td><input class="fi" id="dr-sub-${idx}" readonly style="background:var(--surface);font-weight:600;font-variant-numeric:tabular-nums;font-size:12px;width:100%"></td>
     <td><input class="fi" id="dr-open-${idx}" type="date" style="width:100%"></td>
     <td><input class="fi" id="dr-memo-${idx}" placeholder="메모" style="width:100%"></td>
     <td><button class="btn br2 bsm" onclick="delDraftRow(${idx})">✕</button></td>`;
@@ -4426,13 +4426,13 @@ function renderParts(){
       ?`<button class="btn br2 bsm" style="margin-left:2px" onclick="delPtG(${gi})">삭제</button>`:'';
     return `<tr>
       <td>${escH(g.reqDate||'—')}</td>
-      <td style="font-weight:500">${escH(g.branch||'—')}</td>
+      <td style="font-weight:600">${escH(g.branch||'—')}</td>
       <td>${escH(itemTxt||'—')}</td>
       <td class="num-r">${qtySum}</td>
       <td style="white-space:nowrap">${chip.join('')}</td>
       <td style="font-size:12px">${slackAvatar(g.reqEmail,g.reqBy)}</td>
       <td style="color:var(--green)">${escH(sentD||'—')}</td>
-      <td style="color:var(--text3);font-size:11px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escLog(memo)}</td>
+      <td style="color:var(--text3);font-size:12px;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escLog(memo)}</td>
       <td style="white-space:nowrap">${act}${del}</td>
     </tr>`;
   }).join(''):emp(9);
@@ -4443,7 +4443,7 @@ function renderParts(){
       .sort((x,y)=>String(y.date||'').localeCompare(String(x.date||'')));
     itb.innerHTML=ins.length?ins.map(x=>`<tr>
       <td>${escH(x.date||'—')}</td><td>${escH(x.item||'—')}</td><td class="num-r">+${Number(x.qty)||0}</td>
-      <td style="color:var(--text3);font-size:11px">${escLog(x.note||'')}</td>
+      <td style="color:var(--text3);font-size:12px">${escLog(x.note||'')}</td>
       <td><button class="btn br2 bsm" onclick="delPt(${x.id})">삭제</button></td>
     </tr>`).join(''):emp(5);
   }
@@ -5243,7 +5243,7 @@ function svcAutoPreview(){
   el.innerHTML='';
   if(AUTO.err){
     const d=document.createElement('div');
-    d.style.cssText='color:#dc2626;font-size:12.5px';d.textContent=AUTO.err;
+    d.style.cssText='color:var(--plott-color-danger700);font-size:14px';d.textContent=AUTO.err;
     el.appendChild(d);return;
   }
   if(!AUTO.rows.length)return;
@@ -5257,7 +5257,7 @@ function svcAutoPreview(){
     :AUTO.rows.filter(r=>{const b=svcBranchBrand(r.branch);return b&&b!==SVC_NONE;});
   if(!shown.length&&!svcShowAll){
     const d=document.createElement('div');
-    d.style.cssText='font-size:13px;color:var(--text3);margin-bottom:10px';
+    d.style.cssText='font-size:14px;color:var(--text3);margin-bottom:10px';
     d.textContent='요금 대상으로 지정된 지점이 없습니다. [전체 지점 보기]에서 브랜드를 지정하세요.';
     el.appendChild(d);
   }
@@ -5277,7 +5277,7 @@ function svcAutoPreview(){
     const td=(txt,cls,style)=>{const c=document.createElement('td');
       if(cls)c.className=cls; if(style)c.style.cssText=style; c.textContent=txt; return c;};
     const noDuck=r.total===0;
-    tr.appendChild(td(r.branch,'',noDuck?'color:#dc2626;font-weight:600':''));
+    tr.appendChild(td(r.branch,'',noDuck?'color:var(--plott-color-danger700);font-weight:600':''));
     // 브랜드 지정
     const bc=document.createElement('td');
     const sel=document.createElement('select');
@@ -5289,9 +5289,9 @@ function svcAutoPreview(){
     sel.addEventListener('change',()=>svcSetBranchBrand(r.branch,sel.value));
     bc.appendChild(sel);tr.appendChild(bc);
     tr.appendChild(td(noDuck?'못 찾음':String(r.total),'num-r',
-      noDuck?'color:#dc2626;font-weight:700':''));
+      noDuck?'color:var(--plott-color-danger700);font-weight:600':''));
     tr.appendChild(td(r.noAccount?'계정 없음':String(r.soliti),'num-r',
-      r.noAccount?'color:var(--text3);font-size:11.5px':''));
+      r.noAccount?'color:var(--text3);font-size:12px':''));
     tr.appendChild(td(String(r.target),'num-r'));
     const billable=rBrand&&rBrand!==SVC_NONE;
     /* 단가는 브랜드가 정한다 — 직방 2,000 / H2O·더엠알 3,000 (브랜드 단가 설정에서 바꿀 수 있다).
@@ -5305,7 +5305,7 @@ function svcAutoPreview(){
       billable?'font-weight:600':'color:var(--text3)'));
     tr.appendChild(td(billable?vat.toLocaleString():'—','num-r','color:var(--text3);font-size:12px'));
     tr.appendChild(td(billable?(amt+vat).toLocaleString():'—','num-r',
-      billable?'font-weight:700;color:var(--accent)':'color:var(--text3)'));
+      billable?'font-weight:600;color:var(--accent)':'color:var(--text3)'));
     sumRooms+=billable?r.target:0; sumAmt+=amt; sumVat+=vat;
     if(billable){
       const b=byBrand.get(rBrand)||{rooms:0,amt:0,vat:0,cnt:0};
@@ -5316,7 +5316,7 @@ function svcAutoPreview(){
     tr.appendChild(td(billable?(now||'—').toString():'—','num-r','color:var(--text3)'));
     const diff=billable?r.target-now:0;
     tr.appendChild(td(billable?(diff>0?'+':'')+diff:'—','num-r',
-      `font-weight:700;color:${diff===0?'var(--text3)':(diff<0?'var(--green)':'#dc2626')}`));
+      `font-weight:600;color:${diff===0?'var(--text3)':(diff<0?'var(--green)':'#dc2626')}`));
     if(billable)money+=diff*(prices[rBrand]||SVC_DEF_PRICES[rBrand]||0);
     if(!rBrand)unset++;
     body.appendChild(tr);
@@ -5329,7 +5329,7 @@ function svcAutoPreview(){
     const mkRow=(label,rooms,amt,vat,cnt,strong)=>{
       const tr=document.createElement('tr');
       tr.style.cssText=strong
-        ? 'font-weight:700;background:var(--bg2);border-top:2px solid var(--bd)'
+        ? 'font-weight:600;background:var(--bg2);border-top:2px solid var(--bd)'
         : 'font-weight:600;background:var(--bg2)';
       const c1=document.createElement('td');c1.colSpan=4;
       c1.style.cssText='text-align:right';
@@ -5364,7 +5364,7 @@ function svcAutoPreview(){
   tog.addEventListener('click',()=>{svcShowAll=!svcShowAll;svcAutoPreview();});
   foot.appendChild(tog);
   const note=document.createElement('span');
-  note.style.cssText='font-size:12.5px;color:var(--text2)';
+  note.style.cssText='font-size:14px;color:var(--text2)';
   note.textContent=(svcShowAll&&unset)
     ? `브랜드를 지정하지 않은 지점이 ${unset}곳 있습니다 — 지정한 지점만 반영됩니다.`
     : `반영하면 월 요금이 ${money>0?'+':''}${money.toLocaleString()}원 달라집니다 (부가세 별도).`;
@@ -5374,7 +5374,7 @@ function svcAutoPreview(){
   const noDucks=shown.filter(r=>r.total===0);
   if(noDucks.length){
     const w=document.createElement('div');
-    w.style.cssText='margin-top:8px;font-size:12.5px;color:#dc2626;font-weight:600';
+    w.style.cssText='margin-top:8px;font-size:14px;color:var(--plott-color-danger700);font-weight:600';
     w.textContent=`duck 에서 객실 수를 못 찾은 지점 ${noDucks.length}곳 — `
       +`${noDucks.map(r=>r.branch).join(', ')}. 지점명이 duck 과 다르면 DUCK_NAME_MAP 매핑이 필요합니다. `
       +`이대로 반영하면 그 지점 요금이 0원이 됩니다.`;
@@ -5391,7 +5391,7 @@ function svcAutoPreview(){
       w.appendChild(lab);
       live.forEach(o=>{
         const chip=document.createElement('span');
-        chip.style.cssText='display:inline-flex;align-items:center;gap:5px;border:1px solid var(--bd);border-radius:20px;padding:2px 6px 2px 10px';
+        chip.style.cssText='display:inline-flex;align-items:center;gap:5px;border:1px solid var(--bd);border-radius:9999px;padding:2px 6px 2px 10px';
         const t=document.createElement('span');t.textContent=`${o.id} (${o.n}실)`;
         const b=document.createElement('button');
         b.className='btn bo bsm';
@@ -5599,7 +5599,7 @@ function svcYoloPreview(){
     el.innerHTML='';
     if(YOLO.err.length){
       const e=document.createElement('div');
-      e.style.cssText='color:#dc2626;font-size:12px';
+      e.style.cssText='color:var(--plott-color-danger700);font-size:12px';
       YOLO.err.forEach(m=>{const d=document.createElement('div');d.textContent=m;e.appendChild(d);});
       el.appendChild(e);
     }
@@ -5633,12 +5633,12 @@ function svcYoloPreview(){
     const box=document.createElement('div');
     box.style.cssText=`background:${bg};border:1px solid ${bd};border-radius:8px;padding:12px 14px;margin-bottom:10px`;
     const h=document.createElement('div');
-    h.style.cssText=`font-weight:700;color:${fg};font-size:13px;margin-bottom:8px`;
+    h.style.cssText=`font-weight:600;color:${fg};font-size:14px;margin-bottom:8px`;
     h.textContent=title;                                   // textContent — 마크업으로 해석되지 않는다
     box.appendChild(h);
     entries.forEach(([k,v])=>{
       const row=document.createElement('div');
-      row.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:5px;font-size:12.5px';
+      row.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:5px;font-size:14px';
       const lab=document.createElement('span');
       lab.style.minWidth='180px';
       lab.textContent=`${v.raw} (${v.n}건)`;
@@ -5659,13 +5659,13 @@ function svcYoloPreview(){
     const undone=needPick.filter(x=>!x.f.branch).length;
     box.style.cssText=`background:${undone?'rgba(220,38,38,.06)':'var(--bg2)'};border:1px solid ${undone?'rgba(220,38,38,.25)':'var(--bd)'};border-radius:8px;padding:12px 14px;margin-bottom:10px`;
     const h=document.createElement('div');
-    h.style.cssText=`font-weight:700;color:${undone?'#dc2626':'var(--text2)'};font-size:13px;margin-bottom:8px`;
+    h.style.cssText=`font-weight:600;color:${undone?'#dc2626':'var(--text2)'};font-size:14px;margin-bottom:8px`;
     h.textContent=undone?`파일별 지점을 지정하세요 (${undone}/${needPick.length}개 남음) — 지정 전까지 반영에서 제외됩니다`
                         :`파일별 지점 (${needPick.length}개 지정 완료)`;
     box.appendChild(h);
     needPick.forEach(({f,i})=>{
       const row=document.createElement('div');
-      row.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:5px;font-size:12.5px';
+      row.style.cssText='display:flex;gap:8px;align-items:center;margin-bottom:5px;font-size:14px';
       const lab=document.createElement('span');
       lab.style.cssText='min-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
       lab.textContent=`${f.name} (${f.rows}실)`;
@@ -5715,16 +5715,16 @@ function svcYoloPreview(){
       <td>${escLog(r.bn)}</td><td>${escLog(r.bd)}</td>
       <td class="num-r">${r.n}</td>
       <td class="num-r" style="color:var(--text3)">${r.now||'—'}</td>
-      <td class="num-r" style="font-weight:700;color:${r.diff===0?'var(--text3)':(r.diff<0?'var(--green)':'#dc2626')}">${r.diff>0?'+':''}${r.diff||0}</td>
-      <td style="font-size:11.5px;color:var(--text3)">${skip.get(r.bn)?`요금 없는 도어락 ${skip.get(r.bn)}실 제외`:''}</td>
+      <td class="num-r" style="font-weight:600;color:${r.diff===0?'var(--text3)':(r.diff<0?'var(--green)':'#dc2626')}">${r.diff>0?'+':''}${r.diff||0}</td>
+      <td style="font-size:12px;color:var(--text3)">${skip.get(r.bn)?`요금 없는 도어락 ${skip.get(r.bn)}실 제외`:''}</td>
     </tr>`).join('')}</tbody></table></div>
     <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
       <button class="btn bp" onclick="svcApplyYolo()">${mv||'월 선택'} 청구 항목에 반영</button>
-      <span style="font-size:12.5px;color:var(--text2)">
+      <span style="font-size:14px;color:var(--text2)">
         반영하면 월 요금이 <strong style="color:${money===0?'inherit':(money<0?'var(--green)':'#dc2626')}">${money>0?'+':''}${money.toLocaleString()}원</strong> 달라집니다 (부가세 별도).
       </span>
     </div>`
-    :`<div style="color:var(--text3);font-size:13px">반영할 항목이 없습니다. 위 지정을 먼저 채워주세요.</div>`}`;
+    :`<div style="color:var(--text3);font-size:14px">반영할 항목이 없습니다. 위 지정을 먼저 채워주세요.</div>`}`;
   warnEls.reverse().forEach(w=>el.insertBefore(w,el.firstChild));
 }
 function svcApplyYolo(){
@@ -5816,7 +5816,7 @@ function renderSvc(){
   if(fbrand)recs=recs.filter(r=>r.brand===fbrand);
   recs.sort((a,b)=>a.brand.localeCompare(b.brand)||b.month.localeCompare(a.month)||a.branch.localeCompare(b.branch,'ko'));
   const fmt=n=>n.toLocaleString()+'원';
-  const brandBadge=br=>`<span style="display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:${br==='직방'?'#e8f4fd':br==='H2O'?'#e8fdf0':'#fdf4e8'};color:${br==='직방'?'#1a6fa8':br==='H2O'?'#1a7a3f':'#a85d1a'}">${br}</span>`;
+  const brandBadge=br=>`<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;background:${br==='직방'?'#e8f4fd':br==='H2O'?'#e8fdf0':'#fdf4e8'};color:${br==='직방'?'#1a6fa8':br==='H2O'?'#1a7a3f':'#a85d1a'}">${br}</span>`;
   document.getElementById('svc-body').innerHTML=recs.length===0
     ?`<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">청구 내역이 없습니다.</td></tr>`
     :recs.map(r=>{
@@ -5831,9 +5831,9 @@ function renderSvc(){
           <td><select id="se-brand-${r.id}" style="padding:3px 4px;border:1px solid var(--border);border-radius:4px;font-size:12px">${brndOpts}</select></td>
           <td><input id="se-rooms-${r.id}" type="number" min="1" value="${r.rooms}" style="width:70px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"></td>
           <td><input id="se-price-${r.id}" type="number" value="${up}" style="width:80px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"></td>
-          <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
-          <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
-          <td style="text-align:right;color:var(--text3);font-size:11px">자동계산</td>
+          <td style="text-align:right;color:var(--text3);font-size:12px">자동계산</td>
+          <td style="text-align:right;color:var(--text3);font-size:12px">자동계산</td>
+          <td style="text-align:right;color:var(--text3);font-size:12px">자동계산</td>
           <td><input id="se-note-${r.id}" type="text" value="${escH(r.note||'')}" style="width:140px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" placeholder="비고"></td>
           <td style="white-space:nowrap"><button class="btn bp bsm" onclick="saveEditSvc(${r.id})" style="margin-right:4px">저장</button><button class="btn bo bsm" onclick="cancelSvcEdit()">취소</button></td>
         </tr>`;
@@ -5847,12 +5847,12 @@ function renderSvc(){
         <td style="text-align:right">${fmt(ex)}</td>
         <td style="text-align:right">${fmt(vat)}</td>
         <td style="text-align:right;font-weight:600">${fmt(ex+vat)}</td>
-        <td style="font-size:11px;color:var(--text3)">${escH(r.note||'')}</td>
+        <td style="font-size:12px;color:var(--text3)">${escH(r.note||'')}</td>
         <td style="white-space:nowrap"><button class="btn bo bsm" onclick="editSvcEntry(${r.id})" style="margin-right:4px">수정</button><button class="btn bo bsm" onclick="deleteSvcEntry(${r.id})">삭제</button></td>
       </tr>`;
     }).join('');
   const st=svcTotal(recs);
-  document.getElementById('svc-tfoot').innerHTML=recs.length>0?`<tr style="font-weight:700;background:var(--bg2)"><td colspan="5" style="text-align:right">합계</td><td style="text-align:right">${fmt(st.ex)}</td><td style="text-align:right">${fmt(st.vat)}</td><td style="text-align:right">${fmt(st.t)}</td><td colspan="2"></td></tr>`:'';
+  document.getElementById('svc-tfoot').innerHTML=recs.length>0?`<tr style="font-weight:600;background:var(--bg2)"><td colspan="5" style="text-align:right">합계</td><td style="text-align:right">${fmt(st.ex)}</td><td style="text-align:right">${fmt(st.vat)}</td><td style="text-align:right">${fmt(st.t)}</td><td colspan="2"></td></tr>`:'';
   // 요약 카드 — 표 합계와 같은 기준(청구건별 반올림 합산)
   const sumRecs=d.records.filter(r=>(!fm||r.month===fm)&&(!fb||r.branch===fb));
   const brandSum=SVC_BRANDS.map(br=>{
@@ -6489,7 +6489,7 @@ function h2oRender(){
   const mm=hl.months[month]||{},saved=mm[mode],locked=h2oLocked(month);
   const ast=mode==='end'&&saved?h2oApplyState(month):'';
   const applyState=ast==='ok'?' · ✓ 청구 내역 반영됨':ast==='rows'?' · <b style="color:var(--red)">청구 내역의 H2O 줄이 반영한 것과 다릅니다 — [청구 내역에 반영]을 다시 누르세요</b>':ast?' · <b style="color:var(--red)">청구 내역 반영 전</b>':'';
-  const savedLine=`<div style="margin-top:6px;font-size:11px;color:var(--text3)">${saved?`✓ ${escH(month)} ${mode==='start'?'월초 목록':'말일 확정'} 저장됨 · ${escH(tKst(saved.at))}${saved.by?' · '+escH(saved.by):''} · ${Object.values(saved.rooms||{}).reduce((t,l)=>t+l.length,0)}실${applyState}`:`아직 ${escH(month)} ${mode==='start'?'월초 목록':'말일 확정'}을 저장하지 않았습니다.`}${mode==='start'&&mm.end?' · <b style="color:var(--yellow)">이 달은 말일 확정까지 끝났습니다</b>':''}${mode==='end'&&saved&&kstDate(saved.at)<ymLast(month)?' · <b style="color:var(--yellow)">말일 전에 저장한 기록 — 말일 뒤 [불러오기]→[저장]으로 다시 확정하세요</b>':''}</div>`;
+  const savedLine=`<div style="margin-top:6px;font-size:12px;color:var(--text3)">${saved?`✓ ${escH(month)} ${mode==='start'?'월초 목록':'말일 확정'} 저장됨 · ${escH(tKst(saved.at))}${saved.by?' · '+escH(saved.by):''} · ${Object.values(saved.rooms||{}).reduce((t,l)=>t+l.length,0)}실${applyState}`:`아직 ${escH(month)} ${mode==='start'?'월초 목록':'말일 확정'}을 저장하지 않았습니다.`}${mode==='start'&&mm.end?' · <b style="color:var(--yellow)">이 달은 말일 확정까지 끝났습니다</b>':''}${mode==='end'&&saved&&kstDate(saved.at)<ymLast(month)?' · <b style="color:var(--yellow)">말일 전에 저장한 기록 — 말일 뒤 [불러오기]→[저장]으로 다시 확정하세요</b>':''}</div>`;
   if(H2O_BUSY){el.innerHTML='<div style="font-size:12px;color:var(--text3);padding:8px 0">불러오는 중...</div>';return;}
   if(!H2OL||H2OL.month!==month||H2OL.mode!==mode){el.innerHTML=`<div style="font-size:12px;color:var(--text3);padding:8px 0">대상 월과 구분을 확인하고 [불러오기]를 누르세요.${saved?' 저장된 기록으로는 바로 [엑셀 다운로드]·[메일 초안]을 만들 수 있습니다.':''}</div>`+savedLine;return;}
   if(H2OL.err){el.innerHTML=`<div style="color:var(--red);font-size:12px;padding:8px 0">${escH(H2OL.err)}</div>`+savedLine;return;}
@@ -6497,35 +6497,35 @@ function h2oRender(){
   const adjBox=x=>{if(mode!=='end')return'';const f=x.f;const dong=[...x.server,...(x.start||[])].some(r=>h2oDong(r.b));
     const kl={add:'추가',remove:'해지',extra:'추가·해지'};
     const chips=x.manual.map(a=>{const i=a.k.indexOf('|');return`<span class="chip cg" style="margin:2px 4px 0 0">${escH(h2oLabel({b:a.k.slice(0,i),n:a.k.slice(i+1)}))} ${kl[a.kind]}${locked?'':` <a href="javascript:void 0" data-fid="${escH(f.id)}" data-k="${escH(a.k)}" onclick="h2oAdjUndoEl(this)" title="직접 적은 것 취소" style="color:var(--red);text-decoration:none">✕</a>`}</span>`;}).join('');
-    if(locked)return chips?`<div style="font-size:11px">${chips}</div>`:'';
+    if(locked)return chips?`<div style="font-size:12px">${chips}</div>`:'';
     const bt=(k,t,tip)=>`<button class="btn bo bsm" onclick="h2oAdjust('${f.id}','${k}')" title="${tip}">${t}</button>`;
-    const bulk=x.removed.length>=2?`<div style="margin-top:4px;display:flex;gap:4px;align-items:center"><input type="date" id="h2o-bulk-${f.id}" style="font-size:11px"><button class="btn bo bsm" onclick="h2oBulkDate('${f.id}')" title="비어 있는 해지 도달일을 한 번에 채웁니다(시설 종료 등)">도달일 일괄</button></div>`:'';
-    return`<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><input class="fi" id="h2o-adj-${f.id}" placeholder="${dong?'A동 1205':'1902'}" style="width:80px;padding:2px 6px;font-size:11px;height:auto">${f.whole?bt('add','추가','H2O 서버에 등록된 우리 방(건물 전체 시설)'):''}${bt('remove','해지','삭제 요청은 보냈는데 H2O 서버에 아직 남아 있는 방')}${bt('extra','추가·해지','이번 달 등록됐다가 해지돼 서버에서도 지워진 방 — 등록일·도달일을 넣습니다')}</div>${bulk}${chips?`<div style="font-size:11px">${chips}</div>`:''}`;};
+    const bulk=x.removed.length>=2?`<div style="margin-top:4px;display:flex;gap:4px;align-items:center"><input type="date" id="h2o-bulk-${f.id}" style="font-size:12px"><button class="btn bo bsm" onclick="h2oBulkDate('${f.id}')" title="비어 있는 해지 도달일을 한 번에 채웁니다(시설 종료 등)">도달일 일괄</button></div>`:'';
+    return`<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap"><input class="fi" id="h2o-adj-${f.id}" placeholder="${dong?'A동 1205':'1902'}" style="width:80px;padding:2px 6px;font-size:12px;height:auto">${f.whole?bt('add','추가','H2O 서버에 등록된 우리 방(건물 전체 시설)'):''}${bt('remove','해지','삭제 요청은 보냈는데 H2O 서버에 아직 남아 있는 방')}${bt('extra','추가·해지','이번 달 등록됐다가 해지돼 서버에서도 지워진 방 — 등록일·도달일을 넣습니다')}</div>${bulk}${chips?`<div style="font-size:12px">${chips}</div>`:''}`;};
   const rows=h2oFacs(month).map(f=>{const x=H2OL.fac[f.id];if(!x)return'';const L=E.lists[f.id]||x.list;
     const cn=E.changes.filter(c=>c.fid===f.id),ad=cn.filter(c=>c.type!=='해지').length,rm=cn.filter(c=>c.type!=='추가').length;
     const msgs=x.warn.map(w=>`<span style="color:var(--red)">${escH(w)}</span>`).concat(x.info.map(w=>`<span style="color:var(--text3)">${escH(w)}</span>`)).concat((x.reqWarn||[]).map(w=>h2oRwHtml(f.id,w)));
-    return`<tr><td>${escH(f.short)}${adjBox(x)}</td><td style="text-align:right">${mode==='end'?(x.start?x.start.length:'—'):L.length}</td><td style="text-align:right">${ad||''}</td><td style="text-align:right">${rm||''}</td><td style="text-align:right;font-weight:700">${mode==='end'?L.length:''}</td>
-      <td style="text-align:right;color:var(--text3)">${x.expected}</td><td style="font-size:11px">${msgs.length?msgs.join('<br>'):'<span style="color:var(--green)">✓ 일치</span>'}</td></tr>`;}).join('');
+    return`<tr><td>${escH(f.short)}${adjBox(x)}</td><td style="text-align:right">${mode==='end'?(x.start?x.start.length:'—'):L.length}</td><td style="text-align:right">${ad||''}</td><td style="text-align:right">${rm||''}</td><td style="text-align:right;font-weight:600">${mode==='end'?L.length:''}</td>
+      <td style="text-align:right;color:var(--text3)">${x.expected}</td><td style="font-size:12px">${msgs.length?msgs.join('<br>'):'<span style="color:var(--green)">✓ 일치</span>'}</td></tr>`;}).join('');
   const tot=k=>h2oFacs(month).reduce((t,f)=>{const x=H2OL.fac[f.id];if(!x)return t;const L=E.lists[f.id]||x.list;const cn=E.changes.filter(c=>c.fid===f.id);
     return t+(k==='s'?(mode==='end'?(x.start||[]).length:L.length):k==='a'?cn.filter(c=>c.type!=='해지').length:k==='r'?cn.filter(c=>c.type!=='추가').length:L.length);},0);
-  const dateInp=(kind,x,v,min,max)=>`<input type="date" value="${escH(v||'')}" ${min?`min="${escH(min)}"`:''} max="${escH(max||(kind==='removedAt'?addDays(ymLast(H2OL.month),40):ymLast(H2OL.month)))}" data-kind="${kind}" data-fid="${escH(x.fid)}" data-k="${escH(hKey(x.r))}" onchange="h2oSetDateEl(this)" onblur="h2oDateBlur()" ${locked?'disabled':''} style="font-size:11px">`;
-  const qChip=(src,q)=>src==='req'?`<span class="chip ci" style="margin-left:4px;font-size:10px;padding:0 6px" title="${escH(q?`${q.by||''} 신고 · ${md(q.sent)} 메일`:'신고')}">신고</span>`:'';
-  const noReq=x=>(x.src===''||x.src==='srv')?`<span style="margin-left:4px;font-size:10px;color:var(--yellow)" title="이 변동에 맞는 '전달' 신고가 없습니다 — 지점에 확인하세요">신고 없음</span>`:'';
+  const dateInp=(kind,x,v,min,max)=>`<input type="date" value="${escH(v||'')}" ${min?`min="${escH(min)}"`:''} max="${escH(max||(kind==='removedAt'?addDays(ymLast(H2OL.month),40):ymLast(H2OL.month)))}" data-kind="${kind}" data-fid="${escH(x.fid)}" data-k="${escH(hKey(x.r))}" onchange="h2oSetDateEl(this)" onblur="h2oDateBlur()" ${locked?'disabled':''} style="font-size:12px">`;
+  const qChip=(src,q)=>src==='req'?`<span class="chip ci" style="margin-left:4px;font-size:12px;padding:0 6px" title="${escH(q?`${q.by||''} 신고 · ${md(q.sent)} 메일`:'신고')}">신고</span>`:'';
+  const noReq=x=>(x.src===''||x.src==='srv')?`<span style="margin-left:4px;font-size:12px;color:var(--yellow)" title="이 변동에 맞는 '전달' 신고가 없습니다 — 지점에 확인하세요">신고 없음</span>`:'';
   const chRows=E.changes.map(x=>{const lbl=`${escH(x.f.short)} ${escH(h2oLabel(x.r))}${noReq(x)}`;
     const inp=x.man?`등록일 ${dateInp('addedAt',x,x.from,H2OL.month+'-01')}${qChip(x.srcA,x.qA)} · 도달일 ${dateInp('removedAt',x,x.to,H2OL.month+'-01',addDays(ymLast(H2OL.month),40))}${qChip(x.src,x.q)}`
       :x.type==='추가'?`등록일 ${dateInp('addedAt',x,x.from,H2OL.month+'-01')}${qChip(x.src,x.q)}`
       :x.type==='추가·해지'?`${escH(md(x.from))} 등록 · 도달일 ${dateInp('removedAt',x,x.to,x.from)}${qChip(x.src,x.q)}`
       :`삭제 요청 도달일 ${dateInp('removedAt',x,x.to,ymPrev(H2OL.month)+'-01')}${qChip(x.src,x.q)}`;
-    const dd=x.days==null?`<span style="color:var(--red)">${x.type==='추가'?'등록일':'도달일'} 입력</span>`:x.days+'일'+(x.note?`<br><span style="font-size:10px;color:var(--yellow)">${escH(x.note)}${x.days===0?' — 이번 달 일할 없음':''}</span>`:'');
+    const dd=x.days==null?`<span style="color:var(--red)">${x.type==='추가'?'등록일':'도달일'} 입력</span>`:x.days+'일'+(x.note?`<br><span style="font-size:12px;color:var(--yellow)">${escH(x.note)}${x.days===0?' — 이번 달 일할 없음':''}</span>`:'');
     return`<tr><td>${x.type}</td><td>${lbl}</td><td>${inp}</td><td style="text-align:right">${dd}</td></tr>`;}).join('')
     +E.carry.map(c=>`<tr style="color:var(--text3)"><td>다음 달 해지</td><td>${escH(c.f.short)} ${escH(h2oLabel(c.r))}</td><td>도달일 ${escH(md(c.to))} — 이번 달은 월정액, 다음 달 말일 확정에 반영</td><td></td></tr>`).join('')
     +E.next.map(c=>`<tr style="color:var(--text3)"><td>다음 달 추가</td><td>${escH(c.f.short)} ${escH(h2oLabel(c.r))}</td><td>메일 ${escH(md(c.from))} — 말일 뒤 메일이라 이번 달 0원, 다음 달 말일 확정에 반영</td><td></td></tr>`).join('');
-  el.innerHTML=(H2OL.notes.length?`<div style="font-size:11px;color:var(--yellow);margin-top:4px">${H2OL.notes.map(escH).join(' · ')}</div>`:'')+h2oPendLine(month,mode)+(H2OL.mode==='end'&&H2OL.reqSnap!=null&&H2OL.reqSnap!==h2oReqSnap(H2OL.month)?'<div style="margin-top:6px;font-size:12px;font-weight:600;color:var(--red)">불러온 뒤 신고가 바뀌었습니다 — [불러오기]를 다시 누르세요(그 전에는 저장이 막힙니다)</div>':'')
+  el.innerHTML=(H2OL.notes.length?`<div style="font-size:12px;color:var(--yellow);margin-top:4px">${H2OL.notes.map(escH).join(' · ')}</div>`:'')+h2oPendLine(month,mode)+(H2OL.mode==='end'&&H2OL.reqSnap!=null&&H2OL.reqSnap!==h2oReqSnap(H2OL.month)?'<div style="margin-top:6px;font-size:12px;font-weight:600;color:var(--red)">불러온 뒤 신고가 바뀌었습니다 — [불러오기]를 다시 누르세요(그 전에는 저장이 막힙니다)</div>':'')
     +`<table class="tbl" style="margin-top:6px"><thead><tr><th>시설</th><th>월초</th><th>추가</th><th>해지</th><th>말일</th><th title="duck 판매객실 − 솔리티">대조값</th><th>확인</th></tr></thead>
-    <tbody>${rows}</tbody><tfoot><tr style="font-weight:700;background:var(--bg2)"><td>합계</td><td style="text-align:right">${tot('s')}</td><td style="text-align:right">${tot('a')||''}</td><td style="text-align:right">${tot('r')||''}</td><td style="text-align:right">${mode==='end'?tot('l'):''}</td><td></td><td></td></tr></tfoot></table>
+    <tbody>${rows}</tbody><tfoot><tr style="font-weight:600;background:var(--bg2)"><td>합계</td><td style="text-align:right">${tot('s')}</td><td style="text-align:right">${tot('a')||''}</td><td style="text-align:right">${tot('r')||''}</td><td style="text-align:right">${mode==='end'?tot('l'):''}</td><td></td><td></td></tr></tfoot></table>
     ${mode==='end'&&chRows?`<div style="margin-top:8px;font-size:12px;font-weight:600">당월 추가·해지 (일할 대상)</div><table class="tbl" style="margin-top:4px"><thead><tr><th>구분</th><th>호실</th><th>날짜</th><th>일할</th></tr></thead><tbody>${chRows}</tbody></table>`:''}
-    ${locked?`<div style="margin-top:6px;font-size:11px;color:var(--text3)">${escH(ymNext(month))} 말일 확정이 있어 이 달은 잠겨 있습니다(엑셀·메일은 저장본으로 만들 수 있습니다).</div>`:''}
-    ${h2oDirty()?'<div style="margin-top:6px;font-size:12px;font-weight:600;color:var(--red)">저장한 뒤 날짜·추가·해지 입력이 바뀌었습니다 — [저장]을 다시 눌러야 엑셀·메일·청구 반영에 들어갑니다.</div>':h2oDrift()?'<div style="margin-top:6px;font-size:11px;color:var(--text3)">참고: 저장한 뒤 신고나 H2O 서버 목록이 조금 달라졌습니다. 이 달을 고칠 게 아니면 다시 저장하지 않아도 됩니다(문서는 저장본으로 만듭니다).</div>':''}`+savedLine;
+    ${locked?`<div style="margin-top:6px;font-size:12px;color:var(--text3)">${escH(ymNext(month))} 말일 확정이 있어 이 달은 잠겨 있습니다(엑셀·메일은 저장본으로 만들 수 있습니다).</div>`:''}
+    ${h2oDirty()?'<div style="margin-top:6px;font-size:12px;font-weight:600;color:var(--red)">저장한 뒤 날짜·추가·해지 입력이 바뀌었습니다 — [저장]을 다시 눌러야 엑셀·메일·청구 반영에 들어갑니다.</div>':h2oDrift()?'<div style="margin-top:6px;font-size:12px;color:var(--text3)">참고: 저장한 뒤 신고나 H2O 서버 목록이 조금 달라졌습니다. 이 달을 고칠 게 아니면 다시 저장하지 않아도 됩니다(문서는 저장본으로 만듭니다).</div>':''}`+savedLine;
 }
 
 function h2oSave(){
@@ -6689,7 +6689,7 @@ function h2oMail(){
 function showMailDraft(body){
   let mo=document.getElementById('mo-h2o-mail');
   if(!mo){mo=document.createElement('div');mo.className='mo';mo.id='mo-h2o-mail';
-    mo.innerHTML='<div class="mb" style="width:720px;max-width:95vw"><div class="mh"><span class="mt2">'+CI.mail+' H2O 메일 초안</span></div><div class="mbody"><textarea id="h2o-mail-body" style="width:100%;height:420px;font-size:13px;line-height:1.5;padding:10px;border:1px solid var(--border);border-radius:6px"></textarea><div style="font-size:11px;color:var(--text3);margin-top:6px">고칠 곳을 고친 뒤 [복사]를 눌러 메일에 붙여 넣으세요. 엑셀 파일은 [엑셀 다운로드]로 따로 받아 첨부합니다.</div></div><div class="mf mfoot"><button class="btn bo" onclick="closeMo(\'mo-h2o-mail\')">닫기</button><button class="btn bp" onclick="copyMailDraft()">복사</button></div></div>';
+    mo.innerHTML='<div class="mb" style="width:720px;max-width:95vw"><div class="mh"><span class="mt2">'+CI.mail+' H2O 메일 초안</span></div><div class="mbody"><textarea id="h2o-mail-body" style="width:100%;height:420px;font-size:14px;line-height:1.5;padding:10px;border:1px solid var(--border);border-radius:6px"></textarea><div style="font-size:12px;color:var(--text3);margin-top:6px">고칠 곳을 고친 뒤 [복사]를 눌러 메일에 붙여 넣으세요. 엑셀 파일은 [엑셀 다운로드]로 따로 받아 첨부합니다.</div></div><div class="mf mfoot"><button class="btn bo" onclick="closeMo(\'mo-h2o-mail\')">닫기</button><button class="btn bp" onclick="copyMailDraft()">복사</button></div></div>';
     document.body.appendChild(mo);}
   document.getElementById('h2o-mail-body').value=body;openMo('mo-h2o-mail');
 }
@@ -6829,8 +6829,8 @@ function renderH2oReq(){
     const mine=!a&&g.items.every(x=>String(x.email||'').toLowerCase()===me&&x.st!=='전달');
     const act=(a&&nSent?`<button class="btn bo bsm" title="'신고됨'으로 되돌리기" onclick="hqUndoSentG(${gi})">↩</button>`:'')
       +(a||mine?`<button class="btn br2 bsm" style="margin-left:2px" onclick="delHqG(${gi})">삭제</button>`:'');
-    return `<tr><td>${escH(kstDate(x0.at)||'—')}</td><td style="font-weight:500">${escH(f?f.short:x0.fid)}</td>
-      <td style="white-space:nowrap">${escH(HQ_DIRS[x0.dir]||'')}</td><td>${rooms}${memo?`<div style="font-size:11px;color:var(--text3)">${escH(memo)}</div>`:''}</td><td>${escH(isYmd(x0.sw)?md(x0.sw):'—')}</td>
+    return `<tr><td>${escH(kstDate(x0.at)||'—')}</td><td style="font-weight:600">${escH(f?f.short:x0.fid)}</td>
+      <td style="white-space:nowrap">${escH(HQ_DIRS[x0.dir]||'')}</td><td>${rooms}${memo?`<div style="font-size:12px;color:var(--text3)">${escH(memo)}</div>`:''}</td><td>${escH(isYmd(x0.sw)?md(x0.sw):'—')}</td>
       <td style="font-size:12px">${slackAvatar(String(x0.email||''),String(x0.by||''))}</td><td style="white-space:nowrap">${chip}</td>${a?`<td style="white-space:nowrap">${g.items.map(hqSrvMark).join(' ')}</td>`:''}
       <td style="white-space:nowrap">${act}</td></tr>`;
   }).join(''):emp(a?9:8);
@@ -6842,7 +6842,7 @@ function hqRenderPending(){
   if(!pend.length){el.innerHTML='';HQ_PF=[];return;}
   const by=new Map();pend.forEach(x=>by.set(x.fid,(by.get(x.fid)||0)+1));
   HQ_PF=[...by.keys()];
-  el.innerHTML=`<div class="panel" style="margin-bottom:12px"><div class="pb" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:13px">
+  el.innerHTML=`<div class="panel" style="margin-bottom:12px"><div class="pb" style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-size:14px">
     <b style="color:var(--yellow)">${CI.alertIn} H2O에 아직 안 알린 신고 ${pend.length}건</b>
     ${HQ_PF.map((fid,i)=>`<span>${escH((hqFac(fid)||{}).short||fid)} ${by.get(fid)}건 <button class="btn bp bsm" onclick="openHqMail(${i})">메일 쓰기</button></span>`).join('')}</div></div>`;
 }
@@ -7263,7 +7263,7 @@ function renderStock(){
         x.n<0?'<div class="stk-w">입고 등록 누락</div>'
         :x.closed?'<div class="stk-w" style="color:var(--yellow)">종료 지점 — 회수·이전 필요</div>':''}</div>`).join('')
       +`<div class="stk-card tot"><div class="stk-b">전체 보유</div><div class="stk-n">${tot}</div></div>`
-    : `<div style="padding:16px;color:var(--text3);font-size:13px">보유 재고가 없습니다. [+ 재고 입고] 로 등록하세요.</div>`;
+    : `<div style="padding:16px;color:var(--text3);font-size:14px">보유 재고가 없습니다. [+ 재고 입고] 로 등록하세요.</div>`;
 
   const dt=o=>isStkIn(o)?(o.recvDate||''):(o.doneDate||'');
   let rows=getOr().filter(isStkAny);
@@ -7286,11 +7286,11 @@ function renderStock(){
       <td>${(o.adj||inn)?(o.note||'—'):(o.room||'—')}</td>
       <td class="num-r">${inn?'+':'−'}${q}</td>
       <td class="num-r">${inn?(oLeft(o)<0
-        ?`<span style="color:#dc2626;font-weight:700" title="다른 입고분까지 걸쳐 나갔습니다. 지점 잔량은 위 카드가 정확합니다">${oLeft(o)}</span>`
+        ?`<span style="color:var(--plott-color-danger700);font-weight:600" title="다른 입고분까지 걸쳐 나갔습니다. 지점 잔량은 위 카드가 정확합니다">${oLeft(o)}</span>`
         :oLeft(o)):''}</td>
       <td class="num-r">${amt.toLocaleString()}</td>
       <td>${o.vendor||'(주)솔리티'}</td>
-      <td>${lockd?'<span style="color:var(--text3);font-size:11px">마감됨</span>'
+      <td>${lockd?'<span style="color:var(--text3);font-size:12px">마감됨</span>'
                  :`<button class="btn bo bsm" onclick="delStk(${o.id})">삭제</button>`}</td>
     </tr>`;
   }).join('');
@@ -7466,7 +7466,7 @@ function onOutChange(){
   const bal=br?stkBal(br):0;
   const noti=document.getElementById('out-noti');
   if(noti)noti.innerHTML=br
-    ? `<strong>${br}</strong> 현재 재고 <strong>${bal}개</strong>${q>bal?` — 이번 출고 ${q}개는 <span style="color:#dc2626;font-weight:700">잔량을 초과합니다</span>`:''}`
+    ? `<strong>${br}</strong> 현재 재고 <strong>${bal}개</strong>${q>bal?` — 이번 출고 ${q}개는 <span style="color:var(--plott-color-danger700);font-weight:600">잔량을 초과합니다</span>`:''}`
     : '지점을 선택하세요.';
   // 설치비·자재비는 더 이상 받지 않는다 — 재고 설치는 지점 부담이라 정산에 안 들어간다
   calcOut();
@@ -7691,7 +7691,7 @@ document.addEventListener('visibilitychange',()=>{if(S&&!document.hidden)checkAp
 <div class="mo" id="mo-amaranth">
 <div class="mb" style="width:860px;max-width:95vw;display:flex;flex-direction:column;max-height:92vh">
   <div class="mh"><span class="mt2"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-right:5px;vertical-align:middle"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>아마란스 품의서 복사</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-amaranth')">✕</button></div>
-  <div style="padding:8px 20px 4px;font-size:11px;color:var(--text3);background:var(--surface);border-bottom:1px solid var(--border)">값 수정 후 아래 버튼 클릭 → 아마란스 품의서 편집기에서 <b style="color:var(--text2)">HTML 소스 붙여넣기</b></div>
+  <div style="padding:8px 20px 4px;font-size:12px;color:var(--text3);background:var(--surface);border-bottom:1px solid var(--border)">값 수정 후 아래 버튼 클릭 → 아마란스 품의서 편집기에서 <b style="color:var(--text2)">HTML 소스 붙여넣기</b></div>
   <div id="amaranth-preview-wrap" style="padding:16px 20px;overflow-y:auto;flex:1"></div>
   <div class="mfoot" style="gap:8px">
     <button class="btn bo" onclick="closeMo('mo-amaranth')">닫기</button>
