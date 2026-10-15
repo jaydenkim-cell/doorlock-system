@@ -474,7 +474,7 @@
 </style>
 <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
-<title>도어락발주시스템</title>
+<title>도어락 통합관리</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 /* @tokens */
@@ -810,8 +810,8 @@ b,strong{font-weight:600;}
     </svg>
   </div>
   <span class="l-wordmark" role="img" aria-label="plott"></span>
-  <div class="l-brand">도어락발주시스템</div>
-  <div class="l-sub">발주 통합관리</div>
+  <div class="l-brand">도어락 통합관리</div>
+  <div class="l-sub">접수 · 발주 · 설치 · 정산</div>
   <div class="lc">
     <div class="lc-title">로그인</div>
     <div class="lc-desc">Plott 사내 계정으로 로그인해 주세요</div>
@@ -847,7 +847,7 @@ b,strong{font-weight:600;}
 <!-- APP -->
 <div id="app">
   <aside class="sb">
-    <div class="sb-logo"><span class="sb-wordmark" role="img" aria-label="plott"></span><div><div class="brand">도어락발주시스템</div><div class="tag">발주 통합관리</div></div></div>
+    <div class="sb-logo"><span class="sb-wordmark" role="img" aria-label="plott"></span><div><div class="brand">도어락 통합관리</div><div class="tag">접수 · 발주 · 설치 · 정산</div></div></div>
     <div style="padding:10px 12px 0">
       <div class="sb-user"><div class="un" id="sb-n">—</div><div class="ub" id="sb-b">—</div><span class="ur" id="sb-r"></span></div>
     </div>
@@ -1981,7 +1981,7 @@ function showUpdateBar(){
   const el=document.createElement('div');
   el.id='app-update-bar';
   el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99998;background:#1a56db;color:#fff;padding:10px 16px;font-size:13px;font-weight:600;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.25)';
-  el.innerHTML='<span>도어락 발주 시스템이 새 버전으로 바뀌었습니다. 입력 중인 내용을 마친 뒤 새로고침해 주세요.</span>';
+  el.innerHTML='<span>도어락 통합관리가 새 버전으로 바뀌었습니다. 입력 중인 내용을 마친 뒤 새로고침해 주세요.</span>';
   const b=document.createElement('button');
   b.textContent='새로고침';
   b.style.cssText='background:#fff;color:#1a56db;border:0;border-radius:6px;padding:5px 14px;font-weight:700;cursor:pointer';
@@ -4665,7 +4665,7 @@ th{background:#f2f2f2;font-weight:700;}
 
     const memo=list.map(r=>r.note).filter(Boolean).join(' / ');
     if(memo)wrap.appendChild(el('div','ft','메모: '+memo));
-    wrap.appendChild(el('div','ft',`출력 ${today} · 도어락 발주 시스템`));
+    wrap.appendChild(el('div','ft',`출력 ${today} · 도어락 통합관리`));
     d.body.appendChild(wrap);
   });
   w.focus();
@@ -4853,7 +4853,7 @@ async function ptSlackDM(email,msg){
 /* 설정 화면 [테스트 DM] — 누른 사람에게 봇이 진짜 DM 을 보낸다(예전엔 채널에 멘션 글 — 2026-10-13 바꿈). 봇 토큰의 DM 길(조회·대화 열기·보내기)을 끝까지 시험한다 */
 async function testSlackDM(){
   if(!S?.email){toast('e','오류','로그인 이메일 정보가 없습니다.');return;}
-  const r=await slackDM(S.email,'도어락 발주 시스템 테스트 DM이에요 — 이 메시지가 보이면 DM 연결이 정상입니다');
+  const r=await slackDM(S.email,'도어락 통합관리 테스트 DM이에요 — 이 메시지가 보이면 DM 연결이 정상입니다');
   if(r.ok)toast('s','테스트 발송 완료',`${escH(S.email)} 님 Slack DM으로 테스트 메시지를 보냈습니다.`);
   else slackFailToast(r.error,S.email);
 }
@@ -4884,7 +4884,7 @@ async function sendInstallDateDM(r,date){
         {type:'mrkdwn',text:`*설치 예정일*\n📅 ${date}`},
         {type:'mrkdwn',text:`*접수자*\n${mention}`}
       ]},
-      {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
+      {type:'context',elements:[{type:'mrkdwn',text:`도어락 통합관리 · ${new Date().toLocaleString('ko-KR')}`}]}
     ]
   };
   const p=await slackPost(payload);
@@ -4913,7 +4913,7 @@ async function sendSlackNoti(r){
         {type:'mrkdwn',text:`*접수자*\n${r.regBy||'—'}`},
         {type:'mrkdwn',text:`*접수일*\n${r.date}`}
       ]},
-      {type:'context',elements:[{type:'mrkdwn',text:`도어락발주시스템 · ${new Date().toLocaleString('ko-KR')}`}]}
+      {type:'context',elements:[{type:'mrkdwn',text:`도어락 통합관리 · ${new Date().toLocaleString('ko-KR')}`}]}
     ]
   };
   const res=await slackPost(payload);
