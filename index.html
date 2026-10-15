@@ -307,6 +307,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
 .fsec{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin:16px 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
 
 /* DRAFT */
+/* @outside-app */
 .draft-preview{background:var(--white);border:2px solid var(--border2);border-radius:10px;padding:28px 32px;font-size:13px;line-height:1.7;margin-top:16px;position:relative;}
 .draft-preview h2{font-size:18px;font-weight:700;text-align:center;margin-bottom:4px;}
 .dm{text-align:center;font-size:12px;color:var(--text3);margin-bottom:20px;}
@@ -331,6 +332,7 @@ body{font-family:'PretendardVariable','Noto Sans KR',sans-serif;background:var(-
   #draft-area{margin-top:0!important;}
   body,html{background:#fff!important;}
 }
+/* @end */
 
 /* BRANCH GRID */
 .bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:14px;}
@@ -3349,6 +3351,7 @@ function getDraftRows(){
   }).filter(r=>r.branch);
 }
 
+// @outside-app
 function genDraft(){
   const rows=getDraftRows();
   if(!rows.length){toast('e','오류','지점을 선택한 행이 없습니다.');return;}
@@ -3465,6 +3468,7 @@ function genDraft(){
     `${rows.length}건 / ${gt.toLocaleString()}원${stockOnly?' · 설치 없이 납품만':''}`);
   document.getElementById('draft-area').scrollIntoView({behavior:'smooth',block:'start'});
 }
+// @end
 
 function printDraft(){
   const rows=getDraftRows();
@@ -3478,6 +3482,7 @@ function printDraft(){
   setTimeout(()=>{document.title=prev;},1000);
 }
 
+// @outside-app
 function sendDraftMail(){
   const rows=getDraftRows();
   if(!rows.length){toast('e','오류','지점을 선택한 행이 없습니다.');return;}
@@ -3528,6 +3533,7 @@ function sendDraftMail(){
   window.location.href=`mailto:${to}?subject=${subject}&body=${mailBody}`;
   toast('s','이메일 준비 완료','메일 앱이 열립니다. 전송 전 내용을 확인하세요.');
 }
+// @end
 function toggleAllOrdChk(el){document.querySelectorAll('.ord-chk').forEach(c=>c.checked=el.checked);onOrdChkChange();}
 function onOrdChkChange(){
   const cnt=document.querySelectorAll('.ord-chk:checked').length;
@@ -4167,6 +4173,7 @@ function printPtLabel(id){
 /* 화면의 지점 필터를 그대로 따른다. 필터가 '전체 지점'이면 빈 문자열 → null → 전 지점.
    안 맞추면 명동점만 보고 있는데 다른 지점 라벨까지 뽑혀 박스에 잘못 붙는다. */
 function printPtLabels(){ptPrintLabels(document.getElementById('fpt-b')?.value||null);}
+// @outside-app
 function ptPrintLabels(branch){
   if(!isAdm())return;
   const rows=ptLabelRows(branch);
@@ -4250,6 +4257,7 @@ th{background:#f2f2f2;font-weight:700;}
   w.focus();
   setTimeout(()=>{try{w.print();}catch(e){}},300);
 }
+// @end
 
 /* ══════════ 묶음 처리 ══════════
    한 줄(=한 번에 신청한 건) 전체를 한 번에 넘긴다. 슬랙 DM 도 묶어서 1통만 간다. */
@@ -4345,6 +4353,7 @@ function printPtLabelG(gi){
 }
 
 /* 묶음 DM — 품목이 몇 개든 신청자에게 한 통만 보낸다. */
+// @outside-app
 async function sendPartsDMG(g,items,date){
   const lines=items.map(x=>` · ${x.item} ${Number(x.qty)||0}개`).join('\n');
   const memo=[...new Set(items.map(x=>x.note).filter(Boolean))].join(' / ');
@@ -4353,6 +4362,7 @@ async function sendPartsDMG(g,items,date){
     +(memo?`\n메모: ${memo}`:'');
   await ptSlackDM(g.reqEmail,msg);
 }
+// @end
 
 function undoPtSend(id){
   if(!isAdm())return;
@@ -4382,12 +4392,14 @@ function delPt(id){
 }
 
 /* 신청자에게 DM — sendInstallDateDM 과 같은 서버 창구(slackDM). */
+// @outside-app
 async function sendPartsDM(x){
   const msg=`📦 부자재 발송 알림\n\n안녕하세요 ${x.reqBy||x.reqEmail}님!\n`
     +`신청하신 ${x.item} ${x.qty}개를 ${x.sentDate} 에 발송했습니다.\n지점: ${x.branch}`
     +(x.note?`\n메모: ${x.note}`:'');
   await ptSlackDM(x.reqEmail,msg);
 }
+// @end
 
 /* ══════════ 슬랙 — 서버(kv 게이트웨이 v9)가 보낸다 (2026-10-13) ══════════
    봇 토큰·웹훅 주소는 게이트웨이 비밀 저장소에만 있다(예전엔 kv 키라 전 직원 브라우저에 내려갔다). 앱은 kvFn('slack') 로만 보낸다.
@@ -4435,6 +4447,7 @@ async function slackMentionByEmail(email,fallbackName){
   const id=await slackUid(email);
   return id?`<@${id}>`:`*${fallbackName||email}*`;
 }
+// @outside-app
 async function sendInstallDateDM(r,date){
   // 접수자한테 직접 DM
   if(!r.regEmail){toast('w','접수자 이메일 없음','이 접수 건에 이메일 정보가 없어 DM을 보낼 수 없습니다.');}
@@ -4463,12 +4476,14 @@ async function sendInstallDateDM(r,date){
   const p=await slackPost(payload);
   if(!p.ok)console.warn('웹훅 알림 전송 실패:',p.error);
 }
+// @end
 /* 설정 화면 [테스트 알림] — 새 접수 알림과 같은 모양의 시험 글 */
 async function testSlackNoti(){
   const r=await sendSlackNoti({id:'TEST-001',branch:'테스트 지점',room:'101호',type:'신규 설치',qty:1,urgent:false,openDate:'2026-06-01',date:new Date().toISOString().substring(0,10),regBy:S?.name||'관리자'});
   if(r.ok)toast('s','테스트 발송','Slack으로 테스트 메시지를 전송했습니다.');
   else slackFailToast(r.error);
 }
+// @outside-app
 async function sendSlackNoti(r){
   const payload={
     text:`🔔 새 도어락 접수 등록${r.urgent?' 🚨 긴급':''}`,
@@ -4491,6 +4506,7 @@ async function sendSlackNoti(r){
   if(!res.ok)console.warn('Slack 알림 전송 실패:',res.error);
   return res;
 }
+// @end
 
 /* ── EXCEL EXPORT ── */
 function exportToExcel(type){
@@ -5533,6 +5549,7 @@ const _AC_OPTS=['HQ_운영계좌','BQ_운영계좌','BQ_편의점계좌(출금)'
 const _AT1=['견적서','거래명세서','세금계산서','집행처 통장 사본','집행처 사업자등록증','기타'];
 const _AT2=['고지서','연간계약서','임대차계약서','집행처 통장 사본','집행처 사업자등록증','기타'];
 
+// @outside-app
 function buildPurchaseOrderHtml(d){
   const e=_ae,aso=_aso;
   const ta=typeof d.totalAmt==='number'?d.totalAmt:parseInt(String(d.totalAmt||'').replace(/[^0-9]/g,''))||0;
@@ -5569,7 +5586,9 @@ function buildPurchaseOrderHtml(d){
 <tr style="height:54px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">참고링크</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="refLink" type="text" style="width:100%;padding:8px;border:1px solid #ddd;" placeholder="관련 슬랙 스레드 / 아지트 링크 등" value="${e(d.refLink||'')}"/></p></td></tr>
 </tbody></table></div>`;
 }
+// @end
 
+// @outside-app
 function buildServiceFeeHtml(d){
   const e=_ae,aso=_aso;
   const ta=typeof d.totalAmt==='number'?d.totalAmt:parseInt(String(d.totalAmt||'').replace(/[^0-9]/g,''))||0;
@@ -5604,6 +5623,7 @@ function buildServiceFeeHtml(d){
 <tr style="height:54px;"><th style="background:#f2f2f2;border-top:1px solid #bbb;border-right:1px solid #bbb;padding:8px;text-align:center;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;">참고링크</p></th><td style="border-top:1px solid #bbb;padding:8px;"><p style="font-family:'맑은 고딕';font-size:11pt;color:#000;margin:0;line-height:1.2;"><input data-key="refLink" type="text" style="width:100%;padding:8px;border:1px solid #ddd;" placeholder="관련 슬랙 스레드 / 아지트 링크 등" value="${e(d.refLink||'')}"/></p></td></tr>
 </tbody></table></div>`;
 }
+// @end
 
 function buildDraftAmaData(){
   const rows=getDraftRows();
@@ -6486,12 +6506,14 @@ function submitHqReq(){
   hqSlackNoti(f,dir,label,sw,by,note);
 }
 /* 새 접수 알림과 같은 웹훅 채널(Jayden 확인용) — 서버 창구로 보낸다. 실패해도 신고는 그대로다 */
+// @outside-app
 async function hqSlackNoti(f,dir,label,sw,by,note){
   const sl=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');   // 슬랙 문법 문자(<!channel> 등)를 글자로
   const text=`🔁 H2O 모드 전환 신고 — ${sl(f.short)} ${sl(label)} · ${HQ_DIR[dir]} · 바꾼 날 ${md(sw)} · 신고 ${sl(by)}${note?` · 메모 ${sl(note)}`:''}`;
   const r=await slackPost({text});
   if(!r.ok)console.warn('웹훅 알림 전송 실패:',r.error);
 }
+// @end
 /* 삭제 = 툼스톤. 직원은 자기 신고(처리 전)만 — 서버는 툼스톤의 주인을 보지 않으므로(부자재와 같다) 화면에서 막는다 */
 function delHqG(gi){
   const g=HQ_G[gi];if(!g||!hqTok())return;
@@ -6561,6 +6583,7 @@ function hqMarkSent(){
   go();
 }
 /* 신고자별 DM 한 통. 실패해도 전달 기록은 되돌리지 않는다(ptSlackDM 이 알림만 띄운다) */
+// @outside-app
 async function hqSentDM(f,items,sent){
   const by=new Map();items.forEach(x=>{const e=String(x.email||'');if(!by.has(e))by.set(e,[]);by.get(e).push(x);});
   for(const[email,l]of by){
@@ -6569,6 +6592,7 @@ async function hqSentDM(f,items,sent){
     await ptSlackDM(email,`✅ H2O에 알렸어요\n\n${f.short} ${l.map(x=>h2oLabel(x)+'호').join(', ')} · ${dirs}\n${md(sent)} 메일로 전달했습니다.`);
   }
 }
+// @end
 function hqUndoSentG(gi){
   if(!isAdm()||!hqTok())return;const g=HQ_G[gi];if(!g)return;
   const ids=new Set(g.items.filter(x=>x.st==='전달').map(x=>x.id));if(!ids.size)return;
