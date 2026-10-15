@@ -667,15 +667,18 @@ b,strong{font-weight:600;}
 .b-w{background:var(--plott-banner-danger-background-color);color:var(--plott-banner-danger-text-color);}.b-w::before{background:var(--plott-color-danger500);}
 .hq-nb{margin-left:auto;min-width:20px;padding:0 6px;border-radius:9999px;background:var(--plott-color-danger700);color:var(--plott-color-text-inverse);font-size:12px;line-height:16px;font-weight:600;text-align:center;}
 
-/* MODAL */
-.mo{display:none;position:fixed;inset:0;background:rgba(10,15,30,.55);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
+/* MODAL — 반경 16·안쪽 24·배경막 #1B1B1A 60% */
+.mo{display:none;position:fixed;inset:0;background:var(--dl-backdrop);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
 .mo.show{display:flex;}
-.mb{background:var(--white);border-radius:14px;width:600px;max-width:100%;box-shadow:var(--shadow-md);}
-.mh{padding:18px 22px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
-.mt2{font-size:15px;font-weight:700;display:flex;align-items:center;gap:7px;}
-.mx{background:var(--surface);border:1px solid var(--border);color:var(--text3);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;}
-.mbody{padding:18px 22px;}
-.mfoot{padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+.mb{background:var(--plott-modal-background-color);border-radius:16px;width:600px;max-width:100%;box-shadow:var(--plott-shadow-lg);}
+.mh{padding:20px 24px 12px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.mt2{font-size:20px;line-height:28px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--plott-color-text-default);}
+.mt2 svg{color:var(--plott-color-action-primary);}
+.mx{background:none;border:1px solid transparent;color:var(--plott-color-neutral700);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:20px;line-height:20px;display:flex;align-items:center;justify-content:center;}
+.mx:hover{background:var(--plott-color-bg-muted);}
+.mx:focus-visible{outline:none;box-shadow:var(--plott-focus-ring-default);}
+.mbody{padding:8px 24px 16px;}
+.mfoot{padding:16px 24px 24px;display:flex;justify-content:flex-end;gap:8px;}
 
 /* FORM — 입력칸 공통(.fi .fs .fta .fsel .finp .role-sel) */
 .fi,.fs,.fta,.fsel,.finp,.role-sel{padding:8px 12px;border:1px solid var(--plott-color-border-default);border-radius:8px;font-size:14px;line-height:20px;color:var(--plott-color-text-default);background:var(--plott-color-bg-surface);outline:none;transition:border-color var(--plott-motion-duration-base) var(--plott-motion-easing-standard),box-shadow var(--plott-motion-duration-base) var(--plott-motion-easing-standard);}
@@ -739,23 +742,27 @@ b,strong{font-weight:600;}
 .mcc .mv{font-size:24px;line-height:32px;font-weight:800;color:var(--plott-color-action-primary);font-variant-numeric:tabular-nums;}
 .mcc .ms{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);margin-top:4px;}
 
-/* CONFIRM */
-.cfm{display:none;position:fixed;inset:0;background:rgba(10,15,30,.5);z-index:2000;align-items:center;justify-content:center;}
+/* CONFIRM — 창 모양 · 아이콘 원 + 제목 한 줄 · 글 왼쪽 · 버튼 오른쪽 */
+.cfm{display:none;position:fixed;inset:0;background:var(--dl-backdrop);z-index:2000;align-items:center;justify-content:center;padding:16px;}
 .cfm.show{display:flex;}
-.cfmb{background:var(--white);border-radius:14px;padding:30px 28px 24px;width:360px;text-align:center;box-shadow:var(--shadow-md);}
-.cfmb .ci{font-size:38px;margin-bottom:12px;}
-.cfmb .ct{font-size:16px;font-weight:700;margin-bottom:8px;}
-.cfmb .cs{font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-line;}
-.cfmr{display:flex;gap:8px;justify-content:center;margin-top:20px;}
+.cfmb{background:var(--plott-modal-background-color);border-radius:16px;padding:24px;width:440px;max-width:100%;box-shadow:var(--plott-shadow-lg);display:grid;grid-template-columns:40px minmax(0,1fr);column-gap:12px;row-gap:8px;align-items:center;text-align:left;}
+.cfmb .ci{grid-column:1;width:40px;height:40px;border-radius:9999px;background:var(--plott-tag-brand-background-color);color:var(--plott-color-action-primary);display:flex;align-items:center;justify-content:center;}
+.cfmb .ci svg{width:20px;height:20px;}
+.cfmb .ct{grid-column:2;font-size:20px;line-height:28px;font-weight:600;color:var(--plott-color-text-default);}
+.cfmb .cs{grid-column:1 / -1;font-size:14px;line-height:20px;color:var(--plott-color-text-secondary);white-space:pre-line;}
+.cfmr{grid-column:1 / -1;display:flex;gap:8px;justify-content:flex-end;margin-top:12px;}
 
-/* TOAST */
-.tw{position:fixed;top:18px;right:18px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
-.toast{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:11px 16px;min-width:260px;display:flex;align-items:flex-start;gap:10px;box-shadow:var(--shadow-md);pointer-events:all;transform:translateX(130%);transition:transform .28s cubic-bezier(.34,1.56,.64,1);}
+/* TOAST — 1px 상태색 테두리 · 반투명 흰 바탕 + 흐림 · 종류 클래스 toast-s|e|i|w(컨테이너 .tw 와 겹치지 않게) */
+.tw{position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{background:var(--dl-toast-bg);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--plott-color-border-default);border-radius:8px;padding:12px 16px;min-width:280px;max-width:400px;display:flex;align-items:flex-start;gap:12px;box-shadow:var(--plott-shadow-md);pointer-events:all;transform:translateX(130%);transition:transform var(--plott-motion-duration-slow) var(--plott-motion-easing-emphasized);}
 .toast.show{transform:translateX(0);}
-.ts{border-left:3px solid var(--green);}.te{border-left:3px solid var(--red);}.ti2{border-left:3px solid var(--accent);}.tw2{border-left:3px solid var(--yellow);}
-.tic{font-size:17px;flex-shrink:0;}
-.tt2{font-size:13px;font-weight:600;}
-.td{font-size:11px;color:var(--text3);margin-top:1px;}
+.toast-s{border-color:var(--plott-color-status-success);}.toast-s .tic{color:var(--plott-banner-success-text-color);}
+.toast-e{border-color:var(--plott-color-status-danger);}.toast-e .tic{color:var(--plott-color-danger700);}
+.toast-i{border-color:var(--plott-color-status-info);}.toast-i .tic{color:var(--plott-banner-info-text-color);}
+.toast-w{border-color:var(--plott-color-status-warning);}.toast-w .tic{color:var(--plott-banner-warning-text-color);}
+.tic{flex-shrink:0;display:flex;margin-top:2px;}
+.tt2{font-size:14px;line-height:20px;font-weight:600;color:var(--plott-color-text-default);}
+.td{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);margin-top:2px;}
 /* ── 재고 ── */
 .stk-wrap{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
 .stk-card{border:1px solid var(--plott-color-border-default);border-radius:12px;padding:12px 16px;min-width:116px;background:var(--plott-card-background-color);}
@@ -1738,7 +1745,7 @@ b,strong{font-weight:600;}
 <!-- CONFIRM -->
 <div class="cfm" id="cfm">
   <div class="cfmb">
-    <div class="ci" id="cfm-i">❓</div>
+    <div class="ci" id="cfm-i"></div>
     <div class="ct" id="cfm-t">확인</div>
     <div class="cs" id="cfm-s">계속하시겠습니까?</div>
     <div class="cfmr"><button class="btn bo" id="cfm-no" onclick="closeCfm(false)">취소</button><button class="btn bp" id="cfm-yes" onclick="cfmYes()">확인</button></div>
@@ -2627,6 +2634,15 @@ const CI={
   key:`<svg ${_s} width="13" height="13"><circle cx="7.5" cy="15.5" r="5.5"/><path d="M21 2l-9.6 9.6"/><path d="M15.5 7.5l3 3L22 7l-3-3"/></svg>`,
   money:`<svg ${_s} width="13" height="13"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>`,
   trash:`<svg ${_s} width="18" height="18"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>`,
+  alert:`<svg ${_s} width="16" height="16"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`,
+  help:`<svg ${_s} width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>`,
+  check:`<svg ${_s} width="16" height="16"><path d="M20 6 9 17l-5-5"/></svg>`,
+  xCircle:`<svg ${_s} width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="m15 9-6 6"/><path d="m9 9 6 6"/></svg>`,
+  info:`<svg ${_s} width="16" height="16"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>`,
+  zap:`<svg ${_s} width="16" height="16"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  upload:`<svg ${_s} width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/></svg>`,
+  download:`<svg ${_s} width="16" height="16"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>`,
+  folder:`<svg ${_s} width="32" height="32"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>`,
 };
 function buildNav(){
   const sa=isSA(), a=isAdm();
@@ -2834,7 +2850,7 @@ function advRCheck(id){
   if(isStkRc(r)){advR(id,'발주');return;}
   const bal=stkBal(r.branch);
   if(bal>0){
-    showCfm('📦','이 지점에 재고가 있습니다',
+    showCfm(CI.box,'이 지점에 재고가 있습니다',
       `${r.branch} 재고 ${bal}대. 새로 발주하면 재고는 남은 채로 비용이 또 나갑니다. `
       +`재고에서 설치하려면 [재고 관리] 화면의 [재고에서 설치] 에서 이 접수를 연결하세요. `
       +`그래도 새로 발주할까요?`,
@@ -4063,9 +4079,9 @@ function toastUndo(msg,undoCb){
   const uid='undo-'+Date.now();
   const tw=document.querySelector('.tw');
   const el=document.createElement('div');
-  el.className='toast ti2 show';
+  el.className='toast toast-i show';
   el.id=uid;
-  el.innerHTML=`<span class="tic">🗑️</span><div style="flex:1"><div class="tt2">${msg}</div><div class="td">실수로 삭제했나요?</div></div><button onclick="doUndo('${uid}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0">되돌리기</button>`;
+  el.innerHTML=`<span class="tic">${CI.trash}</span><div style="flex:1"><div class="tt2">${msg}</div><div class="td">실수로 삭제했나요?</div></div><button onclick="doUndo('${uid}')" style="background:var(--accent);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0">되돌리기</button>`;
   tw.appendChild(el);
   const timer=setTimeout(()=>el.remove(),5000);
   el._timer=timer;
@@ -4191,7 +4207,7 @@ function submitR(){
   }
   const existing=getRc().find(r=>r.branch===br&&r.room===rm&&r.status!=='결제'&&r.status!=='');
   if(existing){
-    showCfm('⚠️','중복 접수 경고',`${br} ${rm}에 이미 진행 중인 접수(${existing.id})가 있습니다. 그래도 등록하시겠습니까?`,doCreate);
+    showCfm(CI.alert,'중복 접수 경고',`${br} ${rm}에 이미 진행 중인 접수(${existing.id})가 있습니다. 그래도 등록하시겠습니까?`,doCreate);
   } else {
     doCreate();
   }
@@ -4303,7 +4319,7 @@ function closeMo(id){document.getElementById(id).classList.remove('show');}
 function showCfm(icon,title,msg,cb,opt){opt=opt||{};document.getElementById('cfm-i').innerHTML=icon;document.getElementById('cfm-t').textContent=title;document.getElementById('cfm-s').textContent=msg;document.getElementById('cfm-no').textContent=opt.no||'취소';document.getElementById('cfm-yes').textContent=opt.yes||'확인';cfmHold=opt.hold?Date.now()+opt.hold:0;cfmCb=cb;document.getElementById('cfm').classList.add('show');}   // opt: {no,yes} 버튼 이름(없으면 취소/확인) · hold ms 동안 [확인] 클릭 무시
 function cfmYes(){if(Date.now()<cfmHold)return;closeCfm(true);}   // 이어 뜬 확인창을 빠른 두 번 클릭으로 넘기지 않게
 function closeCfm(ok){document.getElementById('cfm').classList.remove('show');if(ok&&cfmCb)cfmCb();cfmCb=null;}
-function toast(type,title,desc){const w=document.getElementById('tw'),el=document.createElement('div');const ic={s:'✅',e:'❌',i:'💡',w:'⚠️'};el.className=`toast t${type}`;el.innerHTML=`<div class="tic">${ic[type]||'ℹ️'}</div><div><div class="tt2">${title}</div><div class="td">${desc}</div></div>`;w.appendChild(el);setTimeout(()=>el.classList.add('show'),10);setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),350);},3500);}
+function toast(type,title,desc){const w=document.getElementById('tw'),el=document.createElement('div');const ic={s:CI.check,e:CI.xCircle,i:CI.info,w:CI.alert};el.className=`toast toast-${ic[type]?type:'i'}`;el.innerHTML=`<div class="tic">${ic[type]||CI.info}</div><div><div class="tt2">${title}</div><div class="td">${desc}</div></div>`;w.appendChild(el);setTimeout(()=>el.classList.add('show'),10);setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),350);},3500);}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo.show,.cfm.show').forEach(m=>m.classList.remove('show'));});
 // m-qty 변경 시 onBrSel 재호출 → 10개 이상 지점 설치비 22,000원 자동 체크
 const _mqty=document.getElementById('m-qty');if(_mqty)_mqty.addEventListener('input',onBrSel);
@@ -4515,7 +4531,7 @@ function sendPt(id){
     sendPartsDM(x);
   };
   if(q>have){
-    showCfm('📦','보유보다 많습니다',
+    showCfm(CI.box,'보유보다 많습니다',
       `${x.item} 보유는 ${have}개인데 ${q}개를 발송합니다. 솔리티 입고 등록이 빠졌을 수 있습니다. 그래도 진행할까요?`,go);
     return;
   }
@@ -4699,7 +4715,7 @@ function sendPtG(gi){
   // 보유 확인은 발송에서만 한다(확인 단계는 수량을 건드리지 않는다)
   const over=t.filter(x=>(Number(x.qty)||0)>ptStock(x.item));
   if(over.length){
-    showCfm('📦','보유보다 많습니다',
+    showCfm(CI.box,'보유보다 많습니다',
       over.map(x=>`${x.item} 보유 ${ptStock(x.item)}개 · 발송 ${x.qty}개`).join(' / ')
       +' — 솔리티 입고 등록이 빠졌을 수 있습니다. 그래도 진행할까요?',go);
     return;
@@ -5412,7 +5428,7 @@ function svcApplyAuto(){
   if(h2oSkipped)toast('i','H2O 는 건너뜁니다',`${mv} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);
   if(!use.length){toast('e','반영할 항목 없음',h2oSkipped?'H2O 말고는 반영할 지점이 없습니다.':'브랜드를 지정한 지점이 없습니다.');return;}
   const d=getSvc();
-  showCfm('⚡','자동 반영',
+  showCfm(CI.zap,'자동 반영',
     `${mv} 서비스요금을 솔리티·duck 기준으로 덮어씁니다. 대상 ${use.length}개 지점 — `
     +`${use.slice(0,4).map(r=>`${r.branch} ${r.brand} ${r.target}실`).join(', ')}`
     +`${use.length>4?` 외 ${use.length-4}곳`:''}. 진행할까요?`,
@@ -5718,7 +5734,7 @@ function svcApplyYolo(){
   if(!agg.size){toast('e','반영할 항목 없음',(getHL().months[mv]||{}).end?'H2O 말고는 반영할 지점이 없습니다.':'지점·브랜드 지정을 먼저 채워주세요.');return;}
   const d=getSvc();
   const touched=[...agg].map(([k])=>k.split('|'));
-  showCfm('📥','YOLO 기준으로 반영',
+  showCfm(CI.upload,'YOLO 기준으로 반영',
     `${mv} 의 서비스요금을 YOLO 도어락 목록 기준으로 덮어씁니다. 대상 ${agg.size}건 — `
     +`${touched.slice(0,4).map(([a,b])=>a+' '+b).join(', ')}${touched.length>4?` 외 ${touched.length-4}건`:''}. 진행할까요?`,
     ()=>{
@@ -7523,7 +7539,7 @@ function saveOut(){
   /* !isStkIn — 입고 라인은 '중복 정가 발주'가 아니다. 지우면 안 된다(이중 방어). */
   const dupe=rcId?getOr().find(o=>o.receiptId===rcId&&!o.insOf&&!isStkIn(o)):null;
   const openRc=rcId?[]:outRcList(br).filter(r=>String(r.room||'').trim()===rm);
-  const ask=(msg,next)=>showCfm('⚠️','확인',msg,next);
+  const ask=(msg,next)=>showCfm(CI.alert,'확인',msg,next);
   const step2=()=>{
     if(openRc.length)
       ask(`${br} ${rm} 에 아직 안 끝난 접수(${openRc.map(r=>r.id).join(', ')})가 있는데 연결하지 않았습니다. 연결하지 않으면 그 접수를 나중에 발주 처리할 때 같은 설치가 두 번 잡힙니다. 그래도 진행할까요?`,go);
@@ -7627,7 +7643,7 @@ function saveAdj(){
     closeMo('mo-adj');renderStock();
     toast('s','실사 반영',`${made}개 지점 조정 등록 (수량만 조정, 금액 영향 없음)`);
   };
-  showCfm('📋','실사 반영',
+  showCfm(CI.clipboard,'실사 반영',
     `${diffs.length}개 지점의 재고를 조정합니다 — ${diffs.map(x=>`${x.br} ${x.df>0?'+':''}${x.df}`).join(', ')}. `
     +`수량만 바뀌고 정산 금액은 그대로입니다. 진행할까요?`,go);
 }
