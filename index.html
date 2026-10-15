@@ -761,8 +761,10 @@ b,strong{font-weight:600;}
 .toast-i{border-color:var(--plott-color-status-info);}.toast-i .tic{color:var(--plott-banner-info-text-color);}
 .toast-w{border-color:var(--plott-color-status-warning);}.toast-w .tic{color:var(--plott-banner-warning-text-color);}
 .tic{flex-shrink:0;display:flex;margin-top:2px;}
+.tic svg{width:16px;height:16px;}
 .tt2{font-size:14px;line-height:20px;font-weight:600;color:var(--plott-color-text-default);}
-.td{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);margin-top:2px;}
+/* 설명은 neutral800 — 창·확인창 배경막 위에서 반투명 바탕이 회색(185)이 돼 text-secondary 로는 2.68:1 이었다(작은 글씨는 4.5:1) */
+.td{font-size:12px;line-height:16px;color:var(--plott-color-neutral800);margin-top:2px;}
 /* ── 재고 ── */
 .stk-wrap{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
 .stk-card{border:1px solid var(--plott-color-border-default);border-radius:12px;padding:12px 16px;min-width:116px;background:var(--plott-card-background-color);}
