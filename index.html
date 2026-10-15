@@ -1395,9 +1395,9 @@ b,strong{font-weight:600;}
       </div>
     </div>
     <div class="fg">
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--red-l);border:1px solid #fecaca;border-radius:8px;cursor:pointer" onclick="toggleUrg()">
-        <div><div style="font-size:14px;font-weight:600;color:var(--red);display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 긴급 요청</div><div style="font-size:12px;color:#f87171;margin-top:1px">당일 처리 — 담당자 즉시 알림</div></div>
-        <div id="tgl" style="width:40px;height:22px;background:var(--border2);border-radius:12px;position:relative;transition:background .2s"><div id="tgld" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:var(--plott-color-bg-surface);border-radius:50%;transition:transform .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--red-l);border:1px solid var(--plott-color-danger200);border-radius:8px;cursor:pointer" onclick="toggleUrg()">
+        <div><div style="font-size:14px;font-weight:600;color:var(--red);display:flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 긴급 요청</div><div style="font-size:12px;color:var(--plott-color-danger700);margin-top:1px">당일 처리 — 담당자 즉시 알림</div></div>
+        <div id="tgl" style="width:40px;height:22px;background:var(--border2);border-radius:12px;position:relative;transition:background .2s"><div id="tgld" style="position:absolute;top:3px;left:3px;width:16px;height:16px;background:var(--plott-color-bg-surface);border-radius:50%;transition:transform .2s;box-shadow:var(--plott-shadow-sm)"></div></div>
       </div>
     </div>
     <div class="fg"><label>메모</label><textarea class="fta" id="r-memo" placeholder="특이사항"></textarea></div>
@@ -1952,7 +1952,7 @@ function showPushFail(){
   if(document.getElementById('push-fail-bar'))return;
   const el=document.createElement('div');
   el.id='push-fail-bar';
-  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#b3261e;color:var(--plott-color-text-inverse);padding:11px 16px;font-size:14px;font-weight:600;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:var(--plott-color-danger700);color:var(--plott-color-text-inverse);padding:11px 16px;font-size:14px;font-weight:600;text-align:center;box-shadow:var(--plott-shadow-md)';
   el.textContent='서버 저장에 연속 실패했습니다. 지금 입력한 내용이 다른 사람에게 전달되지 않습니다 — 새로고침 후 다시 로그인하세요.';
   document.body.appendChild(el);
 }
@@ -1980,7 +1980,7 @@ function showUpdateBar(){
   if(document.getElementById('app-update-bar'))return;
   const el=document.createElement('div');
   el.id='app-update-bar';
-  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99998;background:var(--plott-color-action-primary);color:var(--plott-color-text-inverse);padding:10px 16px;font-size:14px;font-weight:600;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+  el.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99998;background:var(--plott-color-action-primary);color:var(--plott-color-text-inverse);padding:10px 16px;font-size:14px;font-weight:600;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap;box-shadow:var(--plott-shadow-md)';
   el.innerHTML='<span>도어락 통합관리가 새 버전으로 바뀌었습니다. 입력 중인 내용을 마친 뒤 새로고침해 주세요.</span>';
   const b=document.createElement('button');
   b.textContent='새로고침';
@@ -3298,8 +3298,8 @@ function renderM(){
   const mono="font-variant-numeric:tabular-nums";
 
   // 4) 행 생성
-  const NEWM={label:'신규',color:'var(--accent)',sub:'선급금/집기출금 · 6200',bg:'rgba(26,86,219,.1)'};
-  const REPM={label:'교체',color:'var(--yellow)',sub:'수선비/지점출금 · 6055',bg:'rgba(245,158,11,.1)'};
+  const NEWM={label:'신규',color:'var(--accent)',sub:'선급금/집기출금 · 6200',bg:'var(--plott-tag-brand-background-color)'};
+  const REPM={label:'교체',color:'var(--yellow)',sub:'수선비/지점출금 · 6055',bg:'var(--plott-banner-warning-background-color)'};
   const allRows=MS.rows.map(r=>{
     const m=r.isNew?NEWM:REPM;
     const badge=`<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;background:${m.bg};color:${m.color}">${m.label}</span><div style="font-size:12px;color:var(--text3);margin-top:2px">${m.sub}</div>`;
@@ -3452,7 +3452,7 @@ function renderUsers(){
       <td style="color:var(--text3)">${u.loginAt?new Date(u.loginAt).toLocaleString('ko-KR'):'—'}</td>
       <td>
         <button class="btn bp bsm approve-btn" style="margin-right:6px" onclick="approveUser('${u.id}','user')">직원으로 승인</button>
-        <button class="btn bp bsm approve-btn" style="margin-right:6px" onclick="approveUser('${u.id}','admin')">관리자로 승인</button>
+        <button class="btn bg bsm approve-btn" style="margin-right:6px" onclick="approveUser('${u.id}','admin')">관리자로 승인</button>
         <button class="btn br2 bsm reject-btn" onclick="removeUser('${u.id}')">거절</button>
       </td>
     </tr>`).join(''):`<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--green)">대기 중인 사용자 없음 ✓</td></tr>`;
@@ -3529,7 +3529,7 @@ function renderBr(){
     const brs=getActiveBr();
     const syncAt=duck?.updatedAt?`<span style="font-size:12px;color:var(--text3);padding:4px 8px">마지막 Duck 동기화: ${duck.updatedAt.substring(0,10)}</span>`:'';
     document.getElementById('bgrid').innerHTML=`<div class="bc" onclick="openBrMo(null)" style="border:2px dashed var(--border2);background:var(--surface);display:flex;align-items:center;justify-content:center;min-height:110px;flex-direction:column;gap:8px;color:var(--text3)"><div style="font-size:32px">+</div><div style="font-size:14px;font-weight:600">지점 추가</div></div>`
-      +brs.map(b=>`<div class="bc" data-brc data-name="${(b.name||'').toLowerCase()}" data-loc="${(b.loc||'').toLowerCase()}" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div style="margin:4px 0"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;background:${brLockType(b)==='호텔도어락'?'rgba(147,51,234,.1)':'rgba(26,86,219,.08)'};color:${brLockType(b)==='호텔도어락'?'var(--purple)':'var(--accent)'}">${brLockType(b)}${brExtra(b)?' · 자재 '+brExtra(b).toLocaleString()+'원':''}</span></div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div><div style="margin-top:8px;text-align:right"><button class="btn br2 bsm" onclick="event.stopPropagation();closeBranch(${b.id})">지점 종료</button></div></div>`).join('');
+      +brs.map(b=>`<div class="bc" data-brc data-name="${(b.name||'').toLowerCase()}" data-loc="${(b.loc||'').toLowerCase()}" onclick="openBrMo(${b.id})"><span class="bc-done ${b.cDone?'bdy':'bdn'}">${b.cDone?'✓ 시공완료':'진행중'}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div style="margin:4px 0"><span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;background:${brLockType(b)==='호텔도어락'?'var(--plott-banner-info-background-color)':'var(--plott-tag-brand-background-color)'};color:${brLockType(b)==='호텔도어락'?'var(--purple)':'var(--accent)'}">${brLockType(b)}${brExtra(b)?' · 자재 '+brExtra(b).toLocaleString()+'원':''}</span></div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.door} ${b.rooms||0}실</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.key} ${b.lockNew||'—'}</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.money} ${(b.lockPrice||0).toLocaleString()}원</span></div><div style="margin-top:8px;text-align:right"><button class="btn br2 bsm" onclick="event.stopPropagation();closeBranch(${b.id})">지점 종료</button></div></div>`).join('');
     document.getElementById('duck-sync-at')?.remove();   // 다시 그릴 때마다 줄이 쌓이지 않게
     if(syncAt)document.getElementById('bgrid').insertAdjacentHTML('beforebegin',`<div id="duck-sync-at" style="display:flex;justify-content:flex-end;margin-bottom:4px">${syncAt}</div>`);
     filterBr();
@@ -3643,7 +3643,7 @@ function renderArchive(){
   el.innerHTML=brs.map(b=>{
     const oc=getOr().filter(o=>o.branch===b.name).length;
     const rc=getRc().filter(r=>r.branch===b.name).length;
-    return`<div class="bc" style="opacity:.9"><span class="bc-done" style="background:rgba(234,88,12,.12);color:var(--plott-color-danger700)">종료 ${b.closedDate||''}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.clipboard} 접수 ${rc}건</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.box} 발주 ${oc}건</span></div><div style="margin-top:10px;display:flex;gap:6px;justify-content:flex-end"><button class="btn bo bsm" onclick="openBrMo(${b.id})">정보 보기</button><button class="btn bp bsm" onclick="reopenBranch(${b.id})">↻ 재개</button></div></div>`;
+    return`<div class="bc" style="opacity:.9"><span class="bc-done" style="background:var(--plott-color-status-danger-bg);color:var(--plott-color-danger700)">종료 ${b.closedDate||''}</span><div class="bc-n">${b.name}</div><div class="bc-s">${b.loc||''}</div><div class="bc-m"><span style="display:inline-flex;align-items:center;gap:3px">${CI.clipboard} 접수 ${rc}건</span><span style="display:inline-flex;align-items:center;gap:3px">${CI.box} 발주 ${oc}건</span></div><div style="margin-top:10px;display:flex;gap:6px;justify-content:flex-end"><button class="btn bo bsm" onclick="openBrMo(${b.id})">정보 보기</button><button class="btn bp bsm" onclick="reopenBranch(${b.id})">↻ 재개</button></div></div>`;
   }).join('');
 }
 
@@ -5316,7 +5316,7 @@ function svcAutoPreview(){
     tr.appendChild(td(billable?(now||'—').toString():'—','num-r','color:var(--text3)'));
     const diff=billable?r.target-now:0;
     tr.appendChild(td(billable?(diff>0?'+':'')+diff:'—','num-r',
-      `font-weight:600;color:${diff===0?'var(--text3)':(diff<0?'var(--green)':'#dc2626')}`));
+      `font-weight:600;color:${diff===0?'var(--text3)':(diff<0?'var(--green)':'var(--plott-color-danger700)')}`));
     if(billable)money+=diff*(prices[rBrand]||SVC_DEF_PRICES[rBrand]||0);
     if(!rBrand)unset++;
     body.appendChild(tr);
@@ -5391,7 +5391,7 @@ function svcAutoPreview(){
       w.appendChild(lab);
       live.forEach(o=>{
         const chip=document.createElement('span');
-        chip.style.cssText='display:inline-flex;align-items:center;gap:5px;border:1px solid var(--bd);border-radius:9999px;padding:2px 6px 2px 10px';
+        chip.style.cssText='display:inline-flex;align-items:center;gap:5px;border:1px solid var(--bd);border-radius:9999px;padding:0 6px 0 10px';
         const t=document.createElement('span');t.textContent=`${o.id} (${o.n}실)`;
         const b=document.createElement('button');
         b.className='btn bo bsm';
@@ -5657,9 +5657,9 @@ function svcYoloPreview(){
   if(needPick.length){
     const box=document.createElement('div');
     const undone=needPick.filter(x=>!x.f.branch).length;
-    box.style.cssText=`background:${undone?'rgba(220,38,38,.06)':'var(--bg2)'};border:1px solid ${undone?'rgba(220,38,38,.25)':'var(--bd)'};border-radius:8px;padding:12px 14px;margin-bottom:10px`;
+    box.style.cssText=`background:${undone?'var(--plott-color-status-danger-bg)':'var(--bg2)'};border:1px solid ${undone?'var(--plott-color-danger200)':'var(--bd)'};border-radius:8px;padding:12px 14px;margin-bottom:10px`;
     const h=document.createElement('div');
-    h.style.cssText=`font-weight:600;color:${undone?'#dc2626':'var(--text2)'};font-size:14px;margin-bottom:8px`;
+    h.style.cssText=`font-weight:600;color:${undone?'var(--plott-color-danger700)':'var(--text2)'};font-size:14px;margin-bottom:8px`;
     h.textContent=undone?`파일별 지점을 지정하세요 (${undone}/${needPick.length}개 남음) — 지정 전까지 반영에서 제외됩니다`
                         :`파일별 지점 (${needPick.length}개 지정 완료)`;
     box.appendChild(h);
@@ -5682,11 +5682,11 @@ function svcYoloPreview(){
   }
   if(unkBranch.size)warnEls.push(mapBlock(
     `지점을 못 찾은 항목 ${unkBranch.size}종 — 지정 전까지 반영에서 제외됩니다`,
-    'rgba(220,38,38,.06)','rgba(220,38,38,.25)','#dc2626',[...unkBranch],'branch',
+    'var(--plott-color-status-danger-bg)','var(--plott-color-danger200)','var(--plott-color-danger700)',[...unkBranch],'branch',
     [['','— 지정 —'],...getActiveBr().map(b=>[b.name,b.name])]));
   if(unkBrand.size)warnEls.push(mapBlock(
     `처음 보는 도어락 표기 ${unkBrand.size}종 — 한 번만 지정하면 다음부터 자동입니다`,
-    'rgba(180,120,20,.07)','rgba(180,120,20,.3)','#8a5d18',[...unkBrand],'brand',
+    'var(--plott-banner-warning-background-color)','var(--plott-banner-warning-border-color)','var(--plott-banner-warning-text-color)',[...unkBrand],'brand',
     [['','— 지정 —'],['직방','직방'],['H2O','H2O'],['더엠알','더엠알'],['_없음','요금 없음(솔리티 등)']]));
 
   // 집계 — 지점 × 과금브랜드
@@ -5715,13 +5715,13 @@ function svcYoloPreview(){
       <td>${escLog(r.bn)}</td><td>${escLog(r.bd)}</td>
       <td class="num-r">${r.n}</td>
       <td class="num-r" style="color:var(--text3)">${r.now||'—'}</td>
-      <td class="num-r" style="font-weight:600;color:${r.diff===0?'var(--text3)':(r.diff<0?'var(--green)':'#dc2626')}">${r.diff>0?'+':''}${r.diff||0}</td>
+      <td class="num-r" style="font-weight:600;color:${r.diff===0?'var(--text3)':(r.diff<0?'var(--green)':'var(--plott-color-danger700)')}">${r.diff>0?'+':''}${r.diff||0}</td>
       <td style="font-size:12px;color:var(--text3)">${skip.get(r.bn)?`요금 없는 도어락 ${skip.get(r.bn)}실 제외`:''}</td>
     </tr>`).join('')}</tbody></table></div>
     <div style="margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
       <button class="btn bp" onclick="svcApplyYolo()">${mv||'월 선택'} 청구 항목에 반영</button>
       <span style="font-size:14px;color:var(--text2)">
-        반영하면 월 요금이 <strong style="color:${money===0?'inherit':(money<0?'var(--green)':'#dc2626')}">${money>0?'+':''}${money.toLocaleString()}원</strong> 달라집니다 (부가세 별도).
+        반영하면 월 요금이 <strong style="color:${money===0?'inherit':(money<0?'var(--green)':'var(--plott-color-danger700)')}">${money>0?'+':''}${money.toLocaleString()}원</strong> 달라집니다 (부가세 별도).
       </span>
     </div>`
     :`<div style="color:var(--text3);font-size:14px">반영할 항목이 없습니다. 위 지정을 먼저 채워주세요.</div>`}`;
@@ -5816,7 +5816,7 @@ function renderSvc(){
   if(fbrand)recs=recs.filter(r=>r.brand===fbrand);
   recs.sort((a,b)=>a.brand.localeCompare(b.brand)||b.month.localeCompare(a.month)||a.branch.localeCompare(b.branch,'ko'));
   const fmt=n=>n.toLocaleString()+'원';
-  const brandBadge=br=>`<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;background:${br==='직방'?'#e8f4fd':br==='H2O'?'#e8fdf0':'#fdf4e8'};color:${br==='직방'?'#1a6fa8':br==='H2O'?'#1a7a3f':'#a85d1a'}">${br}</span>`;
+  const brandBadge=br=>`<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;background:${br==='직방'?'var(--plott-banner-info-background-color)':br==='H2O'?'var(--plott-banner-success-background-color)':'var(--plott-banner-warning-background-color)'};color:${br==='직방'?'var(--plott-banner-info-text-color)':br==='H2O'?'var(--plott-banner-success-text-color)':'var(--plott-banner-warning-text-color)'}">${br}</span>`;
   document.getElementById('svc-body').innerHTML=recs.length===0
     ?`<tr><td colspan="10" style="text-align:center;color:var(--text3);padding:24px">청구 내역이 없습니다.</td></tr>`
     :recs.map(r=>{
@@ -5859,7 +5859,7 @@ function renderSvc(){
     const a=svcTotal(sumRecs.filter(r=>r.brand===br));
     return{br,rooms:a.rooms,ex:a.ex,vat:a.vat,cnt:a.cnt};
   });
-  const colors={'직방':'var(--accent)','H2O':'#22c55e','더엠알':'#f59e0b'};
+  const colors={'직방':'var(--accent)','H2O':'var(--plott-banner-success-text-color)','더엠알':'var(--plott-banner-warning-text-color)'};
   document.getElementById('svc-summary').innerHTML=brandSum.map(s=>`<div class="mcc" style="border-left:3px solid ${colors[s.br]}"><div class="ml">${s.br}${fm?' '+fm:''}</div><div class="mv" style="color:${colors[s.br]}">${(s.ex+s.vat).toLocaleString()}원</div><div class="ms">${s.rooms}실 · 공급가 ${s.ex.toLocaleString()}원 · 부가세 ${s.vat.toLocaleString()}원</div></div>`).join('');
 }
 
@@ -7602,7 +7602,7 @@ function calcAdj(){
     if(inp.value===''){cell.textContent='—';cell.style.color='';return;}
     const d=(parseInt(inp.value)||0)-(Number(inp.dataset.bal)||0);
     cell.textContent=d>0?'+'+d:String(d);
-    cell.style.color=d===0?'var(--text3)':(d<0?'#dc2626':'var(--green)');
+    cell.style.color=d===0?'var(--text3)':(d<0?'var(--plott-color-danger700)':'var(--green)');
     if(d>0){n++;plus+=d;} else if(d<0){n++;minus+=-d;}
   });
   const el=document.getElementById('adj-sum');
