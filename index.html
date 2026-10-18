@@ -852,6 +852,26 @@ b,strong{font-weight:600;}
 .cal-pop dd{font-size:14px;line-height:20px;color:var(--plott-color-text-default);overflow-wrap:anywhere;}
 .cal-pop-f{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
 .cal-pop-l{display:flex;flex-direction:column;gap:4px;}
+/* ── 기능① 메뉴 접기(설계서 §3.2) — .sb 에 .sb-col 만 더하면 아이콘 줄(218 → 56px). 메뉴 항목을 그리는 buildNav·goP 는 그대로 ── */
+.sb{overflow:hidden;transition:width 150ms var(--plott-motion-easing-standard),min-width 150ms var(--plott-motion-easing-standard);}
+@media (prefers-reduced-motion:reduce){.sb{transition:none;}}
+.sb-logo{position:relative;}
+.sb-tog{position:absolute;top:16px;right:12px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;padding:0;background:var(--plott-color-bg-surface);border:1px solid transparent;border-radius:8px;color:var(--plott-color-neutral700);cursor:pointer;}
+.sb-tog:hover{background:var(--plott-color-neutral50);color:var(--plott-color-text-default);}
+.sb-tog:focus-visible{outline:2px solid var(--plott-color-action-primary);outline-offset:2px;box-shadow:var(--plott-focus-ring-default);}
+.lout svg{display:none;}
+.sb.sb-col{width:56px;min-width:56px;}
+.sb-col .sb-logo{padding:12px 0;align-items:center;}
+.sb-col .sb-tog{position:static;}
+.sb-col .sb-tog svg{transform:rotate(180deg);}
+.sb-col .sb-wordmark,.sb-col .sb-logo>div,.sb-col .sb-uw{display:none;}
+.sb-col .sg{height:1px;margin:8px 4px;padding:0;overflow:hidden;font-size:0;background:var(--plott-color-neutral100);}
+.sb-col .ni{position:relative;justify-content:center;gap:0;padding:8px 0;font-size:0;}
+.sb-col .ni .hq-nb{position:absolute;top:2px;right:2px;margin:0;min-width:16px;padding:0 4px;}
+.sb-col .sb-foot{padding:12px 8px;}
+.sb-col .lout{display:flex;align-items:center;justify-content:center;padding:8px 0;}
+.sb-col .lout svg{display:block;}
+.sb-col .lout-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -911,12 +931,12 @@ b,strong{font-weight:600;}
 <!-- APP -->
 <div id="app">
   <aside class="sb">
-    <div class="sb-logo"><span class="sb-wordmark" role="img" aria-label="plott"></span><div><div class="brand">도어락 통합관리</div><div class="tag">접수 · 발주 · 설치 · 정산</div></div></div>
-    <div style="padding:10px 12px 0">
+    <div class="sb-logo"><span class="sb-wordmark" role="img" aria-label="plott"></span><div><div class="brand">도어락 통합관리</div><div class="tag">접수 · 발주 · 설치 · 정산</div></div><button type="button" class="sb-tog" id="sb-tog" aria-label="메뉴 접기" title="메뉴 접기" aria-expanded="true" aria-controls="sb-nav" onclick="sbColToggle()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button></div>
+    <div class="sb-uw" style="padding:10px 12px 0">
       <div class="sb-user"><div class="un" id="sb-n">—</div><div class="ub" id="sb-b">—</div><span class="ur" id="sb-r"></span></div>
     </div>
     <nav class="sb-nav" id="sb-nav"></nav>
-    <div class="sb-foot"><button class="lout" onclick="doLogout()">로그아웃</button></div>
+    <div class="sb-foot"><button class="lout" onclick="doLogout()" aria-label="로그아웃"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span class="lout-t">로그아웃</span></button></div>
   </aside>
   <div class="main">
     <div class="topbar">
@@ -2656,7 +2676,7 @@ function startApp(){
   if(isSA()){re.className='ur ur-sa';re.textContent='최고관리자';}
   else if(S.role==='admin'){re.className='ur ur-a';re.textContent='관리자';}
   else{re.className='ur ur-u';re.textContent='직원';}
-  buildNav();populateSels();loadDCfg();
+  buildNav();sbColApply();populateSels();loadDCfg();
   goP('dashboard');
   sbSync().then(()=>{ migrateLockTypes(); if(document.querySelector('.page.on')?.id==='page-dashboard'&&typeof renderD==='function')renderD(); checkAppUpdate(true); hqBadge(); }); // 로그인 후 최신 데이터 로드
 }
@@ -2745,6 +2765,21 @@ function buildNav(){
   document.getElementById('sb-nav').innerHTML=itms.map(i=>i.sep?`<div class="sg">${i.sep}</div>`:`<div class="ni" data-p="${i.p}" onclick="goP('${i.p}')"><span class="ic">${i.ic}</span>${i.l}</div>`).join('');
   hqBadge();   // 메뉴를 다시 그리면 숫자도 다시 단다
 }
+/* ── 메뉴 접기(기능① §3.2) — .sb 에 .sb-col 만 더하고 뺀다(buildNav·goP 는 그대로). 기억은 dl.sb.collapsed ── */
+let SB_COL=null;   // 처음 쓸 때 한 번 읽는다(저장이 막혀도 이 탭 안에서는 고른 대로)
+const sbCol=()=>SB_COL??(SB_COL=lsGet('dl.sb.collapsed','0')==='1');
+function sbColApply(){
+  const col=sbCol(),label=col?'메뉴 펼치기':'메뉴 접기',tog=document.getElementById('sb-tog'),lo=document.querySelector('#app .lout');
+  document.querySelector('#app .sb').classList.toggle('sb-col',col);
+  tog.setAttribute('aria-label',label);tog.title=label;tog.setAttribute('aria-expanded',String(!col));
+  // 이름은 화면에서만 숨는다(읽기 프로그램은 그대로 읽는다) — 접혔을 때는 마우스를 올리면 이름이 뜨게 title 을 단다
+  document.querySelectorAll('#sb-nav .ni').forEach(ni=>{
+    const name=[...ni.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim();
+    if(col)ni.title=name;else ni.removeAttribute('title');
+  });
+  if(col)lo.title='로그아웃';else lo.removeAttribute('title');
+}
+function sbColToggle(){SB_COL=!sbCol();lsSet('dl.sb.collapsed',SB_COL?'1':'0');sbColApply();}
 
 const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],svc:['서비스요금','직방·H2O·더엠알 월 서비스요금 관리'],branches:['지점 관리','지점 정보 및 계정'],archive:['종료 지점','종료(아카이브)된 지점 · 재개 가능'],users:['사용자 관리','접속 권한 부여 및 역할 설정'],log:['변경 이력','상태 변경 감사 로그'],stock:['재고 관리','지점 보유 도어락 · 입고와 설치'],parts:['부자재 관리','도어락 커버·모듈 신청과 발송'],h2oreq:['H2O 모드 전환','객실용↔홈용 전환 신고와 H2O 통보']};
 function goP(p){
