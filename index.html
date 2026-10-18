@@ -5235,8 +5235,9 @@ async function svcAutoFetch(force){
     });
     AUTO.orphan=[...accMap].filter(([id,r])=>r.length>0&&!usedIds.has(id))
                            .map(([id,r])=>({id,n:r.length}));
-    st.textContent=`duck ${(AUTO.updatedAt||'').substring(0,16).replace('T',' ')} · 솔리티 ${(AUTO.solitiAt||'').substring(0,16).replace('T',' ')}`
-      +(sol.stale?' · 솔리티 조회 실패로 이전 값 사용':'');
+    st.textContent=`duck ${(AUTO.updatedAt||'').substring(0,16).replace('T',' ')} · 솔리티 ${(AUTO.solitiAt||'').substring(0,16).replace('T',' ')}`;
+    // 솔리티 조회가 실패해 이전 값을 쓰면 청구에 낡은 객실 수가 들어갈 수 있다 — 회색 글자만으론 놓치기 쉬워 아이콘 + 경고색을 붙인다(고정 문구라 HTML 로 넣어도 사용자 값이 섞이지 않는다. 위 시각은 textContent 그대로)
+    if(sol.stale)st.insertAdjacentHTML('beforeend',' · <span class="t-warn">'+CI.alertIn+' 솔리티 조회 실패로 이전 값 사용</span>');
   }catch(e){
     AUTO.err=String(e&&e.message||e);
     st.textContent='실패: '+AUTO.err;
@@ -7462,7 +7463,7 @@ function onOutChange(){
       +list.map(r=>{
           const hasOrd=getOr().some(o=>o.receiptId===r.id&&!o.insOf);
           return `<option value="${r.id}">${r.id} · ${r.room} · ${r.type||''} (${r.status})`
-               + `${hasOrd?' · 발주 있음':''}</option>`;
+               + `${hasOrd?' ※ 발주 있음':''}</option>`;
         }).join('');
     if(list.some(r=>r.id===keep))rcSel.value=keep;
   }
