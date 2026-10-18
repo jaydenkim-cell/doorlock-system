@@ -872,6 +872,22 @@ b,strong{font-weight:600;}
 .sb-col .lout{display:flex;align-items:center;justify-content:center;padding:8px 0;}
 .sb-col .lout svg{display:block;}
 .sb-col .lout-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}
+/* ── 기능① 동기화 표시(설계서 §3.3) — 로그아웃 바로 위 한 줄. 점 색 = 상태(data-st) · 접힌 메뉴에서는 점만(글은 title) ── */
+.sb-sync{display:flex;align-items:flex-start;gap:6px;width:100%;margin-bottom:8px;padding:6px 8px;background:none;border:1px solid transparent;border-radius:8px;font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);text-align:left;cursor:pointer;}
+.sb-sync[hidden]{display:none;}
+.sb-sync:hover{background:var(--plott-color-neutral50);}
+.sb-sync:focus-visible{outline:2px solid var(--plott-color-action-primary);outline-offset:2px;box-shadow:var(--plott-focus-ring-default);}
+.sb-sync-dot{flex-shrink:0;width:8px;height:8px;margin-top:4px;border-radius:50%;background:var(--plott-color-status-success);}
+.sb-sync[data-st="busy"] .sb-sync-dot{background:var(--plott-color-action-primary);}
+.sb-sync[data-st="fail"] .sb-sync-dot,.sb-sync[data-st="pull"] .sb-sync-dot{background:var(--plott-color-danger700);}
+.sb-sync[data-st="auth"] .sb-sync-dot{background:var(--plott-color-warning700);}
+.sb-sync[data-st="off"] .sb-sync-dot{background:var(--plott-color-neutral500);}
+.sb-sync-tx{min-width:0;}
+.sb-sync-st{font-weight:600;color:var(--plott-color-neutral700);}
+.sb-sync[data-st="fail"] .sb-sync-st,.sb-sync[data-st="pull"] .sb-sync-st{color:var(--plott-color-danger700);}
+.sb-col .sb-sync{justify-content:center;padding:8px 0;}
+.sb-col .sb-sync-dot{margin-top:0;}
+.sb-col .sb-sync-tx{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -936,7 +952,7 @@ b,strong{font-weight:600;}
       <div class="sb-user"><div class="un" id="sb-n">—</div><div class="ub" id="sb-b">—</div><span class="ur" id="sb-r"></span></div>
     </div>
     <nav class="sb-nav" id="sb-nav"></nav>
-    <div class="sb-foot"><button class="lout" onclick="doLogout()" aria-label="로그아웃"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span class="lout-t">로그아웃</span></button></div>
+    <div class="sb-foot"><button type="button" class="sb-sync" id="sb-sync" data-st="ok" hidden><span class="sb-sync-dot" aria-hidden="true"></span><span class="sb-sync-tx"><span class="sb-sync-st" id="sb-sync-st" aria-live="polite">동기화</span> <span class="sb-sync-sub" id="sb-sync-sub"></span></span></button><button class="lout" onclick="doLogout()" aria-label="로그아웃"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span class="lout-t">로그아웃</span></button></div>
   </aside>
   <div class="main">
     <div class="topbar">
@@ -2017,7 +2033,7 @@ const KV_FN_URL=SB_URL+'/functions/v1/kv';
 /* 응답 없는 요청이 설정 키 저장 줄을 막지 않게 일반 동기화(get_all/get_one/set)에만 20초 제한을 둔다.
    duck·솔리티 조회는 원래 오래 걸린다(게이트웨이가 외부를 기다렸다가 낡은 값으로라도 답한다) — 제한하지 않는다. */
 const kvSignal=op=>{const to={get_all:20000,get_one:20000,set:20000}[op];return(to&&typeof AbortSignal!=='undefined'&&typeof AbortSignal.timeout==='function')?AbortSignal.timeout(to):undefined;};
-async function kvFn(op,extra){
+async function kvFnRaw(op,extra){   // 게이트웨이 한 번 부르기 — 바로 아래 kvFn(동기화 표시)이 감싼다
   const t=(S&&S.token)||'';
   if(!t)return null; // 로그인 전에는 클라우드 접근 안 함
   const r=await fetch(KV_FN_URL,{method:'POST',headers:{'Content-Type':'application/json','x-sso-token':t},body:JSON.stringify({op,...(extra||{})}),
@@ -2029,6 +2045,62 @@ async function kvFn(op,extra){
   }
   return r.json();
 }
+/* ── 동기화 표시(기능① §3.3) — 화면에만 쓰는 상태(저장하지 않는다) ──
+   kvFn 한 곳을 감싸 저장(set)·당겨 오기(get_all) 앞뒤에서 상태만 바꾸고 원래 결과·예외를 그대로 돌려준다 — sbSet·casPush·sbSync·병합은 손대지 않는다.
+   at 마지막 성공 시각 · busy 보내는 중인 저장 수 · failed 저장에 실패한 키(그 키를 나중에 저장해 성공해야 빠진다 — 당겨 오기 성공만으로는 안 풀린다)
+   pull 당겨 오기 실패 · auth 게이트웨이 401(새로고침 전까지) · off 연결 끊김(fetch 자체 실패·offline — 그 뒤 성공 한 번으로 풀린다)
+   pulls 당겨 오기 성공 횟수 · run 지금 도는 '지금 동기화'(한 번만 돈다) · shown 지금 글로 보이는 상태(aria-live 글은 바뀔 때만 고친다) */
+const SYNC={at:0,busy:0,failed:new Set(),pull:false,auth:false,off:false,pulls:0,run:null,shown:''};
+async function kvFn(op,extra){
+  const track=(op==='set'||op==='get_all')&&!!(S&&S.token),key=op==='set'?String(extra&&extra.key):'';
+  if(track&&op==='set'){SYNC.busy++;syncPaint();}
+  try{
+    const r=await kvFnRaw(op,extra);
+    if(track)syncMark(op,key,null);
+    return r;
+  }catch(e){
+    if(track)syncMark(op,key,e);
+    else if(e&&e.status===401){SYNC.auth=true;syncPaint();}   // 다른 요청(duck·솔리티·슬랙)의 401 도 같은 로그인이 끝난 것이다
+    throw e;
+  }finally{
+    if(track&&op==='set'){SYNC.busy--;syncPaint();}
+  }
+}
+function syncMark(op,key,e){
+  const net=e instanceof TypeError;                                           // fetch 자체가 실패 — 응답을 못 받았다
+  const ok=!e||(op==='set'&&e.status===409&&!!e.body&&('value' in e.body));   // 409 + 서버값 = casSend 가 서버값을 받아 맞췄다(실패 아님)
+  if(e&&e.status===401)SYNC.auth=true;
+  else if(net)SYNC.off=true;
+  if(op==='set'){if(ok)SYNC.failed.delete(key);else SYNC.failed.add(key);}   // 401·연결 끊김으로 못 간 저장도 적는다 — 연결이 돌아온 뒤 '동기화됨'으로 속이지 않게
+  else if(ok){SYNC.pull=false;SYNC.pulls++;}
+  else if(!net&&e.status!==401)SYNC.pull=true;
+  if(ok){SYNC.at=Date.now();if(navigator.onLine!==false)SYNC.off=false;}
+  syncPaint();
+}
+// 보이는 상태 — 위에 있는 것이 이긴다
+function syncState(){
+  if(SYNC.auth)return'auth';
+  if(SYNC.off||navigator.onLine===false)return'off';
+  if(SYNC.busy>0)return'busy';
+  if(SYNC.failed.size)return'fail';
+  if(SYNC.pull)return'pull';
+  return'ok';
+}
+const SYNC_TXT={ok:'동기화됨',busy:'저장 중…',fail:'저장 실패',pull:'동기화 실패',auth:'로그인이 끝났어요',off:'연결 끊김'};
+const SYNC_ACT={fail:'다시 시도',pull:'다시 시도',auth:'새로고침'};
+const syncAgo=s=>s<10?'방금':s<60?`${s}초 전`:s<3600?`${Math.floor(s/60)}분 전`:`${Math.floor(s/3600)}시간 전`;
+// 메뉴 맨 아래 동기화 줄 — 첫 결과가 오기 전에는 숨겨 둔다(받아 보기도 전에 '동기화됨'이라 하지 않게). 접힌 메뉴에서는 점만, 글은 title
+function syncPaint(){
+  const b=document.getElementById('sb-sync');if(!b)return;
+  if(!SYNC.at&&!SYNC.busy&&!SYNC.failed.size&&!SYNC.pull&&!SYNC.auth&&!SYNC.off)return;
+  const st=syncState(),sub=st==='ok'?syncAgo(Math.max(0,Math.floor((Date.now()-SYNC.at)/1000))):(SYNC_ACT[st]||'');
+  b.hidden=false;b.dataset.st=st;
+  if(SYNC.shown!==st){document.getElementById('sb-sync-st').textContent=SYNC_TXT[st];SYNC.shown=st;}   // 상태 이름은 바뀔 때만 고친다(aria-live 가 그때만 읽는다)
+  document.getElementById('sb-sync-sub').textContent=sub?'· '+sub:'';
+  if(document.querySelector('#app .sb')?.classList.contains('sb-col'))b.title=SYNC_TXT[st]+(sub?' · '+sub:'');else b.removeAttribute('title');
+}
+setInterval(()=>{if(syncState()==='ok')syncPaint();},10000);   // 상대 시각은 10초마다 글만 고친다
+addEventListener('offline',()=>{SYNC.off=true;syncPaint();});
 /* 서버 저장 실패는 지금까지 완전히 무음이었다(catch{}). 저장이 안 된 줄 모르고
    계속 입력하면 그 내용이 다른 사람에게 영영 전달되지 않는다. 연속 실패만 알린다 —
    일시적 네트워크 끊김 1회까지 배너를 띄우면 아무도 안 보게 된다. */
@@ -2778,6 +2850,7 @@ function sbColApply(){
     if(col)ni.title=name;else ni.removeAttribute('title');
   });
   if(col)lo.title='로그아웃';else lo.removeAttribute('title');
+  syncPaint();   // 동기화 줄 — 접히면 점만 남고 글은 title 로
 }
 function sbColToggle(){SB_COL=!sbCol();lsSet('dl.sb.collapsed',SB_COL?'1':'0');sbColApply();}
 
