@@ -952,7 +952,7 @@ b,strong{font-weight:600;}
       <div class="sb-user"><div class="un" id="sb-n">—</div><div class="ub" id="sb-b">—</div><span class="ur" id="sb-r"></span></div>
     </div>
     <nav class="sb-nav" id="sb-nav"></nav>
-    <div class="sb-foot"><button type="button" class="sb-sync" id="sb-sync" data-st="ok" hidden><span class="sb-sync-dot" aria-hidden="true"></span><span class="sb-sync-tx"><span class="sb-sync-st" id="sb-sync-st" aria-live="polite">동기화</span> <span class="sb-sync-sub" id="sb-sync-sub"></span></span></button><button class="lout" onclick="doLogout()" aria-label="로그아웃"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span class="lout-t">로그아웃</span></button></div>
+    <div class="sb-foot"><button type="button" class="sb-sync" id="sb-sync" data-st="ok" hidden onclick="syncClick()"><span class="sb-sync-dot" aria-hidden="true"></span><span class="sb-sync-tx"><span class="sb-sync-st" id="sb-sync-st" aria-live="polite">동기화</span> <span class="sb-sync-sub" id="sb-sync-sub"></span></span></button><button class="lout" onclick="doLogout()" aria-label="로그아웃"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span class="lout-t">로그아웃</span></button></div>
   </aside>
   <div class="main">
     <div class="topbar">
@@ -2100,6 +2100,33 @@ function syncPaint(){
   if(document.querySelector('#app .sb')?.classList.contains('sb-col'))b.title=SYNC_TXT[st]+(sub?' · '+sub:'');else b.removeAttribute('title');
 }
 setInterval(()=>{if(syncState()==='ok')syncPaint();},10000);   // 상대 시각은 10초마다 글만 고친다
+/* 동기화 줄 누르기 — 로그인 끝남은 새로고침. 그 밖은 '지금 동기화': ① sbSync 로 서버 내용과 먼저 병합 ② 저장 실패한 키가 있으면 병합된 내 값을
+   원래와 같은 길(sbSet — 설정 키는 sbSet 이 casPush 로 보낸다)로 다시 저장 ③ 30초 동기화와 같은 뒷일(syncAfter). 새 강제 쓰기 길은 만들지 않는다.
+   당겨 오기가 실패하면(병합을 못 했으면) 다시 저장하지 않는다 — 그사이 다른 사람이 저장한 것을 덮지 않게. 이미 돌고 있으면 그 한 번을 돌려준다 */
+function syncClick(){if(SYNC.auth){location.reload();return;}syncRun(true);}
+/* 공유 목록 키(sbSync 의 MERGE_KEYS 와 같은 다섯) — 병합이 같은 id 는 서버 것을 쓰므로, 저장에 실패한 '이미 있던 줄의 고침'은
+   병합(30초 또는 다시 시도) 때 서버 내용으로 돌아간다(설계서 §4 로 병합 규칙은 그대로). 다시 저장한 뒤 '동기화됨'만 뜨면 고침이 살아난 줄 안다 → 주의 알림 */
+const SYNC_LISTS={[K.R]:'접수',[K.O]:'발주',[K.U]:'사용자',[K.LOG]:'변경 이력',[K.P]:'부자재'};
+function syncRun(resave){
+  if(SYNC.run)return SYNC.run;
+  SYNC.run=(async()=>{
+    try{
+      if(!(S&&S.token))return;
+      const n=SYNC.pulls,resent=[];
+      await sbSync();
+      if(resave&&SYNC.pulls>n)for(const k of [...SYNC.failed]){
+        let v=null;try{v=JSON.parse(localStorage.getItem(k));}catch{}
+        if(v==null){SYNC.failed.delete(k);continue;}                         // 지워졌거나 읽을 수 없는 키 — 다시 보낼 값이 없다
+        await sbSet(k,v);resent.push(k);
+        if(CAS_KEYS.has(k)&&baseGet(k)===vHash(v))SYNC.failed.delete(k);     // 설정 키: casSend 가 '서버와 이미 같은 값'이라 보내지 않은 경우
+      }
+      const lists=[...new Set(resent.filter(k=>SYNC_LISTS[k]&&!SYNC.failed.has(k)).map(k=>SYNC_LISTS[k]))];
+      if(lists.length)toast('w','다시 저장했어요',`${lists.join('·')} — 이미 있던 건을 고친 내용은 서버 내용으로 돌아갔을 수 있어요. 방금 고친 건을 확인해 주세요.`);
+      syncAfter();
+    }finally{SYNC.run=null;syncPaint();}
+  })();
+  return SYNC.run;
+}
 addEventListener('offline',()=>{SYNC.off=true;syncPaint();});
 /* 서버 저장 실패는 지금까지 완전히 무음이었다(catch{}). 저장이 안 된 줄 모르고
    계속 입력하면 그 내용이 다른 사람에게 영영 전달되지 않는다. 연속 실패만 알린다 —
@@ -7992,15 +8019,19 @@ function delStk(id){
 
 // 30초 새로고침 목록 — 메뉴 진입 때 쓰는 goP 의 fns 와 짝이다(한쪽에만 넣으면 진입 시 빈 화면)
 const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:()=>typeof renderR==='function'&&renderR(),order:()=>typeof renderO==='function'&&renderO(),install:()=>typeof renderI==='function'&&renderI(),monthly:()=>typeof renderM==='function'&&renderM(),svc:()=>typeof renderSvc==='function'&&renderSvc(),stock:()=>typeof renderStock==='function'&&renderStock(),parts:()=>typeof renderParts==='function'&&renderParts(),h2oreq:()=>typeof renderH2oReq==='function'&&renderH2oReq()};
+// 동기화 뒤 화면 맞추기 — 30초 동기화와 '지금 동기화'(syncRun)가 같이 쓴다: 숫자 배지, 창이 안 열려 있으면 지금 화면 다시 그리기
+function syncAfter(){
+  hqBadge();
+  if(document.querySelector('.mo.show')||document.getElementById('cal-pop')?.hidden===false)return;   // 창이나 달력 상세 창이 열려 있으면 화면은 그대로 — 읽는 중에 닫히지 않게(컨트롤러 10/19)
+  const cur=document.querySelector('.page.on')?.id?.replace('page-','');
+  if(cur&&PAGE_RENDER[cur])PAGE_RENDER[cur]();
+}
 setInterval(async()=>{
   if(!S)return; // 로그인 전엔 동기화 안 함
   await sbSync();
-  hqBadge();
-  const anyModalOpen=document.querySelector('.mo.show');
-  if(anyModalOpen)return;
-  const cur=document.querySelector('.page.on')?.id?.replace('page-','');
-  if(cur&&PAGE_RENDER[cur])PAGE_RENDER[cur]();
+  syncAfter();
 },30000);
+addEventListener('online',()=>{if(S&&S.token)syncRun(false);});   // 연결이 돌아오면 바로 한 번 당겨 온다 — 성공하면 '연결 끊김'이 풀린다
 // 새 버전 확인 — 3분마다, 그리고 다른 탭에 있다 돌아왔을 때
 setInterval(()=>{if(S)checkAppUpdate(false);},180000);
 document.addEventListener('visibilitychange',()=>{if(S&&!document.hidden)checkAppUpdate(false);});
