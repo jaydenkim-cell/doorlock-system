@@ -841,6 +841,17 @@ b,strong{font-weight:600;}
 .cal-done:hover{background:var(--plott-color-neutral200);}
 .cal-more{align-self:flex-start;padding:0 4px;background:none;border:0;border-radius:4px;font-size:12px;line-height:16px;font-weight:600;color:var(--plott-color-action-primary);cursor:pointer;}
 .cal-more:hover{text-decoration:underline;}
+/* 상세 창(팝오버) — 설치 현황 화면 안에 떠서 화면과 같이 스크롤된다 */
+#page-install{position:relative;}
+.cal-pop{position:absolute;z-index:20;width:300px;max-width:100%;padding:12px 16px 16px;background:var(--plott-modal-background-color);border:1px solid var(--plott-color-border-default);border-radius:12px;box-shadow:var(--plott-shadow-lg);}
+.cal-pop:focus-visible{outline:2px solid var(--plott-color-action-primary);outline-offset:2px;}
+.cal-pop-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.cal-pop-t{min-width:0;font-size:16px;line-height:24px;font-weight:600;color:var(--plott-color-text-default);}
+.cal-pop dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 12px;}
+.cal-pop dt{font-size:12px;line-height:20px;color:var(--plott-color-text-secondary);}
+.cal-pop dd{font-size:14px;line-height:20px;color:var(--plott-color-text-default);overflow-wrap:anywhere;}
+.cal-pop-f{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+.cal-pop-l{display:flex;flex-direction:column;gap:4px;}
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -1092,6 +1103,7 @@ b,strong{font-weight:600;}
           <div class="cal-dow"><span class="sun">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span class="sat">토</span></div>
           <div id="cal-grid"></div>
         </div>
+        <div class="cal-pop" id="cal-pop" role="dialog" aria-labelledby="cal-pop-t" tabindex="-1" hidden></div>
       </div>
 
       <!-- 재고 관리 (admin 전용) -->
@@ -3233,7 +3245,7 @@ function calFull(e){
 /* 보기 — 처음 쓸 때 한 번 읽고 그 뒤로는 메모리 값을 쓴다(저장이 막혀도 다시 그릴 때마다 기본값으로 튀지 않게).
    보고 있는 달은 기억하지 않는다 — 앱을 새로 열면 이번 달 */
 let INST_VIEW=null;   // 'list' | 'cal' — dl.install.view
-const CAL={y:0,m:0,hide:null,days:new Map()};   // y·m 보고 있는 달 · hide 완료 숨기기(dl.cal.hideDone) · days 지금 그린 날짜별 일정(칩·+N 이 찾는다)
+const CAL={y:0,m:0,hide:null,days:new Map(),cur:null,opener:null};   // y·m 보고 있는 달 · hide 완료 숨기기(dl.cal.hideDone) · days 지금 그린 날짜별 일정(칩·+N 이 찾는다) · cur 상세 창의 일정 · opener 상세 창을 연 버튼
 const instView=()=>INST_VIEW||(INST_VIEW=lsGet('dl.install.view','list')==='cal'?'cal':'list');
 function instSetView(v){INST_VIEW=v==='cal'?'cal':'list';lsSet('dl.install.view',INST_VIEW);renderI();}
 // 전환 버튼과 두 패널 — 목록 표(#i-list)와 달력(#i-cal) 중 하나만 보인다
@@ -3242,6 +3254,7 @@ function instViewPaint(){
   document.getElementById('i-list').hidden=cal;document.getElementById('i-cal').hidden=!cal;
   document.getElementById('i-view-list').setAttribute('aria-pressed',String(!cal));
   document.getElementById('i-view-cal').setAttribute('aria-pressed',String(cal));
+  if(!cal)calPopClose();
 }
 const calHide=()=>CAL.hide??(CAL.hide=lsGet('dl.cal.hideDone','0')==='1');
 function calSetHideDone(on){CAL.hide=!!on;lsSet('dl.cal.hideDone',on?'1':'0');renderCal();}
@@ -3252,6 +3265,7 @@ function calMove(d){
 }
 const calChipHtml=(e,day,i)=>`<button type="button" class="cal-chip cal-${e.k}" data-day="${day}" data-i="${i}" title="${escH(calFull(e))}" aria-label="${escH(calFull(e))}">${escH(calChipText(e))}</button>`;
 function renderCal(){
+  calPopClose();   // 열린 상세 창은 다시 그릴 때 닫는다
   if(!CAL.y){const t=new Date();CAL.y=t.getFullYear();CAL.m=t.getMonth()+1;}
   document.getElementById('cal-title').textContent=`${CAL.y}년 ${CAL.m}월`;
   const hide=calHide(),days=new Map(),today=ymdLocal(new Date());
@@ -3265,6 +3279,53 @@ function renderCal(){
     return `<div class="${cls}" data-ymd="${c.ymd}"><div class="cal-dh"><span class="cal-n">${c.d}</span>${hol?`<span class="cal-hn" title="${escH(hol)}">${escH(hol)}</span>`:''}</div>${ev.slice(0,3).map((e,i)=>calChipHtml(e,c.ymd,i)).join('')}${more}</div>`;
   }).join('')}</div>`).join('');
 }
+/* 작은 상세 창(팝오버) — 칩·+N 을 누르면 달력 위에 뜬다. Esc·바깥 누르기·다시 그리기로 닫힌다(Esc·✕ 는 연 버튼으로 초점을 돌려준다).
+   관리자 + 예정이면 [일정 변경]·[완료 확인] — 목록 버튼과 같은 함수(openExpDateMo·openIMo)·같은 창. 직원이나 완료 건은 보기만 */
+function calPopOpen(anchor,html){
+  const pop=document.getElementById('cal-pop'),pg=document.getElementById('page-install');
+  pop.innerHTML=html;pop.hidden=false;
+  if(anchor){   // 새로 열 때만 자리를 잡는다(+N 목록에서 하나를 고르면 그 자리 그대로)
+    CAL.opener=anchor;
+    const a=anchor.getBoundingClientRect(),p=pg.getBoundingClientRect();
+    pop.style.top=Math.round(a.bottom-p.top+4)+'px';
+    pop.style.left=Math.round(Math.max(0,Math.min(a.left-p.left,pg.clientWidth-pop.offsetWidth)))+'px';
+  }
+  pop.focus();
+}
+const calPopHead=t=>`<div class="cal-pop-h"><span class="cal-pop-t" id="cal-pop-t">${escH(t)}</span><button type="button" class="mx" aria-label="닫기" onclick="calPopClose(true)">✕</button></div>`;
+function calPopShow(anchor,e){
+  const r=e.r,plan=e.k==='plan',name=`${r.branch||''} ${r.room||''}`.trim(),row=(t,v)=>`<dt>${t}</dt><dd>${v}</dd>`;
+  CAL.cur=e;
+  calPopOpen(anchor,calPopHead(name)
+    +`<dl>${row('접수ID',escH(r.id))}${row('지점·객실',escH(name))}${row('상태',plan?'<span class="badge b-i">설치 예정</span>':'<span class="badge b-d">설치 완료</span>')}`
+    +`${row('날짜',escH(e.date))}${row('메모',escH((plan?r.expectedInstallMemo:r.installMemo)||'—'))}${plan?'':row('설치 모델',escH(r.installModel||'—'))}</dl>`
+    +(plan&&isAdm()?`<div class="cal-pop-f"><button type="button" class="btn bp bsm" onclick="calAct('exp')">${CI.calendar} 일정 변경</button><button type="button" class="btn bg bsm" onclick="calAct('done')">완료 확인</button></div>`:''));
+}
+function calPopDay(anchor,day){
+  const ev=CAL.days.get(day)||[];CAL.cur=null;
+  calPopOpen(anchor,calPopHead(`${+day.slice(5,7)}월 ${+day.slice(8)}일 (${'일월화수목금토'[new Date(day+'T00:00:00').getDay()]}) · ${ev.length}건`)
+    +`<div class="cal-pop-l">${ev.map((e,i)=>calChipHtml(e,day,i)).join('')}</div>`);
+}
+function calPopClose(back){
+  const pop=document.getElementById('cal-pop');if(pop.hidden)return;
+  pop.hidden=true;pop.innerHTML='';CAL.cur=null;
+  const o=CAL.opener;CAL.opener=null;
+  if(back&&o&&o.isConnected)o.focus();
+}
+// [일정 변경]·[완료 확인] — 상세 창을 닫고 목록 버튼과 같은 창을 연다(저장하면 그 함수의 renderI 가 달력을 다시 그린다)
+function calAct(what){const e=CAL.cur;if(!e)return;calPopClose();if(what==='exp')openExpDateMo(e.r.id);else openIMo(e.r.id);}
+// 칩·+N 누르기 — 달력 칸과 상세 창 목록이 같이 쓴다(접수 ID 를 onclick 글에 넣지 않는다)
+document.getElementById('page-install').addEventListener('click',ev=>{
+  const b=ev.target.closest('.cal-chip,.cal-more');if(!b)return;
+  const list=CAL.days.get(b.dataset.day)||[];
+  if(b.classList.contains('cal-more'))calPopDay(b,b.dataset.day);
+  else if(list[+b.dataset.i])calPopShow(b.closest('#cal-pop')?null:b,list[+b.dataset.i]);
+});
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape'&&!document.getElementById('cal-pop').hidden)calPopClose(true);});
+document.addEventListener('pointerdown',ev=>{
+  const pop=document.getElementById('cal-pop'),t=ev.target;
+  if(!pop.hidden&&t instanceof Element&&!pop.contains(t)&&!t.closest('.cal-chip,.cal-more'))calPopClose();
+});
 
 /* ── MONTHLY ── */
 /* 월마감정산 집계 — 화면(renderM)·엑셀(exportToExcel) 공용 단일 소스.
