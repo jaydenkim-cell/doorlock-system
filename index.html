@@ -687,8 +687,10 @@ b,strong{font-weight:600;}
 .mx:focus-visible{outline:2px solid var(--plott-color-action-primary);outline-offset:2px;box-shadow:var(--plott-focus-ring-default);}
 .mbody{padding:8px 24px 16px;}
 .mfoot{padding:16px 24px 24px;display:flex;justify-content:flex-end;gap:8px;}
-/* 아마란스 붙여넣기 미리보기 — 품의서 HTML 이 들어가는 칸이라 개편 전 줄바꿈(normal)을 그대로 둔다(body 의 keep-all·break-word 를 물려받지 않게) */
-#amaranth-preview-wrap{word-break:normal;overflow-wrap:normal;}
+/* 아마란스 붙여넣기 미리보기 — 품의서 HTML 이 들어가는 칸이라 개편 전 모습을 그대로 둔다: 줄바꿈(normal)·자간(normal)·<b> 굵기·입력칸 글꼴을 body 와 전역 규칙에서 물려받지 않게(revert = 브라우저 기본값, 개편 전에 그대로 쓰던 값) */
+#amaranth-preview-wrap{word-break:normal;overflow-wrap:normal;letter-spacing:normal;}
+#amaranth-preview-wrap :is(b,strong){font-weight:revert;}
+#amaranth-preview-wrap :is(button,input,select,textarea){font-family:revert;letter-spacing:revert;}
 
 /* FORM — 입력칸 공통(.fi .fs .fta .fsel .finp .role-sel) */
 .fi,.fs,.fta,.fsel,.finp,.role-sel{padding:8px 12px;border:1px solid var(--plott-color-border-default);border-radius:8px;font-size:14px;line-height:20px;color:var(--plott-color-text-default);background:var(--plott-color-bg-surface);outline:none;transition:border-color var(--plott-motion-duration-base) var(--plott-motion-easing-standard),box-shadow var(--plott-motion-duration-base) var(--plott-motion-easing-standard);}
