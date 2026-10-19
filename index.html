@@ -1486,8 +1486,8 @@ b,strong{font-weight:600;}
         <div class="panel">
           <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg>발주 메일</span><button class="btn bo bsm" id="set-mail-save" onclick="saveMailCc()">설정 저장</button></div>
           <div class="pb" style="display:flex;flex-direction:column;gap:8px">
-            <div class="fg" style="margin:0;max-width:560px"><label for="set-mail-cc">수신참조(CC)</label><input class="fi" id="set-mail-cc" autocomplete="off" spellcheck="false" placeholder="예: order@handys.co.kr"></div>
-            <div style="font-size:12px;color:var(--text3);line-height:1.6">발주서 작성의 [이메일 발송]으로 여는 메일의 참조(CC)에 자동으로 들어갑니다. 여러 주소는 쉼표로 나누고, 비우고 저장하면 넣지 않습니다.</div>
+            <div class="fg" style="margin:0;max-width:560px"><label for="set-mail-cc">수신참조(CC)</label><input class="fi" id="set-mail-cc" autocomplete="off" spellcheck="false" placeholder="예: order@handys.co.kr" aria-describedby="set-mail-cc-hint"></div>
+            <div id="set-mail-cc-hint" style="font-size:12px;color:var(--text3);line-height:1.6">발주서 작성의 [이메일 발송]으로 여는 메일의 참조(CC)에 자동으로 들어갑니다. 여러 주소는 쉼표로 나누고, 비우고 저장하면 넣지 않습니다.</div>
           </div>
         </div>
       </div>
