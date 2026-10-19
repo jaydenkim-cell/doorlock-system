@@ -892,7 +892,7 @@ b,strong{font-weight:600;}
 .sb-col .sb-sync{justify-content:center;padding:8px 0;}
 .sb-col .sb-sync-dot{margin-top:0;}
 .sb-col .sb-sync-tx{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}
-.sr-only{position:absolute;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}   /* 화면에서만 숨기는 글(읽기 프로그램은 읽는다) — 동기화 줄의 안내 칸(#sb-sync-live). 폭은 글 폭 그대로(1px 로 좁히면 칸보다 긴 글이 '잘린 칸'으로 잡혀 넘침 검사가 헷갈린다) · 높이 1px + clip 으로 아무것도 그려지지 않는다 */
+.sr-only{position:absolute;left:0;max-width:100%;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}   /* 화면에서만 숨기는 글(읽기 프로그램은 읽는다) — 동기화 줄의 안내 칸(#sb-sync-live). 높이 1px + clip 으로 아무것도 그려지지 않는다. 폭은 글 폭 그대로(글은 다 담긴 채 가려진다)이되 담는 칸(없으면 화면)의 왼쪽 끝에서 그 폭을 넘지 않는다(left:0 · max-width:100%) — 글이 아무리 길어도 쪽에 가로 스크롤이 생기지 않는다 */
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -3414,7 +3414,7 @@ function calFull(e){
 /* 보기 — 처음 쓸 때 한 번 읽고 그 뒤로는 메모리 값을 쓴다(저장이 막혀도 다시 그릴 때마다 기본값으로 튀지 않게).
    보고 있는 달은 기억하지 않는다 — 앱을 새로 열면 이번 달 */
 let INST_VIEW=null;   // 'list' | 'cal' — dl.install.view
-const CAL={y:0,m:0,hide:null,days:new Map(),cur:null,opener:null};   // y·m 보고 있는 달 · hide 완료 숨기기(dl.cal.hideDone) · days 지금 그린 날짜별 일정(칩·+N 이 찾는다) · cur 상세 창의 일정 · opener 상세 창을 연 버튼
+const CAL={y:0,m:0,hide:null,days:new Map(),cur:null,opener:null,kb:false};   // y·m 보고 있는 달 · hide 완료 숨기기(dl.cal.hideDone) · days 지금 그린 날짜별 일정(칩·+N 이 찾는다) · cur 상세 창의 일정 · opener 상세 창을 연 버튼 · kb 그 단추를 키보드로 눌러 열었나(닫을 때 그때만 초점을 돌려준다)
 const instView=()=>INST_VIEW||(INST_VIEW=lsGet('dl.install.view','list')==='cal'?'cal':'list');
 function instSetView(v){INST_VIEW=v==='cal'?'cal':'list';lsSet('dl.install.view',INST_VIEW);renderI();}
 // 전환 버튼과 두 패널 — 목록 표(#i-list)와 달력(#i-cal) 중 하나만 보인다
@@ -3448,7 +3448,7 @@ function renderCal(){
     return `<div class="${cls}" data-ymd="${c.ymd}"${c.ymd===today?' aria-current="date"':''}><div class="cal-dh"><span class="cal-n">${c.d}</span>${hol?`<span class="cal-hn" title="${escH(hol)}">${escH(hol)}</span>`:''}</div>${ev.slice(0,3).map((e,i)=>calChipHtml(e,c.ymd,i)).join('')}${more}</div>`;
   }).join('')}</div>`).join('');
 }
-/* 작은 상세 창(팝오버) — 칩·+N 을 누르면 달력 위에 뜬다. Esc·바깥 누르기·다시 그리기로 닫힌다(Esc·✕ 는 연 버튼으로 초점을 돌려준다).
+/* 작은 상세 창(팝오버) — 칩·+N 을 누르면 달력 위에 뜬다. Esc·바깥 누르기·다시 그리기로 닫힌다(Esc·✕ 는 키보드로 열었을 때만 연 버튼으로 초점을 돌려준다).
    관리자 + 예정이면 [일정 변경]·[완료 확인] — 목록 버튼과 같은 함수(openExpDateMo·openIMo)·같은 창. 직원이나 완료 건은 보기만 */
 function calPopOpen(anchor,html){
   const pop=document.getElementById('cal-pop'),pg=document.getElementById('page-install');
@@ -3478,12 +3478,14 @@ function calPopDay(anchor,day){
 function calPopClose(back){
   const pop=document.getElementById('cal-pop');if(pop.hidden)return;
   pop.hidden=true;pop.innerHTML='';CAL.cur=null;
-  const o=CAL.opener;CAL.opener=null;
-  if(back&&o&&o.isConnected)o.focus();
+  const o=CAL.opener,kb=CAL.kb;CAL.opener=null;CAL.kb=false;
+  // 연 단추로 초점을 돌려주는 것은 키보드로 열었을 때만(기능② FF-m1) — 마우스로 연 창을 Esc 로 닫고 칩에 초점을 주면 :focus-visible 이 켜져
+  // 30초 다시 그리기(calReading)가 다른 곳을 누를 때까지 멈춘다
+  if(back&&kb&&o&&o.isConnected)o.focus();
 }
 /* 달력을 읽는 중인가 — 상세 창이 열려 있거나, 키보드 초점(:focus-visible)이 달력 칸(#cal-grid 의 칩·+N) 안에 있으면 자동으로 다시 그리기(30초 동기화
    syncAfter · 서버값을 받은 뒤 화면 갱신 casRefresh)를 건너뛴다. 읽는 중에 창이 닫히거나 초점이 사라지지 않게. 건너뛴 다시 그리기는 다음 동기화가 다시 시도한다.
-   마우스로 누른 단추의 초점(◀ 오늘 ▶ · 스위치 · 상세 창을 ✕ 로 닫고 칩으로 돌아온 초점)은 :focus-visible 이 꺼져 있어 읽는 중이 아니다 — 이것까지 지키면
+   마우스로 누른 단추의 초점(◀ 오늘 ▶ · 스위치)은 :focus-visible 이 꺼져 있어 읽는 중이 아니다(마우스로 연 상세 창은 닫아도 칩으로 초점을 돌려주지 않는다) — 이것까지 지키면
    마우스만 쓴 뒤 달력이 갱신되지 않는다. 다시 그리는 것은 #cal-grid 뿐이라 머리 단추(◀ 오늘 ▶ · 스위치)는 초점을 잃지 않으므로 지킬 필요가 없다.
    :focus-visible 을 모르는 브라우저는 matches 가 던지므로 읽는 중이 아닌 것으로 본다 */
 function calReading(){const ae=document.activeElement;let kb=false;try{kb=!!(ae?.closest?.('#cal-grid')&&ae.matches(':focus-visible'));}catch{}return document.getElementById('cal-pop')?.hidden===false||kb;}
@@ -3494,6 +3496,7 @@ function calAct(what){const e=CAL.cur;if(!e)return;calPopClose();if(what==='exp'
 document.addEventListener('click',ev=>{
   const b=ev.target instanceof Element?ev.target.closest('#page-install .cal-chip,#page-install .cal-more'):null;if(!b)return;
   const list=CAL.days.get(b.dataset.day)||[];
+  if(!b.closest('#cal-pop'))CAL.kb=ev.detail===0;   // 달력 칸에서 새로 열 때만 적는다 — 키보드(Enter·Space)로 누른 클릭은 detail 이 0(기능② FF-m1). 상세 창 안 목록에서 고른 것은 연 방식을 바꾸지 않는다
   if(b.classList.contains('cal-more'))calPopDay(b,b.dataset.day);
   else if(list[+b.dataset.i])calPopShow(b.closest('#cal-pop')?null:b,list[+b.dataset.i]);
 });
@@ -8099,7 +8102,7 @@ function syncAfter(){
   hqBadge();
   if(document.querySelector('.mo.show')||calReading())return;   // 창이 열려 있거나 달력을 읽는 중(상세 창이 열려 있거나 키보드 초점이 칸 안)이면 화면은 그대로 — 읽는 중에 닫히거나 초점을 잃지 않게. 건너뛴 다시 그리기는 다음 동기화가 한다
   const cur=document.querySelector('.page.on')?.id?.replace('page-','');
-  if(cur&&PAGE_RENDER[cur])PAGE_RENDER[cur]();
+  try{if(cur&&PAGE_RENDER[cur])PAGE_RENDER[cur]();}catch(e){console.warn('화면 갱신 실패',e);}   // 그리기가 던져도 경고만 — 30초 동기화 루프에 처리 안 된 약속 오류를 남기지 않는다(casRefresh 와 같다 · 기능② FF-m3)
 }
 setInterval(async()=>{
   if(!S)return; // 로그인 전엔 동기화 안 함
