@@ -3425,7 +3425,7 @@ function renderCal(){
   document.getElementById('cal-grid').innerHTML=calWeeks(CAL.y,CAL.m).map(w=>`<div class="cal-wk">${w.map(c=>{
     const hol=DL_HOLIDAYS[c.ymd],ev=days.get(c.ymd)||[];
     const cls=['cal-d',c.out&&'out',c.dow===0&&'sun',c.dow===6&&'sat',hol&&'hol',c.ymd===today&&'today'].filter(Boolean).join(' ');
-    const more=ev.length>3?`<button type="button" class="cal-more" data-day="${c.ymd}" aria-label="${+c.ymd.slice(5,7)}월 ${c.d}일 일정 ${ev.length}건 모두 보기">+${ev.length-3}</button>`:'';
+    const more=ev.length>3?`<button type="button" class="cal-more" data-day="${c.ymd}" aria-label="+${ev.length-3} · ${+c.ymd.slice(5,7)}월 ${c.d}일 일정 ${ev.length}건 모두 보기">+${ev.length-3}</button>`:'';   // 접근 가능한 이름은 보이는 글(+N)로 시작한다
     return `<div class="${cls}" data-ymd="${c.ymd}"${c.ymd===today?' aria-current="date"':''}><div class="cal-dh"><span class="cal-n">${c.d}</span>${hol?`<span class="cal-hn" title="${escH(hol)}">${escH(hol)}</span>`:''}</div>${ev.slice(0,3).map((e,i)=>calChipHtml(e,c.ymd,i)).join('')}${more}</div>`;
   }).join('')}</div>`).join('');
 }
