@@ -5257,7 +5257,9 @@ function mailCcFill(){fillClean(document.getElementById('set-mail-cc'),mailCcSho
 // [설정 저장] — 값이 바뀌었을 때만 저장하고 변경 이력에 한 줄(밖으로 나가는 메일의 받는 사람이 바뀐다). 발주서 설정의 다른 칸은 그대로 둔다
 function saveMailCc(){
   if(!isAdm()){toast('e','권한 없음','관리자만 바꿀 수 있습니다.');return;}
-  const el=document.getElementById('set-mail-cc'),r=mailCcNorm(el.value);
+  const el=document.getElementById('set-mail-cc');
+  if(!isDirty(el)){const v=mailCcShow(ld(K.D,{}).mailCc);setLoaded(el,v);toast('i','바꾼 내용 없음',v?`발주 메일 참조(CC): ${escH(v)}`:'발주 메일에 참조(CC)를 넣지 않습니다');return;}   // 손대지 않은 칸 — 저장하지 않고 저장값으로 다시 채운다. 화면이 옛 값이어도 다른 관리자가 그사이 바꾼 값을 되돌리지 않는다(saveDraftCfg 와 같은 규칙)
+  const r=mailCcNorm(el.value);
   if(!r.ok){toast('e','주소를 확인해 주세요',escH(r.msg));el.focus();return;}
   const cur=ld(K.D,{}),was=String(cur.mailCc||'');
   if(r.v!==was){sv(K.D,{...cur,mailCc:r.v});logAudit('발주 메일 참조','설정',`${mailCcShow(was)||'없음'} → ${mailCcShow(r.v)||'없음'}`);}
