@@ -857,6 +857,9 @@ b,strong{font-weight:600;}
 .sb{overflow:hidden;transition:width 150ms var(--plott-motion-easing-standard),min-width 150ms var(--plott-motion-easing-standard);}
 @media (prefers-reduced-motion:reduce){.sb{transition:none;}}
 .sb-logo{position:relative;}
+/* 펼치는 150ms 동안 좁은 폭에서 글이 줄바꿈되며 튀지 않게 — 펼친 폭(218px)에서 이미 한 줄에 들어가는 글(브랜드·부제·메뉴 이름)만. 그동안 한 줄로 넘치는 글이 메뉴 목록에 가로 스크롤줄을 번쩍이지 않게 가로는 숨긴다 */
+.sb-logo .brand,.sb-logo .tag,.ni{white-space:nowrap;}
+.sb-nav{overflow-x:hidden;}
 .sb-tog{position:absolute;top:16px;right:12px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;padding:0;background:var(--plott-color-bg-surface);border:1px solid transparent;border-radius:8px;color:var(--plott-color-neutral700);cursor:pointer;}
 .sb-tog:hover{background:var(--plott-color-neutral50);color:var(--plott-color-text-default);}
 .sb-tog:focus-visible{outline:2px solid var(--plott-color-action-primary);outline-offset:2px;box-shadow:var(--plott-focus-ring-default);}
