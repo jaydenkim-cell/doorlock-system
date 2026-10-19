@@ -892,6 +892,7 @@ b,strong{font-weight:600;}
 .sb-col .sb-sync{justify-content:center;padding:8px 0;}
 .sb-col .sb-sync-dot{margin-top:0;}
 .sb-col .sb-sync-tx{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}
+.sr-only{position:absolute;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}   /* 화면에서만 숨기는 글(읽기 프로그램은 읽는다) — 동기화 줄의 안내 칸(#sb-sync-live). 폭은 글 폭 그대로(1px 로 좁히면 칸보다 긴 글이 '잘린 칸'으로 잡혀 넘침 검사가 헷갈린다) · 높이 1px + clip 으로 아무것도 그려지지 않는다 */
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
@@ -956,7 +957,7 @@ b,strong{font-weight:600;}
       <div class="sb-user"><div class="un" id="sb-n">—</div><div class="ub" id="sb-b">—</div><span class="ur" id="sb-r"></span></div>
     </div>
     <nav class="sb-nav" id="sb-nav"></nav>
-    <div class="sb-foot"><button type="button" class="sb-sync" id="sb-sync" data-st="ok" hidden onclick="syncClick()"><span class="sb-sync-dot" aria-hidden="true"></span><span class="sb-sync-tx"><span class="sb-sync-st" id="sb-sync-st" aria-live="polite">동기화</span> <span class="sb-sync-sub" id="sb-sync-sub"></span></span></button><button class="lout" onclick="doLogout()" aria-label="로그아웃"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span class="lout-t">로그아웃</span></button></div>
+    <div class="sb-foot"><span class="sr-only" id="sb-sync-live" aria-live="polite"></span><button type="button" class="sb-sync" id="sb-sync" data-st="ok" hidden onclick="syncClick()"><span class="sb-sync-dot" aria-hidden="true"></span><span class="sb-sync-tx"><span class="sb-sync-st" id="sb-sync-st">동기화</span> <span class="sb-sync-sub" id="sb-sync-sub"></span></span></button><button class="lout" onclick="doLogout()" aria-label="로그아웃"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg><span class="lout-t">로그아웃</span></button></div>
   </aside>
   <div class="main">
     <div class="topbar">
@@ -2056,7 +2057,7 @@ async function kvFnRaw(op,extra){   // 게이트웨이 한 번 부르기 — 바
    seq 키마다 '저장을 보낸 순번' — 같은 키를 겹쳐 보내면 나중에 보낸 요청의 결과만 failed 를 바꾼다(앞선 요청의 응답이 늦게 와도 뒤집지 못한다)
    pull 당겨 오기 실패 · auth 게이트웨이 401(새로고침 전까지) · off 연결 끊김(fetch 자체 실패·offline — 그 뒤 성공 한 번으로 풀린다)
    pulls 당겨 오기 성공 횟수 · run 지금 도는 '지금 동기화'(한 번만 돈다) · resave 지금 도는 것이 다시 저장까지 하는 것인가 · again 도는 중에 '다시 저장' 뜻이 왔다(끝나면 한 번 더 돈다)
-   shown 지금 글로 보이는 상태(aria-live 글은 바뀔 때만 고친다) */
+   shown 지금 글로 보이는 상태(안내 칸 #sb-sync-live 의 글은 바뀔 때만 고친다) */
 const SYNC={at:0,busy:0,failed:new Set(),seq:Object.create(null),pull:false,auth:false,off:false,pulls:0,run:null,resave:false,again:false,shown:''};
 const syncSafe=f=>{try{f();}catch(e){console.warn('동기화 표시',e);}};   // 표시 코드의 예외는 여기서 삼킨다(경고만) — 저장 길을 흔들지 못한다
 const syncWarn=e=>console.warn('동기화',e);   // syncRun 의 약속을 따로 기다리지 않는 자리(줄 누르기 · online · 도는 중에 온 다시 저장 뜻으로 한 번 더 도는 곳)에서 단다 — 지금 화면의 그리기 함수가 던져도 처리 안 된 약속 오류가 되지 않게(경고만)
@@ -2105,7 +2106,7 @@ function syncPaint(){
   if(!SYNC.at&&!SYNC.busy&&!SYNC.failed.size&&!SYNC.pull&&!SYNC.auth&&!SYNC.off)return;
   const st=syncState(),sub=st==='ok'?syncAgo(Math.max(0,Math.floor((Date.now()-SYNC.at)/1000))):(SYNC_ACT[st]||'');
   b.hidden=false;b.dataset.st=st;
-  if(SYNC.shown!==st){document.getElementById('sb-sync-st').textContent=SYNC_TXT[st];SYNC.shown=st;}   // 상태 이름은 바뀔 때만 고친다(aria-live 가 그때만 읽는다)
+  if(SYNC.shown!==st){const tx=SYNC_TXT[st];document.getElementById('sb-sync-st').textContent=tx;document.getElementById('sb-sync-live').textContent=tx;SYNC.shown=st;}   // 상태 이름은 바뀔 때만 고친다 — 읽기 프로그램 안내(aria-live)는 단추 안이 아니라 단추 앞 숨은 칸(#sb-sync-live)이 그때만 읽는다(단추 안쪽은 '이름'으로 합쳐져 안내가 안 올 수 있다)
   document.getElementById('sb-sync-sub').textContent=sub?'· '+sub:'';
   if(document.querySelector('#app .sb')?.classList.contains('sb-col'))b.title=SYNC_TXT[st]+(sub?' · '+sub:'');else b.removeAttribute('title');
 }
