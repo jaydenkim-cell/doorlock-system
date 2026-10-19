@@ -3479,7 +3479,7 @@ function calPopClose(back){
   const pop=document.getElementById('cal-pop');if(pop.hidden)return;
   pop.hidden=true;pop.innerHTML='';CAL.cur=null;
   const o=CAL.opener,kb=CAL.kb;CAL.opener=null;CAL.kb=false;
-  // 연 단추로 초점을 돌려주는 것은 키보드로 열었을 때만(기능② FF-m1) — 마우스로 연 창을 Esc 로 닫고 칩에 초점을 주면 :focus-visible 이 켜져
+  // 연 단추로 초점을 돌려주는 것은 키보드로 열었을 때만 — 마우스로 연 창을 Esc 로 닫고 칩에 초점을 주면 :focus-visible 이 켜져
   // 30초 다시 그리기(calReading)가 다른 곳을 누를 때까지 멈춘다
   if(back&&kb&&o&&o.isConnected)o.focus();
 }
@@ -3496,7 +3496,7 @@ function calAct(what){const e=CAL.cur;if(!e)return;calPopClose();if(what==='exp'
 document.addEventListener('click',ev=>{
   const b=ev.target instanceof Element?ev.target.closest('#page-install .cal-chip,#page-install .cal-more'):null;if(!b)return;
   const list=CAL.days.get(b.dataset.day)||[];
-  if(!b.closest('#cal-pop'))CAL.kb=ev.detail===0;   // 달력 칸에서 새로 열 때만 적는다 — 키보드(Enter·Space)로 누른 클릭은 detail 이 0(기능② FF-m1). 상세 창 안 목록에서 고른 것은 연 방식을 바꾸지 않는다
+  if(!b.closest('#cal-pop'))CAL.kb=ev.detail===0;   // 달력 칸에서 새로 열 때만 적는다 — 키보드(Enter·Space)로 누른 클릭은 detail 이 0 이다. 상세 창 안 목록에서 고른 것은 연 방식을 바꾸지 않는다
   if(b.classList.contains('cal-more'))calPopDay(b,b.dataset.day);
   else if(list[+b.dataset.i])calPopShow(b.closest('#cal-pop')?null:b,list[+b.dataset.i]);
 });
@@ -8104,7 +8104,7 @@ function syncAfter(){
   hqBadge();
   if(document.querySelector('.mo.show')||calReading())return;   // 창이 열려 있거나 달력을 읽는 중(상세 창이 열려 있거나 키보드 초점이 칸 안)이면 화면은 그대로 — 읽는 중에 닫히거나 초점을 잃지 않게. 건너뛴 다시 그리기는 다음 동기화가 한다
   const cur=document.querySelector('.page.on')?.id?.replace('page-','');
-  try{if(cur&&PAGE_RENDER[cur])PAGE_RENDER[cur]();}catch(e){console.warn('화면 갱신 실패',e);}   // 그리기가 던져도 경고만 — 30초 동기화 루프에 처리 안 된 약속 오류를 남기지 않는다(casRefresh 와 같다 · 기능② FF-m3)
+  try{if(cur&&PAGE_RENDER[cur])PAGE_RENDER[cur]();}catch(e){console.warn('화면 갱신 실패',e);}   // 그리기가 던져도 경고만 — 30초 동기화 루프에 처리 안 된 약속 오류를 남기지 않는다(casRefresh 와 같다)
 }
 setInterval(async()=>{
   if(!S)return; // 로그인 전엔 동기화 안 함
