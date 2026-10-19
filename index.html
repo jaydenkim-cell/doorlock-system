@@ -3461,9 +3461,12 @@ function calPopClose(back){
   const o=CAL.opener;CAL.opener=null;
   if(back&&o&&o.isConnected)o.focus();
 }
-/* 달력을 읽는 중인가 — 상세 창이 열려 있거나 키보드 초점이 달력(칩·+N·스위치) 안에 있으면, 자동으로 다시 그리기(30초 동기화 syncAfter ·
-   서버값을 받은 뒤 화면 갱신 casRefresh)를 건너뛴다. 읽는 중에 창이 닫히거나 초점이 사라지지 않게. 건너뛴 다시 그리기는 다음 동기화가 다시 시도한다 */
-function calReading(){return document.getElementById('cal-pop')?.hidden===false||!!document.activeElement?.closest?.('#i-cal');}
+/* 달력을 읽는 중인가 — 상세 창이 열려 있거나, 키보드 초점(:focus-visible)이 달력 칸(#cal-grid 의 칩·+N) 안에 있으면 자동으로 다시 그리기(30초 동기화
+   syncAfter · 서버값을 받은 뒤 화면 갱신 casRefresh)를 건너뛴다. 읽는 중에 창이 닫히거나 초점이 사라지지 않게. 건너뛴 다시 그리기는 다음 동기화가 다시 시도한다.
+   마우스로 누른 단추의 초점(◀ 오늘 ▶ · 스위치 · 상세 창을 ✕ 로 닫고 칩으로 돌아온 초점)은 :focus-visible 이 꺼져 있어 읽는 중이 아니다 — 이것까지 지키면
+   마우스만 쓴 뒤 달력이 갱신되지 않는다. 다시 그리는 것은 #cal-grid 뿐이라 머리 단추(◀ 오늘 ▶ · 스위치)는 초점을 잃지 않으므로 지킬 필요가 없다.
+   :focus-visible 을 모르는 브라우저는 matches 가 던지므로 읽는 중이 아닌 것으로 본다 */
+function calReading(){const ae=document.activeElement;let kb=false;try{kb=!!(ae?.closest?.('#cal-grid')&&ae.matches(':focus-visible'));}catch{}return document.getElementById('cal-pop')?.hidden===false||kb;}
 // [일정 변경]·[완료 확인] — 상세 창을 닫고 목록 버튼과 같은 창을 연다(저장하면 그 함수의 renderI 가 달력을 다시 그린다)
 function calAct(what){const e=CAL.cur;if(!e)return;calPopClose();if(what==='exp')openExpDateMo(e.r.id);else openIMo(e.r.id);}
 // 칩·+N 누르기 — 달력 칸과 상세 창 목록이 같이 쓴다(접수 ID 를 onclick 글에 넣지 않는다).
