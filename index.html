@@ -2251,7 +2251,7 @@ function casAdopt(k,val,conflict){
 // 서버값을 받아온 키가 있으면 지금 보고 있는 화면을 다시 그린다(입력창이 옛 값을 들고 있지 않게)
 function casRefresh(){
   if(!CAS_CHANGED.size)return;
-  if(document.querySelector('.mo.show'))return;          // 입력 중인 모달은 건드리지 않는다 — 다음 동기화 때 다시 시도
+  if(document.querySelector('.mo.show')||calReading())return;   // 입력 중인 모달·읽는 중인 달력(상세 창·키보드 초점)은 건드리지 않는다 — 다음 동기화 때 다시 시도
   // 화면의 입력칸에 커서가 있으면(타이핑 중) 다시 그리지 않는다 — 다음 동기화 때 다시 시도
   const ae=document.activeElement;
   if(ae&&/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName)&&ae.closest('.page.on'))return;
@@ -3457,6 +3457,9 @@ function calPopClose(back){
   const o=CAL.opener;CAL.opener=null;
   if(back&&o&&o.isConnected)o.focus();
 }
+/* 달력을 읽는 중인가 — 상세 창이 열려 있거나 키보드 초점이 달력(칩·+N·스위치) 안에 있으면, 자동으로 다시 그리기(30초 동기화 syncAfter ·
+   서버값을 받은 뒤 화면 갱신 casRefresh)를 건너뛴다. 읽는 중에 창이 닫히거나 초점이 사라지지 않게. 건너뛴 다시 그리기는 다음 동기화가 다시 시도한다 */
+function calReading(){return document.getElementById('cal-pop')?.hidden===false||!!document.activeElement?.closest?.('#i-cal');}
 // [일정 변경]·[완료 확인] — 상세 창을 닫고 목록 버튼과 같은 창을 연다(저장하면 그 함수의 renderI 가 달력을 다시 그린다)
 function calAct(what){const e=CAL.cur;if(!e)return;calPopClose();if(what==='exp')openExpDateMo(e.r.id);else openIMo(e.r.id);}
 // 칩·+N 누르기 — 달력 칸과 상세 창 목록이 같이 쓴다(접수 ID 를 onclick 글에 넣지 않는다)
@@ -8032,7 +8035,7 @@ const PAGE_RENDER={dashboard:()=>typeof renderD==='function'&&renderD(),receipt:
 // 동기화 뒤 화면 맞추기 — 30초 동기화와 '지금 동기화'(syncRun)가 같이 쓴다: 숫자 배지, 창이 안 열려 있으면 지금 화면 다시 그리기
 function syncAfter(){
   hqBadge();
-  if(document.querySelector('.mo.show')||document.getElementById('cal-pop')?.hidden===false)return;   // 창이나 달력 상세 창이 열려 있으면 화면은 그대로 — 읽는 중에 닫히지 않게(컨트롤러 10/19)
+  if(document.querySelector('.mo.show')||calReading())return;   // 창이 열려 있거나 달력을 읽는 중(상세 창·키보드 초점)이면 화면은 그대로 — 읽는 중에 닫히거나 초점을 잃지 않게(컨트롤러 10/19)
   const cur=document.querySelector('.page.on')?.id?.replace('page-','');
   if(cur&&PAGE_RENDER[cur])PAGE_RENDER[cur]();
 }
