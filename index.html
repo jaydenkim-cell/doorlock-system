@@ -2047,31 +2047,36 @@ async function kvFnRaw(op,extra){   // 게이트웨이 한 번 부르기 — 바
 }
 /* ── 동기화 표시(기능① §3.3) — 화면에만 쓰는 상태(저장하지 않는다) ──
    kvFn 한 곳을 감싸 저장(set)·당겨 오기(get_all) 앞뒤에서 상태만 바꾸고 원래 결과·예외를 그대로 돌려준다 — sbSet·casPush·sbSync·병합은 손대지 않는다.
+   표시 코드(syncMark·syncPaint)는 모두 syncSafe 로 부른다 — 표시가 던져도 요청은 나가고, 결과·예외는 그대로이며, busy 는 finally 에서 내려온다.
    at 마지막 성공 시각 · busy 보내는 중인 저장 수 · failed 저장에 실패한 키(그 키를 나중에 저장해 성공해야 빠진다 — 당겨 오기 성공만으로는 안 풀린다)
+   seq 키마다 '저장을 보낸 순번' — 같은 키를 겹쳐 보내면 나중에 보낸 요청의 결과만 failed 를 바꾼다(앞선 요청의 응답이 늦게 와도 뒤집지 못한다)
    pull 당겨 오기 실패 · auth 게이트웨이 401(새로고침 전까지) · off 연결 끊김(fetch 자체 실패·offline — 그 뒤 성공 한 번으로 풀린다)
-   pulls 당겨 오기 성공 횟수 · run 지금 도는 '지금 동기화'(한 번만 돈다) · shown 지금 글로 보이는 상태(aria-live 글은 바뀔 때만 고친다) */
-const SYNC={at:0,busy:0,failed:new Set(),pull:false,auth:false,off:false,pulls:0,run:null,shown:''};
+   pulls 당겨 오기 성공 횟수 · run 지금 도는 '지금 동기화'(한 번만 돈다) · resave 지금 도는 것이 다시 저장까지 하는 것인가 · again 도는 중에 '다시 저장' 뜻이 왔다(끝나면 한 번 더 돈다)
+   shown 지금 글로 보이는 상태(aria-live 글은 바뀔 때만 고친다) */
+const SYNC={at:0,busy:0,failed:new Set(),seq:Object.create(null),pull:false,auth:false,off:false,pulls:0,run:null,resave:false,again:false,shown:''};
+const syncSafe=f=>{try{f();}catch(e){console.warn('동기화 표시',e);}};   // 표시 코드의 예외는 여기서 삼킨다(경고만) — 저장 길을 흔들지 못한다
 async function kvFn(op,extra){
-  const track=(op==='set'||op==='get_all')&&!!(S&&S.token),key=op==='set'?String(extra&&extra.key):'';
-  if(track&&op==='set'){SYNC.busy++;syncPaint();}
+  const track=(op==='set'||op==='get_all')&&!!(S&&S.token),save=track&&op==='set',key=save?String(extra&&extra.key):'';
+  let mine=0;   // 이 저장의 순번(set 만)
+  if(save){SYNC.busy++;mine=SYNC.seq[key]=(SYNC.seq[key]||0)+1;syncSafe(syncPaint);}
   try{
     const r=await kvFnRaw(op,extra);
-    if(track)syncMark(op,key,null);
+    if(track)syncSafe(()=>syncMark(op,key,null,mine));
     return r;
   }catch(e){
-    if(track)syncMark(op,key,e);
-    else if(e&&e.status===401){SYNC.auth=true;syncPaint();}   // 다른 요청(duck·솔리티·슬랙)의 401 도 같은 로그인이 끝난 것이다
+    if(track)syncSafe(()=>syncMark(op,key,e,mine));
+    else if(e&&e.status===401)syncSafe(()=>{SYNC.auth=true;syncPaint();});   // 다른 요청(duck·솔리티·슬랙)의 401 도 같은 로그인이 끝난 것이다
     throw e;
   }finally{
-    if(track&&op==='set'){SYNC.busy--;syncPaint();}
+    if(save){SYNC.busy--;syncSafe(syncPaint);}
   }
 }
-function syncMark(op,key,e){
+function syncMark(op,key,e,mine){
   const net=e instanceof TypeError;                                           // fetch 자체가 실패 — 응답을 못 받았다
   const ok=!e||(op==='set'&&e.status===409&&!!e.body&&('value' in e.body));   // 409 + 서버값 = casSend 가 서버값을 받아 맞췄다(실패 아님)
   if(e&&e.status===401)SYNC.auth=true;
   else if(net)SYNC.off=true;
-  if(op==='set'){if(ok)SYNC.failed.delete(key);else SYNC.failed.add(key);}   // 401·연결 끊김으로 못 간 저장도 적는다 — 연결이 돌아온 뒤 '동기화됨'으로 속이지 않게
+  if(op==='set'){if(mine===SYNC.seq[key]){if(ok)SYNC.failed.delete(key);else SYNC.failed.add(key);}}   // 그 키를 더 나중에 보낸 요청이 있으면 이 응답은 실패한 키를 바꾸지 않는다 · 401·연결 끊김으로 못 간 저장도 적는다 — 연결이 돌아온 뒤 '동기화됨'으로 속이지 않게
   else if(ok){SYNC.pull=false;SYNC.pulls++;}
   else if(!net&&e.status!==401)SYNC.pull=true;
   if(ok){SYNC.at=Date.now();if(navigator.onLine!==false)SYNC.off=false;}
@@ -2102,16 +2107,18 @@ function syncPaint(){
 setInterval(()=>{if(syncState()==='ok')syncPaint();},10000);   // 상대 시각은 10초마다 글만 고친다
 /* 동기화 줄 누르기 — 로그인 끝남은 새로고침. 그 밖은 '지금 동기화': ① sbSync 로 서버 내용과 먼저 병합 ② 저장 실패한 키가 있으면 병합된 내 값을
    원래와 같은 길(sbSet — 설정 키는 sbSet 이 casPush 로 보낸다)로 다시 저장 ③ 30초 동기화와 같은 뒷일(syncAfter). 새 강제 쓰기 길은 만들지 않는다.
-   당겨 오기가 실패하면(병합을 못 했으면) 다시 저장하지 않는다 — 그사이 다른 사람이 저장한 것을 덮지 않게. 이미 돌고 있으면 그 한 번을 돌려준다 */
+   당겨 오기가 실패하면(병합을 못 했으면) 다시 저장하지 않는다 — 그사이 다른 사람이 저장한 것을 덮지 않게. 이미 돌고 있으면 그 한 번을 돌려준다.
+   다만 '그냥 당겨 오기'(online)가 도는 중에 다시 저장 뜻(줄 누르기)이 오면 SYNC.again 에 남겨 두고, 끝난 뒤 다시 저장까지 하는 한 번을 더 돈다 */
 function syncClick(){if(SYNC.auth){location.reload();return;}syncRun(true);}
 /* 공유 목록 키(sbSync 의 MERGE_KEYS 와 같은 다섯) — 병합이 같은 id 는 서버 것을 쓰므로, 저장에 실패한 '이미 있던 줄의 고침'은
    병합(30초 또는 다시 시도) 때 서버 내용으로 돌아간다(설계서 §4 로 병합 규칙은 그대로). 다시 저장한 뒤 '동기화됨'만 뜨면 고침이 살아난 줄 안다 → 주의 알림 */
 const SYNC_LISTS={[K.R]:'접수',[K.O]:'발주',[K.U]:'사용자',[K.LOG]:'변경 이력',[K.P]:'부자재'};
 function syncRun(resave){
-  if(SYNC.run)return SYNC.run;
+  if(SYNC.run){if(resave&&!SYNC.resave)SYNC.again=true;return SYNC.run;}
+  if(!(S&&S.token))return Promise.resolve();   // 로그인이 없으면 시작하지 않는다 — 비동기 함수 안에서 바로 돌아가면 finally 가 SYNC.run 대입보다 먼저 돌아 끝난 약속이 걸쇠로 남는다
+  SYNC.resave=!!resave;
   SYNC.run=(async()=>{
     try{
-      if(!(S&&S.token))return;
       const n=SYNC.pulls,resent=[];
       await sbSync();
       if(resave&&SYNC.pulls>n)for(const k of [...SYNC.failed]){
@@ -2123,7 +2130,10 @@ function syncRun(resave){
       const lists=[...new Set(resent.filter(k=>SYNC_LISTS[k]&&!SYNC.failed.has(k)).map(k=>SYNC_LISTS[k]))];
       if(lists.length)toast('w','다시 저장했어요',`${lists.join('·')} — 이미 있던 건을 고친 내용은 서버 내용으로 돌아갔을 수 있어요. 방금 고친 건을 확인해 주세요.`);
       syncAfter();
-    }finally{SYNC.run=null;syncPaint();}
+    }finally{
+      SYNC.run=null;syncSafe(syncPaint);
+      if(SYNC.again){SYNC.again=false;syncRun(true);}
+    }
   })();
   return SYNC.run;
 }
