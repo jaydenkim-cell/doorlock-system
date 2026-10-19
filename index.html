@@ -982,7 +982,7 @@ b,strong{font-weight:600;}
           <div class="ph">
             <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="7" width="20" height="15" rx="1"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><line x1="9" y1="13" x2="9.01" y2="13"/><line x1="15" y1="13" x2="15.01" y2="13"/></svg> 지점별 현황</span>
             <div style="display:flex;gap:8px;align-items:center">
-              <input class="finp" id="db-m" type="month" onchange="renderD()" style="width:130px">
+              <input class="finp" id="db-m" type="month" placeholder="예: 2026-10" onchange="renderD()" style="width:130px">
               <select class="fsel" id="db-b" onchange="renderD()" style="width:120px"><option value="">전체 지점</option></select>
             </div>
           </div>
@@ -1001,7 +1001,7 @@ b,strong{font-weight:600;}
         </div>
         <div class="frow">
           <select class="fsel" id="fr-b" onchange="renderR()"><option value="">전체 지점</option></select>
-          <input class="finp" id="fr-m" type="month" onchange="renderR()" style="width:140px">
+          <input class="finp" id="fr-m" type="month" placeholder="예: 2026-10" onchange="renderR()" style="width:140px">
           <input class="finp" id="fr-s" placeholder="객실번호 / ID 검색..." oninput="renderR()">
         </div>
         <div class="panel" style="margin-bottom:0">
@@ -1151,7 +1151,7 @@ b,strong{font-weight:600;}
       <div class="page" id="page-stock">
         <div class="frow">
           <select class="fsel" id="fstk-b" onchange="renderStock()"><option value="">전체 지점</option></select>
-          <input class="finp" id="fstk-m" type="month" onchange="renderStock()" style="max-width:150px">
+          <input class="finp" id="fstk-m" type="month" placeholder="예: 2026-10" onchange="renderStock()" style="max-width:150px">
           <button class="btn bp" onclick="openStkMo()" style="margin-left:auto">+ 재고 입고</button>
           <button class="btn bg" onclick="openOutMo()">재고에서 설치</button>
           <button class="btn bo" onclick="openAdjMo()">실사 반영</button>
@@ -1265,7 +1265,7 @@ b,strong{font-weight:600;}
           <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></svg>H2O 월 객실 목록</span><span id="h2o-status" style="font-size:12px;color:var(--text3)"></span></div>
           <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
             <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:12px;font-weight:600;color:var(--text2)">대상 월</label>
-              <input class="fi" id="h2o-month" type="month" style="width:140px" onchange="h2oReset()"></div>
+              <input class="fi" id="h2o-month" type="month" placeholder="예: 2026-10" style="width:140px" onchange="h2oReset()"></div>
             <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:12px;font-weight:600;color:var(--text2)">구분</label>
               <select class="fsel" id="h2o-mode" style="width:120px" onchange="h2oReset()"><option value="start">월초 목록</option><option value="end">말일 확정</option></select></div>
             <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:12px;font-weight:600;color:var(--text2)">H2O 담당자</label>
@@ -1290,7 +1290,7 @@ b,strong{font-weight:600;}
             <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
               <div style="display:flex;flex-direction:column;gap:4px">
                 <label style="font-size:12px;font-weight:600;color:var(--text2)">반영할 청구월</label>
-                <input class="fi" id="auto-month" type="month" style="width:140px">
+                <input class="fi" id="auto-month" type="month" placeholder="예: 2026-10" style="width:140px">
               </div>
               <button class="btn bp" onclick="svcAutoFetch(false)">불러오기</button>
               <button class="btn bo" onclick="svcAutoFetch(true)" title="캐시를 무시하고 솔리티·duck 을 새로 조회합니다">지금 새로 조회</button>
@@ -1308,7 +1308,7 @@ b,strong{font-weight:600;}
             <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
               <div style="display:flex;flex-direction:column;gap:4px">
                 <label style="font-size:12px;font-weight:600;color:var(--text2)">반영할 청구월</label>
-                <input class="fi" id="yolo-month" type="month" style="width:140px">
+                <input class="fi" id="yolo-month" type="month" placeholder="예: 2026-10" style="width:140px">
               </div>
               <input type="file" id="yolo-files" accept=".xlsx,.xls,.csv" multiple style="display:none" onchange="svcHandleYolo(event)">
               <button class="btn bp" onclick="document.getElementById('yolo-files').click()">파일 선택 (여러 개)</button>
@@ -1325,7 +1325,7 @@ b,strong{font-weight:600;}
           <div class="pb" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
             <div style="display:flex;flex-direction:column;gap:4px">
               <label style="font-size:12px;font-weight:600;color:var(--text2)">청구월</label>
-              <input class="fi" id="svc-inp-month" type="month" style="width:140px">
+              <input class="fi" id="svc-inp-month" type="month" placeholder="예: 2026-10" style="width:140px">
             </div>
             <div style="display:flex;flex-direction:column;gap:4px">
               <label style="font-size:12px;font-weight:600;color:var(--text2)">지점</label>
@@ -1365,7 +1365,7 @@ b,strong{font-weight:600;}
             <span style="font-size:16px;color:var(--text3);margin-bottom:6px">→</span>
             <div style="display:flex;flex-direction:column;gap:4px">
               <label style="font-size:12px;font-weight:600;color:var(--text2)">복사할 대상 월</label>
-              <input class="fi" id="svc-copy-tgt" type="month" style="width:140px">
+              <input class="fi" id="svc-copy-tgt" type="month" placeholder="예: 2026-10" style="width:140px">
             </div>
             <button class="btn bo bsm" onclick="copySvcMonth()" style="margin-bottom:2px">불러오기</button>
             <span style="font-size:12px;color:var(--text3);align-self:center">이전 월 데이터를 복사 후 수정해서 등록하세요</span>
