@@ -1428,6 +1428,14 @@ b,strong{font-weight:600;}
 
       <!-- 사용자 관리 (superadmin only) -->
       <div class="page" id="page-users">
+        <!-- 신규 — 슬랙에는 있고 도어락에는 없는 사람(기능② §3.6). 내용(#nm-body)은 nmRender 가 그린다 -->
+        <div class="panel" id="nm-panel" style="margin-bottom:16px">
+          <div class="ph">
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> 신규 — 슬랙에는 있고 도어락에는 없는 사람</span>
+            <button class="btn bo bsm" id="nm-reload" onclick="nmLoad(true)">다시 불러오기</button>
+          </div>
+          <div id="nm-body"></div>
+        </div>
         <div class="panel" style="margin-bottom:16px">
           <div class="ph">
             <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> 사용자 목록</span>
@@ -1889,7 +1897,7 @@ b,strong{font-weight:600;}
 <script>
 'use strict';
 /* ── localStorage keys (기존 그대로 유지) ── */
-const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close',MCS:'doorlock_monthly_snap',SV:'doorlock_svc',LOG:'doorlock_audit',TS:'doorlock_tombstones',P:'doorlock_parts',HQ:'doorlock_h2o_reqs'};
+const K={B:'doorlock_branches',O:'doorlock_orders',D:'doorlock_draft_cfg',H:'doorlock_draft_history',R:'doorlock_receipts',A:'doorlock_accounts',U:'doorlock_users',SA:'doorlock_sa_ids',SP:'doorlock_slack_profiles',DR:'doorlock_duck_rooms',MC:'doorlock_monthly_close',MCS:'doorlock_monthly_snap',SV:'doorlock_svc',LOG:'doorlock_audit',TS:'doorlock_tombstones',P:'doorlock_parts',HQ:'doorlock_h2o_reqs',MK:'doorlock_member_known'};   // MK: 입사자 기준 명단(기능② — 사용자 관리의 신규)
 /* HTML 이스케이프. ' 까지 막아 작은따옴표 속성값에서도 안전하다.
    escLog 는 파일 뒤쪽에 정의된 const 라 이 위치에서는 참조할 수 없어 따로 둔다. */
 const escH=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1918,8 +1926,8 @@ const canon=v=>{
 };
 const kvHash=s=>{let h1=0xdeadbeef,h2=0x41c6ce57;for(let i=0;i<s.length;i++){const c=s.charCodeAt(i);h1=Math.imul(h1^c,2654435761);h2=Math.imul(h2^c,1597334677);}h1=Math.imul(h1^(h1>>>16),2246822507)^Math.imul(h2^(h2>>>13),3266489909);h2=Math.imul(h2^(h2>>>16),2246822507)^Math.imul(h1^(h1>>>13),3266489909);return(4294967296*(2097151&h2)+(h1>>>0)).toString(36);};
 const vHash=v=>kvHash(canon(v));
-// 게이트웨이 GUARD_KEYS 와 같은 목록(은퇴 키는 빼고 SB_IGNORE 로)
-const CAS_KEYS=new Set([K.B,K.D,K.H,K.SV,K.SA,K.SP,'doorlock_h2o_lists']);
+// 게이트웨이 GUARD_KEYS 와 같은 목록(은퇴 키는 빼고 SB_IGNORE 로) — 게이트웨이 v10 의 'doorlock_perms'(팀·개인 권한)는 그 기능을 넣을 때 더한다(그때까지 아무도 쓰지 않는다)
+const CAS_KEYS=new Set([K.B,K.D,K.H,K.SV,K.SA,K.SP,'doorlock_h2o_lists',K.MK]);
 /* 은퇴 키 — 예전에 비밀을 담던 키(계정 비밀번호·슬랙 봇 토큰·웹훅 주소). 서버가 보내 줘도 저장하지 않고 올리지도 않는다(sbSync·sbSet·백업 내보내기·복원, migrKeys 에서도 뺐다).
    목록에서만 빼면 sbSync 의 마지막 else(모르는 키 = 로컬 우선)가 받아 저장하고 되올린다. 브라우저 사본은 페이지가 열릴 때와 startApp 에서 지운다(계정 사본만 지우지 않고 [] 로 덮어쓴다) */
 const SB_IGNORE=new Set([K.A,'doorlock_slack_bot','doorlock_slack_wh']);   // 슬랙은 게이트웨이 v9 가 비밀 저장소의 값으로 보낸다(아래 slackDM 등)
@@ -2280,6 +2288,7 @@ function casRefresh(){
     if(cur==='draft'&&ch.includes(K.D)&&typeof loadDCfg==='function')loadDCfg();
     else if(cur==='branches'&&ch.some(k=>k===K.B||k===K.SV||k.startsWith('doorlock_slack'))&&typeof renderBr==='function')renderBr();
     else if(cur==='settings'&&ch.includes(K.D)&&typeof mailCcFill==='function')mailCcFill();   // 설정 화면의 수신참조 칸(기능②) — 손대는 중이면 그대로
+    else if(cur==='users'&&ch.includes(K.MK)&&typeof nmRender==='function')nmRender();      // 사용자 관리의 신규 패널(기능②) — 다른 최고관리자의 [무시]·서버에 먼저 잡힌 기준
     else if(cur&&cur!=='draft'&&cur!=='branches'&&PAGE_RENDER[cur])PAGE_RENDER[cur]();
   }catch(e){console.warn('화면 갱신 실패',e);}
 }
@@ -3845,6 +3854,7 @@ function renderUsers(){
         <button class="btn br2 bsm reject-btn" onclick="removeUser('${u.id}')">거절</button>
       </td>
     </tr>`).join(''):`<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--green)">대기 중인 사용자 없음 ✓</td></tr>`;
+  if(FILL_FORCE)nmLoad(false);else nmRender();   // 신규 패널(기능② §3.6) — 메뉴로 들어올 때만 슬랙 명단을 묻는다(10분 안이면 받아 둔 명단). 추가·승인·삭제 뒤에는 다시 그리기만
 }
 
 function approveUser(uid, role){
@@ -3871,6 +3881,68 @@ function submitAddUser(){
   const users=getUsers();if(users.find(u=>u.id===uid)){toast('w','중복','이미 등록된 계정입니다.');return;}
   users.push({id:uid,email:uid,name:nm,role,approvedAt:new Date().toISOString(),approvedBy:S.id,loginAt:null});
   sv(K.U,users);closeMo('mo-adduser');renderUsers();toast('s','추가 완료',`${nm} (${role}) 등록됨`);
+}
+/* ── 신규 — 슬랙에는 있고 도어락에는 없는 사람(기능② §3.6, 최고관리자) ──
+   게이트웨이 v10 의 슬랙 멤버 명단(op 'slack' kind 'members' — 관리자만, 이름·소문자 이메일만)을 기준 명단(K.MK)과 견준다.
+   기준 = 처음 불러온 날의 멤버 전부. 그냥 견주면 도어락을 쓰지 않는 수백 명이 처음에 모두 '신규'로 뜬다 — 그 뒤로 새로 생긴 사람만 보인다.
+   K.MK = {at, by, emails:[소문자 이메일…]} — 지문 저장(CAS_KEYS) + 게이트웨이 관리자 전용(GUARD_KEYS). at·by 는 처음 기준을 잡은 때·사람
+   신규 = 멤버 − 기준 − 도어락 사용자(id·email, 역할 상관없이 · 대기 포함) − 지운 사용자(사용자 툼스톤)
+   메뉴로 들어올 때 한 번 묻고, 같은 탭에서 10분 안이면 받아 둔 명단을 쓴다(H2O 서버 대조와 같다). 실패는 알림 없이 패널에 한 줄 */
+const NM={t:0,list:null,err:'',busy:false,note:''};   // t 받은 시각 · list 받은 명단 · err 실패 코드 · busy 묻는 중 · note 이 탭에서 처음 기준을 잡았을 때의 안내
+let NM_ROWS=[];   // 지금 그린 신규 줄 — [추가]·[무시]는 이 배열 번호만 넘긴다(이름·이메일을 onclick 글자에 넣지 않는다)
+const nmKnown=()=>{const v=ld(K.MK,null);return v&&typeof v==='object'&&Array.isArray(v.emails)?v:null;};
+function nmNew(){
+  const k=nmKnown();if(!k||!NM.list)return[];
+  const low=x=>String(x||'').toLowerCase(),known=new Set(k.emails.map(low)),users=new Set(),dead=new Set([...tombSet(K.U)].map(low));
+  getUsers().forEach(u=>{if(u&&typeof u==='object'){if(u.id)users.add(low(u.id));if(u.email)users.add(low(u.email));}});
+  return NM.list.filter(m=>!known.has(m.email)&&!users.has(m.email)&&!dead.has(m.email));
+}
+function nmRender(){
+  const el=document.getElementById('nm-body');if(!el)return;
+  const line=(t,c)=>`<div class="pb" style="font-size:12px;color:var(${c})">${escH(t)}</div>`;
+  if(!NM.list){NM_ROWS=[];el.innerHTML=NM.err?line(`슬랙 명단을 불러오지 못했어요 (${NM.err})`,'--red'):NM.busy?line('슬랙 명단을 불러오는 중…','--text3'):'';return;}
+  NM_ROWS=nmNew();
+  el.innerHTML=NM_ROWS.length?`<div class="user-table-wrap"><table class="tbl"><thead><tr><th>이름</th><th>이메일</th><th>처리</th></tr></thead><tbody>${NM_ROWS.map((m,i)=>`<tr><td style="font-weight:600">${escH(m.name||'—')}</td><td class="idc">${escH(m.email)}</td><td><button class="btn bp bsm" style="margin-right:6px" onclick="nmAdd(${i})">추가</button><button class="btn bo bsm" onclick="nmIgnore(${i})">무시</button></td></tr>`).join('')}</tbody></table></div>`
+    :line(NM.note||'새로 들어온 사람이 없어요','--text3');
+}
+// 슬랙 명단 받기 — force 가 아니면 10분 안에는 받아 둔 명단으로 그리기만. 던지지 않는다(renderUsers 가 기다리지 않고 부른다)
+async function nmLoad(force){
+  if(!isSA()||NM.busy)return;
+  if(!force&&NM.list&&Date.now()-NM.t<600000){nmRender();return;}
+  NM.busy=true;
+  try{
+    nmRender();
+    const r=await slackRelay({kind:'members'});   // 실패는 {ok:false,error} 로 온다 — 403 admin_only · 503 slack_not_configured · 연결 끊김 request_failed 까지
+    const list=r&&Array.isArray(r.members)?r.members.filter(m=>m&&typeof m.email==='string').map(m=>({name:String(m.name||''),email:m.email.toLowerCase()})):null;
+    if(list&&list.length){
+      NM.list=list;NM.t=Date.now();NM.err='';
+      if(!SB_SYNCED)await sbSync();   // 서버 값을 한 번도 못 받은 탭이면 먼저 받는다 — 서버에 이미 있는 기준을 모르고 새로 잡지 않게
+      if(SB_SYNCED&&!nmKnown()){      // 처음 — 불러온 멤버 전부를 기준으로 저장한다
+        const emails=[...new Set(list.map(m=>m.email))].sort();
+        sv(K.MK,{at:new Date().toISOString(),by:(S&&(S.name||S.id))||'',emails});
+        NM.note=`슬랙 멤버 ${emails.length}명을 기준으로 잡았어요 — 이제부터 새로 들어온 사람만 여기에 보여요`;
+      }
+    }else{
+      // 멤버 0명도 실패로 본다 — 빈 명단으로 기준을 잡으면 나중에 모두가 '신규'로 뜬다(슬랙 앱의 이메일 권한이 빠지면 0명이 온다)
+      const c=list?'empty':String((r&&r.error)||'bad_reply');
+      NM.list=null;NM.t=0;NM.err=/^[a-z0-9_]{1,60}$/.test(c)?c:'server_error';
+    }
+  }catch(e){NM.list=null;NM.t=0;NM.err='app_error';console.warn('신규 명단',e);}
+  NM.busy=false;
+  if(document.getElementById('page-users')?.classList.contains('on'))nmRender();
+}
+// [추가] — 기존 '사용자 직접 추가' 창을 이름·이메일·역할 직원으로 채워 연다. 저장은 기존 submitAddUser 그대로(추가되면 사용자라 목록에서 빠진다)
+function nmAdd(i){
+  const m=NM_ROWS[i];if(!m||!isSA())return;
+  openAddUserMo();
+  document.getElementById('au-name').value=m.name;document.getElementById('au-id').value=m.email;document.getElementById('au-role').value='user';
+}
+// [무시] — 그 이메일을 기준 명단에 더해 저장한다(다시 안 뜬다). at·by 는 처음 기준 그대로
+function nmIgnore(i){
+  const m=NM_ROWS[i],k=nmKnown();if(!m||!k||!isSA())return;
+  if(!k.emails.some(x=>String(x).toLowerCase()===m.email))sv(K.MK,{...k,emails:[...k.emails,m.email]});
+  nmRender();
+  toast('s','무시했어요',`${escH(m.name||m.email)} — 신규 목록에 다시 보이지 않아요`);
 }
 
 /* ── BRANCHES ── */
