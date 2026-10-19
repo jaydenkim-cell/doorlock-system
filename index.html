@@ -2114,9 +2114,10 @@ setInterval(()=>{if(syncState()==='ok')syncPaint();},10000);   // 상대 시각�
    당겨 오기가 실패하면(병합을 못 했으면) 다시 저장하지 않는다 — 그사이 다른 사람이 저장한 것을 덮지 않게. 이미 돌고 있으면 그 한 번을 돌려준다.
    다만 '그냥 당겨 오기'(online)가 도는 중에 다시 저장 뜻(줄 누르기)이 오면 SYNC.again 에 남겨 두고, 끝난 뒤 다시 저장까지 하는 한 번을 더 돈다 */
 function syncClick(){if(SYNC.auth){location.reload();return;}syncRun(true);}
-/* 공유 목록 키(sbSync 의 MERGE_KEYS 와 같은 다섯) — 병합이 같은 id 는 서버 것을 쓰므로, 저장에 실패한 '이미 있던 줄의 고침'은
-   병합(30초 또는 다시 시도) 때 서버 내용으로 돌아간다(설계서 §4 로 병합 규칙은 그대로). 다시 저장한 뒤 '동기화됨'만 뜨면 고침이 살아난 줄 안다 → 주의 알림 */
-const SYNC_LISTS={[K.R]:'접수',[K.O]:'발주',[K.U]:'사용자',[K.LOG]:'변경 이력',[K.P]:'부자재'};
+/* 공유 목록 키 중 '이미 있던 줄을 고칠 수 있는' 넷(sbSync 의 MERGE_KEYS 에서 변경 이력만 뺀 것) — 병합이 같은 id 는 서버 것을 쓰므로, 저장에 실패한
+   '이미 있던 줄의 고침'은 병합(30초 또는 다시 시도) 때 서버 내용으로 돌아간다(설계서 §4 로 병합 규칙은 그대로). 다시 저장한 뒤 '동기화됨'만 뜨면
+   고침이 살아난 줄 안다 → 주의 알림. 변경 이력(K.LOG)은 줄을 덧붙이기만 하고 지난 줄을 고치지 않으므로 뺀다 — 못 간 새 줄은 병합이 그대로 지킨다 */
+const SYNC_LISTS={[K.R]:'접수',[K.O]:'발주',[K.U]:'사용자',[K.P]:'부자재'};
 function syncRun(resave){
   if(SYNC.run){if(resave&&!SYNC.resave)SYNC.again=true;return SYNC.run;}
   if(!(S&&S.token))return Promise.resolve();   // 로그인이 없으면 시작하지 않는다 — 비동기 함수 안에서 바로 돌아가면 finally 가 SYNC.run 대입보다 먼저 돌아 끝난 약속이 걸쇠로 남는다
