@@ -2237,7 +2237,7 @@ const casCanWrite=()=>{
   if(!S)return false;
   if(S.role==='superadmin'||S.role==='admin')return true;
   const sa=ld(K.SA,[]),me=[S.id,S.email].filter(Boolean).map(x=>String(x).toLowerCase());
-  return[...REQUIRED_SA,...(Array.isArray(sa)?sa:[])].some(x=>me.includes(String(x).toLowerCase()));
+  return[...REQUIRED_SA,...(Array.isArray(sa)?sa:[])].some(x=>x!=='admin'&&me.includes(String(x).toLowerCase()));   // 'admin' 은 셈에서 뺀다(getSAIds 와 같다)
 };
 async function casSend(k){
   if(!(S&&S.token))return;
@@ -2622,10 +2622,13 @@ const stkBal=branch=>getOr().reduce((n,o)=>{
     처음부터 설치까지 포함한 발주는 종전대로 rQty>=10 → 22,000 규칙을 그대로 쓴다.) */
 const getRc=()=>ld(K.R,[]);
 const getUsers=()=>ld(K.U,[]);
-const REQUIRED_SA=['admin','jayden@handys.co.kr','jayden.kim@handys.co.kr'];
+const REQUIRED_SA=['jayden@handys.co.kr','jayden.kim@handys.co.kr'];
 /* 바뀐 게 있을 때만 저장한다. 예전엔 isAdm() 이 불릴 때마다(화면 하나 그릴 때 수십 번) 서버에 썼다
-   — 2026-10-01 안산 탭이 시간당 1.1만 번 요청한 원인. */
-const getSAIds=()=>{let ids=ld(K.SA,null);if(!Array.isArray(ids))ids=[];const merged=[...new Set([...REQUIRED_SA,...ids])];if(canon(merged)!==canon(ids))sv(K.SA,merged);return merged;};
+   — 2026-10-01 안산 탭이 시간당 1.1만 번 요청한 원인.
+   REQUIRED_SA 의 주소가 저장된 목록에 빠져 있을 때만 채워 저장한다 — 순서만 다를 때는 쓰지 않는다(기능②).
+   'admin'(10/13 없앤 로컬 로그인의 최고관리자 아이디)은 저장된 목록에 남아 있어도 최고관리자로 치지 않는다. 목록에서 지우지는 않는다 —
+   새로고침 안 한 옛 화면은 'admin' 을 맨 앞에 붙인 목록이 저장값과 다르면 다시 저장하므로, 지우면 옛 화면과 새 화면이 30초마다 서로 덮어쓴다 */
+const getSAIds=()=>{let ids=ld(K.SA,null);if(!Array.isArray(ids))ids=[];const merged=[...new Set([...REQUIRED_SA,...ids])];if(!REQUIRED_SA.every(x=>ids.includes(x)))sv(K.SA,merged);return merged.filter(x=>x!=='admin');};
 
 /* ── ROLE HELPERS ── */
 const isSA=()=>S&&(S.role==='superadmin'||getSAIds().includes(S.id)||getSAIds().includes(S.email));
