@@ -1394,31 +1394,6 @@ b,strong{font-weight:600;}
 
       <!-- 지점 관리 (admin) -->
       <div class="page" id="page-branches">
-        <div class="panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>데이터 백업 · 내보내기</span></div>
-          <div class="pb" style="display:flex;flex-direction:column;gap:12px">
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <button class="btn bp bsm" onclick="backupAllData()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 전체 백업 다운로드 (JSON)</button>
-              <button class="btn br2 bsm" onclick="pickRestoreFile()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 백업 파일에서 복원</button>
-              <span style="width:1px;height:20px;background:var(--border)"></span>
-              <button class="btn bo bsm" onclick="exportToExcel('branches')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> 지점 목록 엑셀</button>
-              <input type="file" id="restore-file-inp" accept=".json,application/json" style="display:none" onchange="handleRestoreFile(event)">
-            </div>
-            <div style="font-size:12px;color:var(--text3);line-height:1.6">브라우저 데이터가 사라져도 복구할 수 있도록, <b>주기적으로 [전체 백업 다운로드]</b>를 눌러 JSON 파일을 안전한 곳(회사 드라이브 등)에 보관하세요. 복원하면 현재 데이터를 덮어씁니다. <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> 백업 파일에는 계정·비밀번호 등 민감정보가 포함되므로 외부 유출에 주의하세요.</div>
-          </div>
-        </div>
-        <div class="panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Slack 알림 설정</span></div>
-          <div class="pb" style="display:flex;flex-direction:column;gap:10px">
-            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12px">
-              <span>DM(봇 토큰) <b id="slack-st-bot" style="color:var(--text3)">확인 중…</b></span>
-              <span>채널 알림(웹훅) <b id="slack-st-wh" style="color:var(--text3)">확인 중…</b></span>
-              <button class="btn bo bsm" id="slack-test-dm" onclick="testSlackDM()">테스트 DM</button>
-              <button class="btn bo bsm" id="slack-test-noti" onclick="testSlackNoti()">테스트 알림</button>
-            </div>
-            <div id="slack-st-msg" style="font-size:12px;color:var(--text3);line-height:1.6">봇 토큰·웹훅 주소는 서버(비밀 저장소)에만 있고 이 화면·브라우저로 내려오지 않습니다.</div>
-          </div>
-        </div>
         <div class="frow" style="margin-bottom:12px"><input class="finp" id="fb-s" placeholder="지점명 / 지역 검색..." oninput="filterBr()"></div>
         <div class="bgrid" id="bgrid"></div>
       </div>
@@ -1477,6 +1452,35 @@ b,strong{font-weight:600;}
               <thead><tr><th>계정 ID</th><th>로그인 시각</th><th>처리</th></tr></thead>
               <tbody id="pending-tbody"></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 설정 (admin) — 지점 관리에 있던 백업·복원·지점 엑셀·슬랙 알림 설정을 옮겼다(기능② §3.1) -->
+      <div class="page" id="page-settings">
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></svg>데이터 백업 · 내보내기</span></div>
+          <div class="pb" style="display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <button class="btn bp bsm" onclick="backupAllData()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> 전체 백업 다운로드 (JSON)</button>
+              <button class="btn br2 bsm" onclick="pickRestoreFile()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> 백업 파일에서 복원</button>
+              <span style="width:1px;height:20px;background:var(--border)"></span>
+              <button class="btn bo bsm" onclick="exportToExcel('branches')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> 지점 목록 엑셀</button>
+              <input type="file" id="restore-file-inp" accept=".json,application/json" style="display:none" onchange="handleRestoreFile(event)">
+            </div>
+            <div style="font-size:12px;color:var(--text3);line-height:1.6">브라우저 데이터가 사라져도 복구할 수 있도록, <b>주기적으로 [전체 백업 다운로드]</b>를 눌러 JSON 파일을 안전한 곳(회사 드라이브 등)에 보관하세요. 복원하면 현재 데이터를 덮어씁니다. <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:-3px"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg> 백업 파일에는 직원 이름·이메일, 지점 주소·연락처 같은 개인정보가 들어 있으므로 외부 유출에 주의하세요.</div>
+          </div>
+        </div>
+        <div class="panel" style="margin-bottom:16px">
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>Slack 알림 설정</span></div>
+          <div class="pb" style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;font-size:12px">
+              <span>DM(봇 토큰) <b id="slack-st-bot" style="color:var(--text3)">확인 중…</b></span>
+              <span>채널 알림(웹훅) <b id="slack-st-wh" style="color:var(--text3)">확인 중…</b></span>
+              <button class="btn bo bsm" id="slack-test-dm" onclick="testSlackDM()">테스트 DM</button>
+              <button class="btn bo bsm" id="slack-test-noti" onclick="testSlackNoti()">테스트 알림</button>
+            </div>
+            <div id="slack-st-msg" style="font-size:12px;color:var(--text3);line-height:1.6">봇 토큰·웹훅 주소는 서버(비밀 저장소)에만 있고 이 화면·브라우저로 내려오지 않습니다.</div>
           </div>
         </div>
       </div>
@@ -2832,6 +2836,7 @@ const NI={
   box:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8"/><rect x="2" y="3" width="20" height="5" rx="1"/><path d="M10 12h4"/></svg>`,
   log:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l3 2"/></svg>`,
   swap:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 16V4M7 4L3 8M7 4l4 4"/><path d="M17 8v12M17 20l4-4M17 20l-4-4"/></svg>`,
+  settings:`<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>`,
 };
 // 콘텐츠 영역 아이콘 (15px, currentColor)
 const _s='viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"';
@@ -2878,6 +2883,7 @@ function buildNav(){
   if(a)itms.push({p:'stock',ic:NI.box,l:'재고 관리'});   // 조달 전용 — 지점 계정에는 안 보인다
   if(a){itms.push({sep:'정산'},{p:'monthly',ic:NI.monthly,l:'월마감 정산'},{p:'svc',ic:NI.svc,l:'서비스요금'},{sep:'설정'},{p:'branches',ic:NI.branches,l:'지점 관리'},{p:'archive',ic:NI.archive,l:'종료 지점'},{p:'log',ic:NI.log,l:'변경 이력'});}
   if(sa)itms.push({p:'users',ic:NI.users,l:'사용자 관리'});
+  if(a)itms.push({p:'settings',ic:NI.settings,l:'설정'});   // '설정' 무리 맨 끝 — 백업·복원·슬랙 알림·발주 메일(기능② §3.1)
   document.getElementById('sb-nav').innerHTML=itms.map(i=>i.sep?`<div class="sg">${i.sep}</div>`:`<div class="ni" data-p="${i.p}" onclick="goP('${i.p}')"><span class="ic">${i.ic}</span>${i.l}</div>`).join('');
   hqBadge();   // 메뉴를 다시 그리면 숫자도 다시 단다
 }
@@ -2898,9 +2904,9 @@ function sbColApply(){
 }
 function sbColToggle(){SB_COL=!sbCol();lsSet('dl.sb.collapsed',SB_COL?'1':'0');sbColApply();}
 
-const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],svc:['서비스요금','직방·H2O·더엠알 월 서비스요금 관리'],branches:['지점 관리','지점 정보 및 계정'],archive:['종료 지점','종료(아카이브)된 지점 · 재개 가능'],users:['사용자 관리','접속 권한 부여 및 역할 설정'],log:['변경 이력','상태 변경 감사 로그'],stock:['재고 관리','지점 보유 도어락 · 입고와 설치'],parts:['부자재 관리','도어락 커버·모듈 신청과 발송'],h2oreq:['H2O 모드 전환','객실용↔홈용 전환 신고와 H2O 통보']};
+const PM={dashboard:['대시보드','전체 현황'],receipt:['접수 관리','설치 요청 접수 및 진행'],order:['발주 관리','업체 발주 목록 및 비용'],draft:['발주서 작성','발주서 생성 및 인쇄'],install:['설치 현황','설치 진행 및 완료'],monthly:['월마감 정산','월별 비용 마감'],svc:['서비스요금','직방·H2O·더엠알 월 서비스요금 관리'],branches:['지점 관리','지점 정보 및 계정'],archive:['종료 지점','종료(아카이브)된 지점 · 재개 가능'],users:['사용자 관리','접속 권한 부여 및 역할 설정'],log:['변경 이력','상태 변경 감사 로그'],stock:['재고 관리','지점 보유 도어락 · 입고와 설치'],parts:['부자재 관리','도어락 커버·모듈 신청과 발송'],h2oreq:['H2O 모드 전환','객실용↔홈용 전환 신고와 H2O 통보'],settings:['설정','백업 · 슬랙 알림 · 발주 메일']};
 function goP(p){
-  if((p==='order'||p==='draft'||p==='monthly'||p==='branches'||p==='svc'||p==='archive'||p==='log'||p==='stock')&&!isAdm()){toast('e','권한 없음','관리자만 접근할 수 있습니다.');return;}
+  if((p==='order'||p==='draft'||p==='monthly'||p==='branches'||p==='svc'||p==='archive'||p==='log'||p==='stock'||p==='settings')&&!isAdm()){toast('e','권한 없음','관리자만 접근할 수 있습니다.');return;}
   if(p==='users'&&!isSA()){toast('e','권한 없음','최고관리자만 접근할 수 있습니다.');return;}
   document.querySelectorAll('.page').forEach(e=>e.classList.remove('on'));
   document.querySelectorAll('.ni').forEach(e=>e.classList.remove('on'));
@@ -2927,7 +2933,7 @@ function goP(p){
   /* 메뉴로 들어올 때 그리는 목록. 30초 새로고침용 PAGE_RENDER(맨 아래)와 따로 있어서
      서비스요금·부자재가 그쪽에만 들어가 있었다 → 들어가면 빈 화면이고 필터를 바꾸거나
      30초를 기다려야 채워졌다. 새 페이지를 만들면 두 곳 모두에 넣을 것. */
-  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:renderSvc,parts:renderParts,h2oreq:renderH2oReq,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock};
+  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:renderSvc,parts:renderParts,h2oreq:renderH2oReq,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock,settings:renderSettings};
   FILL_FORCE=true;try{if(fns[p])fns[p]();}finally{FILL_FORCE=false;}
   if(['receipt','order','install','monthly','stock'].includes(p)){
     const tbr=document.getElementById('tb-r');
@@ -3890,7 +3896,6 @@ async function syncDuckRooms(){
   }catch{return false;}
 }
 function renderBr(){
-  renderSlackStatus();   // 슬랙은 서버 비밀 — 설정돼 있는지만 보여 준다(값은 내려오지 않는다)
   // 툴바 버튼
   document.getElementById('tb-r').innerHTML=`<button class="btn bo bsm" onclick="syncDuckRoomsAndRender()" style="display:inline-flex;align-items:center;gap:5px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Duck 동기화</button><button class="btn bo bsm" onclick="repairBranchNames()" style="margin-left:6px">지점명 복구</button>`;
   // Duck 캐시 적용 후 렌더
@@ -5209,6 +5214,11 @@ async function renderSlackStatus(){
   put(b,st&&st.bot);put(w,st&&st.webhook);
   m.textContent=all?'봇 토큰·웹훅 주소는 서버(비밀 저장소)에만 있고 이 화면·브라우저로 내려오지 않습니다.':st?SLACK_NOCFG:'상태를 확인하지 못했습니다 — 잠시 뒤 다시 열어 주세요.';
   m.style.color=all?'var(--text3)':'var(--red)';
+}
+/* 설정 화면(기능② §3.1) — 지점 관리에 있던 백업·복원·지점 엑셀·슬랙 알림 설정을 옮겨 왔다(단추·ID·함수 그대로).
+   들어올 때 슬랙 상태를 묻는다. 30초 동기화 목록(PAGE_RENDER)에는 넣지 않는다 — 30초마다 슬랙 상태를 묻지 않게 */
+function renderSettings(){
+  renderSlackStatus();
 }
 /* 슬랙 DM 공용부 — 부자재 발송·H2O 전달 DM. 실패해도 발송·전달은 되돌리지 않는다(알림 때문에 업무가 막히면 안 된다) */
 async function ptSlackDM(email,msg){
