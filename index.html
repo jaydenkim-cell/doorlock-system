@@ -3875,34 +3875,43 @@ function removeUser(uid){
 function openAddUserMo(){
   document.getElementById('au-name').value='';document.getElementById('au-id').value='';document.getElementById('au-role').value='user';openMo('mo-adduser');
 }
+// 계정 ID 로 받는 글자 — 이메일 꼴만: @ 앞은 영문·숫자와 . _ % + - · @ 는 하나 · 도메인은 점으로 나뉜 영문·숫자·붙임표(마디 양 끝은 붙임표 불가)
+// 사용자 목록은 ID 를 표·onclick 글자에 그대로 넣어 그린다 — 따옴표·꺾쇠·빈칸이 든 ID 는 아예 만들지 않는다
+const SAFE_UID=/^[A-Za-z0-9._%+-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
 function submitAddUser(){
   const nm=document.getElementById('au-name').value.trim(),uid=document.getElementById('au-id').value.trim(),role=document.getElementById('au-role').value;
   if(!nm||!uid){toast('e','입력 오류','이름과 계정 ID는 필수입니다.');return;}
+  if(!SAFE_UID.test(uid)){toast('e','입력 오류','계정 ID는 이메일 형식이어야 합니다 (영문·숫자와 . _ % + - 만 쓸 수 있습니다).');return;}
   const users=getUsers();if(users.find(u=>u.id===uid)){toast('w','중복','이미 등록된 계정입니다.');return;}
   users.push({id:uid,email:uid,name:nm,role,approvedAt:new Date().toISOString(),approvedBy:S.id,loginAt:null});
-  sv(K.U,users);closeMo('mo-adduser');renderUsers();toast('s','추가 완료',`${nm} (${role}) 등록됨`);
+  sv(K.U,users);closeMo('mo-adduser');renderUsers();toast('s','추가 완료',`${escH(nm)} (${escH(role)}) 등록됨`);   // toast 는 innerHTML 로 그린다 — 이름은 슬랙에서 온 글자일 수 있다(신규 패널의 [추가])
 }
 /* ── 신규 — 슬랙에는 있고 도어락에는 없는 사람(기능② §3.6, 최고관리자) ──
    게이트웨이 v10 의 슬랙 멤버 명단(op 'slack' kind 'members' — 관리자만, 이름·소문자 이메일만)을 기준 명단(K.MK)과 견준다.
    기준 = 처음 불러온 날의 멤버 전부. 그냥 견주면 도어락을 쓰지 않는 수백 명이 처음에 모두 '신규'로 뜬다 — 그 뒤로 새로 생긴 사람만 보인다.
-   K.MK = {at, by, emails:[소문자 이메일…]} — 지문 저장(CAS_KEYS) + 게이트웨이 관리자 전용(GUARD_KEYS). at·by 는 처음 기준을 잡은 때·사람
+   K.MK = {at, by, emails:[소문자 이메일의 지문…]} — 지문 저장(CAS_KEYS) + 게이트웨이 관리자 전용(GUARD_KEYS). at·by 는 처음 기준을 잡은 때·사람
+   ★ 기준 명단에는 이메일 글자를 두지 않고 소문자 이메일의 kvHash(위 CAS 지문과 같은 함수 — 글자를 받는다)만 둔다. 도어락을 쓰지 않는 수백 명의 이메일이
+     모든 직원의 브라우저·백업 파일로 퍼지지 않게 하려는 것 — 멤버 명단은 서버에서 받아 메모리(NM.list)에만 두고 지문끼리 견준다.
+     암호용 해시가 아니라서 이름꼴 주소는 짐작해 대조해 볼 수 있다 — 평문이 널리 퍼지지 않게 할 뿐 비밀 보호는 아니다.
    신규 = 멤버 − 기준 − 도어락 사용자(id·email, 역할 상관없이 · 대기 포함) − 지운 사용자(사용자 툼스톤)
    메뉴로 들어올 때 한 번 묻고, 같은 탭에서 10분 안이면 받아 둔 명단을 쓴다(H2O 서버 대조와 같다). 실패는 알림 없이 패널에 한 줄 */
-const NM={t:0,list:null,err:'',busy:false,note:''};   // t 받은 시각 · list 받은 명단 · err 실패 코드 · busy 묻는 중 · note 이 탭에서 처음 기준을 잡았을 때의 안내
+const NM={t:0,list:null,err:'',busy:false,note:'',noBase:false};   // t 받은 시각 · list 받은 명단({name,email,h 이메일 지문}) · err 실패 코드 · busy 묻는 중 · note 이 탭에서 처음 기준을 잡았을 때의 안내 · noBase 첫 기준을 못 잡았다
 let NM_ROWS=[];   // 지금 그린 신규 줄 — [추가]·[무시]는 이 배열 번호만 넘긴다(이름·이메일을 onclick 글자에 넣지 않는다)
+const nmHash=e=>kvHash(String(e==null?'':e).toLowerCase());   // 기준 명단에 두는 값 — 소문자 이메일의 지문
 const nmKnown=()=>{const v=ld(K.MK,null);return v&&typeof v==='object'&&Array.isArray(v.emails)?v:null;};
 function nmNew(){
   const k=nmKnown();if(!k||!NM.list)return[];
-  const low=x=>String(x||'').toLowerCase(),known=new Set(k.emails.map(low)),users=new Set(),dead=new Set([...tombSet(K.U)].map(low));
+  const low=x=>String(x||'').toLowerCase(),known=new Set(k.emails),users=new Set(),dead=new Set([...tombSet(K.U)].map(low));
   getUsers().forEach(u=>{if(u&&typeof u==='object'){if(u.id)users.add(low(u.id));if(u.email)users.add(low(u.email));}});
-  return NM.list.filter(m=>!known.has(m.email)&&!users.has(m.email)&&!dead.has(m.email));
+  return NM.list.filter(m=>!known.has(m.h)&&!users.has(m.email)&&!dead.has(m.email));
 }
 function nmRender(){
   const el=document.getElementById('nm-body');if(!el)return;
-  const line=(t,c)=>`<div class="pb" style="font-size:12px;color:var(${c})">${escH(t)}</div>`;
-  if(!NM.list){NM_ROWS=[];el.innerHTML=NM.err?line(`슬랙 명단을 불러오지 못했어요 (${NM.err})`,'--red'):NM.busy?line('슬랙 명단을 불러오는 중…','--text3'):'';return;}
+  const line=(t,c)=>`<div class="pb" role="status" style="font-size:12px;color:var(${c})">${escH(t)}</div>`;   // role=status — 묻는 중·실패·기준 없음이 읽는 프로그램에도 전해진다
+  const noBase=NM.noBase||!!(NM.list&&!nmKnown());   // 견줄 기준 명단이 없다 — 그럴 때 '새로 들어온 사람이 없어요' 라고 하면 틀린 말이다
+  if(!NM.list||noBase){NM_ROWS=[];el.innerHTML=NM.err?line(`슬랙 명단을 불러오지 못했어요 (${NM.err})`,'--red'):NM.busy?line('슬랙 명단을 불러오는 중…','--text3'):noBase?line('기준을 아직 잡지 못했어요 — 다시 불러오기','--text3'):'';return;}
   NM_ROWS=nmNew();
-  el.innerHTML=NM_ROWS.length?`<div class="user-table-wrap"><table class="tbl"><thead><tr><th>이름</th><th>이메일</th><th>처리</th></tr></thead><tbody>${NM_ROWS.map((m,i)=>`<tr><td style="font-weight:600">${escH(m.name||'—')}</td><td class="idc">${escH(m.email)}</td><td><button class="btn bp bsm" style="margin-right:6px" onclick="nmAdd(${i})">추가</button><button class="btn bo bsm" onclick="nmIgnore(${i})">무시</button></td></tr>`).join('')}</tbody></table></div>`
+  el.innerHTML=NM_ROWS.length?`<div class="user-table-wrap"><table class="tbl"><thead><tr><th>이름</th><th>이메일</th><th>처리</th></tr></thead><tbody>${NM_ROWS.map((m,i)=>{const who=escH(m.name||m.email);return`<tr><td style="font-weight:600">${escH(m.name||'—')}</td><td class="idc">${escH(m.email)}</td><td><button class="btn bp bsm" style="margin-right:6px" aria-label="${who} 추가" onclick="nmAdd(${i})">추가</button><button class="btn bo bsm" aria-label="${who} 무시" onclick="nmIgnore(${i})">무시</button></td></tr>`;}).join('')}</tbody></table></div>`
     :line(NM.note||'새로 들어온 사람이 없어요','--text3');
 }
 // 슬랙 명단 받기 — force 가 아니면 10분 안에는 받아 둔 명단으로 그리기만. 던지지 않는다(renderUsers 가 기다리지 않고 부른다)
@@ -3910,25 +3919,31 @@ async function nmLoad(force){
   if(!isSA()||NM.busy)return;
   if(!force&&NM.list&&Date.now()-NM.t<600000){nmRender();return;}
   NM.busy=true;
+  const rb=document.getElementById('nm-reload'),hadFocus=!!rb&&document.activeElement===rb;
+  if(rb)rb.disabled=true;   // 묻는 동안은 단추를 잠가 누를 수 없음이 보이게 한다(끝나면 finally 에서 푼다)
   try{
     nmRender();
     const r=await slackRelay({kind:'members'});   // 실패는 {ok:false,error} 로 온다 — 403 admin_only · 503 slack_not_configured · 연결 끊김 request_failed 까지
-    const list=r&&Array.isArray(r.members)?r.members.filter(m=>m&&typeof m.email==='string').map(m=>({name:String(m.name||''),email:m.email.toLowerCase()})):null;
+    const list=r&&Array.isArray(r.members)?r.members.filter(m=>m&&typeof m.email==='string').map(m=>{const email=m.email.toLowerCase();return{name:String(m.name||''),email,h:nmHash(email)};}):null;
     if(list&&list.length){
-      NM.list=list;NM.t=Date.now();NM.err='';
       if(!SB_SYNCED)await sbSync();   // 서버 값을 한 번도 못 받은 탭이면 먼저 받는다 — 서버에 이미 있는 기준을 모르고 새로 잡지 않게
       if(SB_SYNCED&&!nmKnown()){      // 처음 — 불러온 멤버 전부를 기준으로 저장한다
-        const emails=[...new Set(list.map(m=>m.email))].sort();
+        const uniq=[...new Set(list.map(m=>m.email))],emails=uniq.map(nmHash).sort();
         sv(K.MK,{at:new Date().toISOString(),by:(S&&(S.name||S.id))||'',emails});
-        NM.note=`슬랙 멤버 ${emails.length}명을 기준으로 잡았어요 — 이제부터 새로 들어온 사람만 여기에 보여요`;
+        NM.note=`슬랙 멤버 ${uniq.length}명을 기준으로 잡았어요 — 이제부터 새로 들어온 사람만 여기에 보여요`;
       }
+      if(nmKnown()){NM.list=list;NM.t=Date.now();NM.err='';NM.noBase=false;}
+      else{NM.list=null;NM.t=0;NM.err='';NM.noBase=true;}   // 기준을 못 잡았다(서버 값을 아직 못 받았다) — 받아 둔 명단으로 쓰지 않는다. 다시 들어오면 다시 묻는다
     }else{
       // 멤버 0명도 실패로 본다 — 빈 명단으로 기준을 잡으면 나중에 모두가 '신규'로 뜬다(슬랙 앱의 이메일 권한이 빠지면 0명이 온다)
       const c=list?'empty':String((r&&r.error)||'bad_reply');
-      NM.list=null;NM.t=0;NM.err=/^[a-z0-9_]{1,60}$/.test(c)?c:'server_error';
+      NM.list=null;NM.t=0;NM.noBase=false;NM.err=/^[a-z0-9_]{1,60}$/.test(c)?c:'server_error';
     }
-  }catch(e){NM.list=null;NM.t=0;NM.err='app_error';console.warn('신규 명단',e);}
-  NM.busy=false;
+  }catch(e){NM.list=null;NM.t=0;NM.noBase=false;NM.err='app_error';console.warn('신규 명단',e);}
+  finally{
+    NM.busy=false;
+    if(rb){rb.disabled=false;if(hadFocus&&(!document.activeElement||document.activeElement===document.body))rb.focus();}   // 잠기며 사라진 초점은 되돌려 준다(키보드로 누른 사람이 자리를 잃지 않게)
+  }
   if(document.getElementById('page-users')?.classList.contains('on'))nmRender();
 }
 // [추가] — 기존 '사용자 직접 추가' 창을 이름·이메일·역할 직원으로 채워 연다. 저장은 기존 submitAddUser 그대로(추가되면 사용자라 목록에서 빠진다)
@@ -3940,9 +3955,12 @@ function nmAdd(i){
 // [무시] — 그 이메일을 기준 명단에 더해 저장한다(다시 안 뜬다). at·by 는 처음 기준 그대로
 function nmIgnore(i){
   const m=NM_ROWS[i],k=nmKnown();if(!m||!k||!isSA())return;
-  if(!k.emails.some(x=>String(x).toLowerCase()===m.email))sv(K.MK,{...k,emails:[...k.emails,m.email]});
+  if(!k.emails.includes(m.h))sv(K.MK,{...k,emails:[...k.emails,m.h]});
   nmRender();
   toast('s','무시했어요',`${escH(m.name||m.email)} — 신규 목록에 다시 보이지 않아요`);
+  // 누른 단추가 사라져 초점이 body 로 떨어진다 — 그 자리로 올라온 다음 줄의 첫 단추로(마지막 줄이었으면 앞 줄), 줄이 하나도 안 남았으면 [다시 불러오기]로 옮긴다
+  const rows=document.querySelectorAll('#nm-body tbody tr'),next=rows[i]||rows[rows.length-1],to=(next&&next.querySelector('button'))||document.getElementById('nm-reload');
+  if(to)to.focus();
 }
 
 /* ── BRANCHES ── */
