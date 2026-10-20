@@ -686,6 +686,11 @@ b,strong{font-weight:600;}
 .pa-mems .pa-mem{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;line-height:20px;font-weight:400;color:var(--plott-color-text-default);cursor:pointer;}
 .pa-note{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);}
 .tbl td.pa-wrap{white-space:normal;overflow-wrap:anywhere;}
+/* 발주서 목록(기능③) — 안내 글 · 숫자 칸(가지런한 숫자 · 오른쪽) · 긴 지점 이름은 줄바꿈 */
+.dh-note{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);}
+.tbl td.dh-num{font-variant-numeric:tabular-nums;white-space:nowrap;}
+.tbl th.dh-r,.tbl td.dh-r{text-align:right;}
+.tbl td.dh-wrap{white-space:normal;overflow-wrap:anywhere;min-width:160px;}
 
 /* MODAL — 반경 16·안쪽 24·배경막 #1B1B1A 60% */
 .mo{display:none;position:fixed;inset:0;background:var(--dl-backdrop);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
@@ -1138,6 +1143,12 @@ b,strong{font-weight:600;}
         </div>
 
         <div id="draft-area" style="margin-top:16px"></div>
+
+        <!-- 발주서 목록(기능③) — 만든 발주서 최근 50건 · 줄 내용이 있으면 [다시 열기] -->
+        <div class="panel" id="dh-panel" style="margin-top:16px">
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg> 발주서 목록</span><span class="dh-note" id="dh-cnt"></span></div>
+          <div id="dh-body"></div>
+        </div>
       </div>
 
       <!-- 설치 현황 -->
@@ -2332,7 +2343,8 @@ function casRefresh(){
   try{
     const cur=document.querySelector('.page.on')?.id?.replace('page-','');
     // 그 화면이 보여주는 키가 바뀌었을 때만 다시 그린다
-    if(cur==='draft'&&ch.includes(K.D)&&typeof loadDCfg==='function')loadDCfg();
+    if(cur==='draft'&&ch.includes(K.D)&&typeof loadDCfg==='function')loadDCfg();   // 발주서 목록도 같이(loadDCfg 끝)
+    else if(cur==='draft'&&ch.includes(K.H)&&typeof dhRender==='function')dhRender();   // 다른 관리자가 만든 발주서(기능③)
     else if(cur==='branches'&&ch.some(k=>k===K.B||k===K.SV||k.startsWith('doorlock_slack'))&&typeof renderBr==='function')renderBr();
     else if(cur==='settings'&&ch.includes(K.D)&&typeof mailCcFill==='function')mailCcFill();   // 설정 화면의 수신참조 칸(기능②) — 손대는 중이면 그대로
     else if(cur==='users'&&ch.includes(K.MK)&&typeof nmRender==='function')nmRender();      // 사용자 관리의 신규 패널(기능②) — 다른 최고관리자의 [무시]·서버에 먼저 잡힌 기준
@@ -4449,6 +4461,7 @@ function loadDCfg(){
   if(dtEl&&!dtEl.value)dtEl.value=new Date().toISOString().substring(0,10);
   // 행이 없으면 기본 1행 추가
   if(!document.getElementById('draft-tbody').children.length) addDraftRow();
+  dhRender();   // 발주서 목록(기능③)
 }
 
 function saveDraftCfg(){
@@ -4695,6 +4708,7 @@ function draftGen(){
   genDraft();
   if(!rows.length)return;   // genDraft 가 '지점을 선택한 행이 없습니다'로 멈췄다 — 쌓인 줄이 없다
   dhAttach(rows,t0,top0);
+  dhRender();
 }
 // 방금 genDraft 가 쌓은 줄에만 붙인다 — 맨 앞 줄이 누르기 전 맨 앞 줄과 다르고, 시각(ts)이 누른 뒤이며, 건수·발주일이 이번 줄과 같을 때. 아니면 아무것도 하지 않는다(요약만)
 function dhAttach(rows,t0,top0){
@@ -4705,6 +4719,60 @@ function dhAttach(rows,t0,top0){
   h[0]={...e,detail};
   sv(K.H,h);   // genDraft 가 50건으로 잘라 둔 배열 — 줄 수는 그대로
   return true;
+}
+/* ── 발주서 목록 — 화면(기능③) ──
+   발주서 작성 맨 아래 패널 #dh-panel: 최신순 · 만든 때 · 발주일 · 지점 · 유형 · 건수 · 합계 · 만든 사람 · [다시 열기](줄 내용이 있을 때만, 예전 기록은 '요약만').
+   모든 글자는 escH(지점·메모는 직원이 쓴 접수 글자에서 온다), 단추에는 줄 번호만 넘긴다(DH_ROWS).
+   그리는 때: 화면에 들어올 때(loadDCfg 끝) · 발주서를 만든 뒤(draftGen) · 30초 동기화가 바뀐 K.H 를 받아 왔을 때(casRefresh) */
+let DH_ROWS=[];   // 목록에 그린 기록(최신순) — [다시 열기]는 이 배열 번호만 넘긴다
+const dhOk=e=>!!(e&&e.detail&&e.detail.v===1&&Array.isArray(e.detail.rows)&&e.detail.rows.length>0&&e.detail.rows.length<=DH_MAX_ROWS);
+function dhRender(){
+  const el=document.getElementById('dh-body');if(!el)return;
+  const h=ld(K.H,[]);
+  DH_ROWS=(Array.isArray(h)?h:[]).filter(e=>e&&typeof e==='object').map((e,i)=>[e,i])
+    .sort((a,b)=>(Number(b[0].ts)||0)-(Number(a[0].ts)||0)||a[1]-b[1]).map(x=>x[0]);   // 최신순(저장 차례도 최신이 앞이지만 만든 때로 다시 줄 세운다)
+  const cnt=document.getElementById('dh-cnt');if(cnt)cnt.textContent=DH_ROWS.length?`${DH_ROWS.length}건 · 최근 50건까지`:'';
+  if(!DH_ROWS.length){el.innerHTML='<div class="pb dh-note">아직 만든 발주서가 없어요 — [미리보기 생성]을 누르면 여기에 쌓여요</div>';return;}
+  const num=v=>v!==''&&v!=null&&Number.isFinite(Number(v))?Number(v).toLocaleString():'';
+  el.innerHTML=`<div class="user-table-wrap"><table class="tbl" aria-label="발주서 목록"><thead><tr><th>만든 때</th><th>발주일</th><th>지점</th><th>유형</th><th class="dh-r">건수</th><th class="dh-r">합계</th><th>만든 사람</th><th>처리</th></tr></thead><tbody>${DH_ROWS.map((e,i)=>{
+    const ok=dhOk(e),n=num(e.rows),t=num(e.total);
+    return`<tr><td class="dh-num">${escH(tKst(Number(e.ts))||'—')}</td><td class="dh-num">${escH(e.date||'—')}</td><td class="dh-wrap">${escH(e.branch||'—')}</td><td>${escH(e.type||'—')}</td><td class="dh-num dh-r">${escH(n||'—')}</td><td class="dh-num dh-r">${escH(t?t+'원':'—')}</td><td>${escH(e.detail&&e.detail.by||'—')}</td><td>${ok?`<button class="btn bo bsm" onclick="dhOpen(${i})">다시 열기</button>`:'<span class="dh-note">요약만</span>'}</td></tr>`;
+  }).join('')}</tbody></table></div>`;
+}
+// 작성 중인 줄 — 지점을 골랐거나 객실·단가·설치비·자재비·오픈예정일·메모 중 하나라도 적힌 줄(수량 기본값 1 은 세지 않는다)
+const dhBusy=()=>[...document.querySelectorAll('#draft-tbody tr')].filter(tr=>{const i=tr.id.slice(3);return!!(tr.querySelector('select')?.value||['room','price','install','extra','open','memo'].some(k=>document.getElementById(`dr-${k}-${i}`)?.value));}).length;
+function dhOpen(i){
+  const e=DH_ROWS[i];
+  if(!dhOk(e)){toast('e','다시 열 수 없음','이 기록은 요약만 있어요');return;}
+  const n=dhBusy();
+  if(n)showCfm(CI.file,'발주서 다시 열기',`지금 작성 중인 ${n}줄을 이 발주서 내용으로 바꿔요`,()=>dhFill(e),{yes:'바꾸기'});
+  else dhFill(e);
+}
+// 줄을 작성 칸에 채운다 — 행 구조·함수(addDraftRow·calcDraftRow)는 그대로. 단가·설치비·자재비는 그때 값(지점 설정으로 다시 채우지 않는다).
+// 발주처·공급사 설정은 지금 값 그대로 · 발주일·유형은 그 발주서 값. 다시 [미리보기 생성]을 누르면 새 기록이 하나 쌓인다
+function dhFill(e){
+  const d=e.detail,tb=document.getElementById('draft-tbody');if(!tb)return;
+  tb.innerHTML='';draftRowIdx=0;
+  let miss=0;
+  d.rows.forEach(r=>{
+    r=r&&typeof r==='object'?r:{};
+    const idx=draftRowIdx;addDraftRow();
+    const sel=document.querySelector(`#dr-${idx} select`),bn=String(r.branch??'');
+    if(sel&&bn){
+      if(![...sel.options].some(o=>o.value===bn)){miss++;sel.insertAdjacentHTML('beforeend',`<option value="${escH(bn)}">${escH(bn)}</option>`);}   // 지금 운영 목록에 없는 지점(종료·이름 바뀜) — 줄을 버리지 않고 그 이름으로 둔다
+      sel.value=bn;
+    }
+    const put=(k,v)=>{const x=document.getElementById(`dr-${k}-${idx}`);if(x)x.value=v;};
+    put('room',String(r.room??''));put('qty',String(parseInt(r.qty)||1));put('price',String(parseInt(r.price)||0));
+    put('install',String(parseInt(r.install)||0));put('extra',String(parseInt(r.extra)||0));put('open',String(r.openDate??''));put('memo',String(r.memo??''));
+    calcDraftRow(idx);
+  });
+  const dtEl=document.getElementById('draft-date');if(dtEl&&d.dt)dtEl.value=String(d.dt);
+  const tpEl=document.getElementById('draft-type');if(tpEl&&[...tpEl.options].some(o=>o.value===e.type))tpEl.value=e.type;
+  calcDraftTotal();
+  document.getElementById('draft-area').innerHTML='';   // 옛 미리보기는 지운다 — [미리보기 생성]을 다시 눌러야 PDF·인쇄가 이 내용이 된다
+  toast('s','발주서를 다시 열었어요',`${d.rows.length}줄 · 발주일 ${escH(d.dt||'—')}${miss?` · 지금 지점 목록에 없는 지점 ${miss}줄 — 확인해 주세요`:''} · [미리보기 생성]을 누르면 새 기록으로 쌓여요`);
+  document.getElementById('draft-rows-table')?.scrollIntoView({behavior:'smooth',block:'center'});
 }
 
 // @outside-app
