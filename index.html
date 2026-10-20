@@ -4732,6 +4732,8 @@ function dhAttach(rows,t0,top0){
    그리는 때: 화면에 들어올 때(loadDCfg 끝) · 발주서를 만든 뒤(draftGen) · 30초 동기화가 바뀐 K.H 를 받아 왔을 때(casRefresh) */
 let DH_ROWS=[];   // 목록에 그린 기록(최신순) — [다시 열기]는 이 배열 번호만 넘긴다
 const dhOk=e=>!!(e&&e.detail&&e.detail.v===1&&Array.isArray(e.detail.rows)&&e.detail.rows.length>0&&e.detail.rows.length<=DH_MAX_ROWS);
+// [다시 열기]의 이름(스크린리더용) — 줄마다 달라지게 발주일·지점을 앞에 붙인다. 날짜 꼴이면 월/일, 아니면 글 그대로. 쓸 때 escH 로 감싼다
+const dhLabel=e=>{const m=/^\d{4}-(\d{2})-(\d{2})/.exec(String(e.date??'')),d=m?`${+m[1]}/${+m[2]}`:String(e.date??'');return[d,String(e.branch??'')].filter(Boolean).concat('발주서 다시 열기').join(' ');};
 function dhRender(){
   const el=document.getElementById('dh-body');if(!el)return;
   const h=ld(K.H,[]);
@@ -4742,7 +4744,7 @@ function dhRender(){
   const num=v=>v!==''&&v!=null&&Number.isFinite(Number(v))?Number(v).toLocaleString():'';
   el.innerHTML=`<div class="user-table-wrap"><table class="tbl" aria-label="발주서 목록"><thead><tr><th>만든 때</th><th>발주일</th><th>지점</th><th>유형</th><th class="dh-r">건수</th><th class="dh-r">합계</th><th>만든 사람</th><th>처리</th></tr></thead><tbody>${DH_ROWS.map((e,i)=>{
     const ok=dhOk(e),n=num(e.rows),t=num(e.total);
-    return`<tr><td class="dh-num">${escH(tKst(Number(e.ts))||'—')}</td><td class="dh-num">${escH(e.date||'—')}</td><td class="dh-wrap">${escH(e.branch||'—')}</td><td>${escH(e.type||'—')}</td><td class="dh-num dh-r">${escH(n||'—')}</td><td class="dh-num dh-r">${escH(t?t+'원':'—')}</td><td>${escH(e.detail&&e.detail.by||'—')}</td><td>${ok?`<button class="btn bo bsm" onclick="dhOpen(${i})">다시 열기</button>`:'<span class="dh-note">요약만</span>'}</td></tr>`;
+    return`<tr><td class="dh-num">${escH(tKst(Number(e.ts))||'—')}</td><td class="dh-num">${escH(e.date||'—')}</td><td class="dh-wrap">${escH(e.branch||'—')}</td><td>${escH(e.type||'—')}</td><td class="dh-num dh-r">${escH(n||'—')}</td><td class="dh-num dh-r">${escH(t?t+'원':'—')}</td><td>${escH(e.detail&&e.detail.by||'—')}</td><td>${ok?`<button class="btn bo bsm" onclick="dhOpen(${i})" aria-label="${escH(dhLabel(e))}">다시 열기</button>`:'<span class="dh-note">요약만</span>'}</td></tr>`;
   }).join('')}</tbody></table></div>`;
 }
 // 작성 중인 줄 — 지점을 골랐거나 객실·단가·설치비·자재비·오픈예정일·메모 중 하나라도 적힌 줄(수량 기본값 1 은 세지 않는다)
@@ -4760,13 +4762,18 @@ function dhFill(e){
   const d=e.detail,tb=document.getElementById('draft-tbody');if(!tb)return;
   tb.innerHTML='';draftRowIdx=0;
   let miss=0;
+  const brs=getBr(),known=new Set((Array.isArray(brs)?brs:[]).map(b=>b&&b.name));   // 종료한 지점까지 지금 지점 목록이 아는 이름
   d.rows.forEach(r=>{
     r=r&&typeof r==='object'?r:{};
     const idx=draftRowIdx;addDraftRow();
     const sel=document.querySelector(`#dr-${idx} select`),bn=String(r.branch??'');
     if(sel&&bn){
-      if(![...sel.options].some(o=>o.value===bn)){miss++;sel.insertAdjacentHTML('beforeend',`<option value="${escH(bn)}">${escH(bn)}</option>`);}   // 지금 운영 목록에 없는 지점(종료·이름 바뀜) — 줄을 버리지 않고 그 이름으로 둔다
-      sel.value=bn;
+      if([...sel.options].some(o=>o.value===bn))sel.value=bn;
+      else{
+        miss++;   // 지금 운영 목록에 없는 지점
+        if(known.has(bn)){sel.insertAdjacentHTML('beforeend',`<option value="${escH(bn)}">${escH(bn)}</option>`);sel.value=bn;}   // 종료한 지점(이름이 지점 목록에 있다) — 줄을 버리지 않고 그 이름으로 둔다
+        // 지점 목록 어디에도 없는 이름은 선택지로 만들지 않는다(발주서 미리보기가 지점 이름을 그대로 쓴다) — 그 줄의 지점은 비워 두고 알림에만 센다
+      }
     }
     const put=(k,v)=>{const x=document.getElementById(`dr-${k}-${idx}`);if(x)x.value=v;};
     put('room',String(r.room??''));put('qty',String(parseInt(r.qty)||1));put('price',String(parseInt(r.price)||0));
@@ -4779,6 +4786,7 @@ function dhFill(e){
   document.getElementById('draft-area').innerHTML='';   // 옛 미리보기는 지운다 — [미리보기 생성]을 다시 눌러야 PDF·인쇄가 이 내용이 된다
   toast('s','발주서를 다시 열었어요',`${d.rows.length}줄 · 발주일 ${escH(d.dt||'—')}${miss?` · 지금 지점 목록에 없는 지점 ${miss}줄 — 확인해 주세요`:''} · [미리보기 생성]을 누르면 새 기록으로 쌓여요`);
   document.getElementById('draft-rows-table')?.scrollIntoView({behavior:'smooth',block:'center'});
+  const first=document.getElementById('draft-date');if(first)first.focus({preventScroll:true});   // 키보드 초점도 작성 칸 맨 앞으로 — 눌렀던 목록 단추는 화면 아래에 남는다
 }
 /* ── PDF 저장(기능③) ──
    지금 만든 발주서(#draft-area 의 미리보기)를 인쇄 창 없이 A4 세로 PDF 로 내려받는다. 처음 누를 때만 cdnjs 에서 두 도구를 불러온다 —
@@ -4786,6 +4794,7 @@ function dhFill(e){
    그리는 동안만 #draft-area 에 pdf-shot 을 씌워 인쇄할 때의 CSS 와 같은 모양(테두리·안쪽 여백 없음 · 인쇄 폭 190mm · 인쇄 단추 숨김)으로 그린다.
    넘치면 여러 쪽 — 쪽 끝은 표의 줄·덩어리 경계에서 자른다(글줄이 반으로 잘리지 않게). 파일 이름은 printDraft 가 인쇄 창에 주는 이름과 같다.
    불러오기·그리기가 실패하면 [인쇄]의 'PDF로 저장'을 권한다 */
+// jsPDF 2.5.1 로 충분한 까닭 — 여기서는 new jsPDF · addPage · addImage(앱이 직접 그린 JPEG 그림) · save 만 부른다. 알려진 보안 공지는 바깥에서 받은 그림·HTML·양식 같은 입력이나 다른 기능에 관한 것이라 이 쓰임에는 닿지 않는다
 const PDF_LIBS=[
   {url:'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',sri:'sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==',ok:()=>typeof window.html2canvas==='function'},
   {url:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',sri:'sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==',ok:()=>!!(window.jspdf&&typeof window.jspdf.jsPDF==='function')}
@@ -4803,6 +4812,7 @@ function pdfLoad(){
 }
 // 쪽 끝 — total 그림 높이 · page 한 쪽 높이 · cands 자를 수 있는 자리(표의 줄·덩어리 아래 끝). 한 쪽의 뒤쪽 절반 안에서 가장 아래 자리, 없으면 쪽 높이에서 자른다
 function pdfCuts(total,page,cands){
+  if(!(page>0))throw new Error('쪽 높이가 0 이하');   // 0 이하이거나 숫자가 아니면 아래 while 이 끝나지 않는다
   const out=[];let s=0;
   while(total-s>page){
     const ok=cands.filter(c=>c>s+page/2&&c<=s+page);
@@ -4820,14 +4830,16 @@ function draftPdfName(){
   return`[도어락발주서] ${branches.length?branches.join('·'):'지점'}_${dt.replace(/-/g,'')}`;
 }
 async function draftPdf(){
-  const area=document.getElementById('draft-area'),pv=area&&area.querySelector('.draft-preview');
-  if(!pv){toast('e','PDF 저장','먼저 [미리보기 생성]을 눌러 발주서를 만들어 주세요');return;}
+  const area=document.getElementById('draft-area'),NOPV='먼저 [미리보기 생성]을 눌러 발주서를 만들어 주세요';
+  if(!(area&&area.querySelector('.draft-preview'))){toast('e','PDF 저장',NOPV);return;}
   if(PDF_BUSY)return;
   PDF_BUSY=true;
   const btn=document.getElementById('draft-pdf-btn');if(btn)btn.setAttribute('aria-busy','true');
   try{
-    if(!PDF_LIBS.every(l=>l.ok()))toast('i','PDF 만드는 중','처음 한 번은 도구를 불러오느라 몇 초 걸려요');
+    toast('i','PDF 만드는 중',PDF_LIBS.every(l=>l.ok())?'잠시만 기다려 주세요':'처음 한 번은 도구를 불러오느라 몇 초 걸려요');   // 누를 때마다 — 그리는 동안 화면이 잠시 인쇄 모양으로 바뀐다
     await pdfLoad();
+    const pv=area.querySelector('.draft-preview');   // 도구를 불러오는 사이 미리보기가 다시 만들어지거나 비워질 수 있다 — 불러온 뒤의 것을 쓴다
+    if(!pv){toast('e','PDF 저장',NOPV);return;}
     const SC=2;
     area.classList.add('pdf-shot');
     const top=pv.getBoundingClientRect().top;
