@@ -1129,7 +1129,7 @@ b,strong{font-weight:600;}
           <div class="pb" style="padding-top:12px">
             <div class="fg"><label>특이사항 / 메모</label><textarea class="fta" id="draft-note" placeholder="발주서 하단에 표시될 특이사항" style="height:60px"></textarea></div>
             <div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
-              <button class="btn bp" onclick="genDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 미리보기 생성</button>
+              <button class="btn bp" onclick="draftGen()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 미리보기 생성</button>
               <button class="btn bo" onclick="sendDraftMail()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg> 이메일 발송</button>
               <button class="btn bo" onclick="printDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/></svg> 인쇄</button>
               <button class="btn bo" onclick="openAmaranthModal('draft')" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
@@ -4681,6 +4681,30 @@ function printDraft(){
   document.title=`[도어락발주서] ${branchStr}_${dateStr}`;
   window.print();
   setTimeout(()=>{document.title=prev;},1000);
+}
+
+/* ── 발주서 목록 — 줄 내용 저장(기능③) ──
+   genDraft(앱 밖 영역 — 글자 그대로)는 만들 때마다 K.H 맨 앞에 요약 한 줄({date,branch,rows,type,total,ts})을 쌓는다(최근 50건).
+   [미리보기 생성]은 draftGen 을 부른다 — genDraft 가 끝난 뒤, 방금 쌓인 그 줄에 줄 내용(detail)을 덧붙여 같은 길(sv — 지문 저장·관리자 전용)로 다시 저장한다.
+   detail = {v:1, by 만든 사람, rows getDraftRows() 그대로, dt 발주일, stockOnly 설치 없는 납품}. 줄 100개·JSON 20,000자를 넘으면 붙이지 않는다(요약만).
+   두 저장은 한 차례(동기)에 일어나므로 서버에는 한 번만 올라간다(키마다 한 줄로 세운 지문 저장은 보내는 순간의 값을 보낸다).
+   detail 을 모르는 앱(옛 탭)도 기록을 그대로 두고 앞에 요약만 더한다 */
+const DH_MAX_ROWS=100,DH_MAX_CHARS=20000;
+function draftGen(){
+  const rows=getDraftRows(),t0=Date.now(),h0=ld(K.H,[]),top0=JSON.stringify(Array.isArray(h0)?h0[0]??null:null);
+  genDraft();
+  if(!rows.length)return;   // genDraft 가 '지점을 선택한 행이 없습니다'로 멈췄다 — 쌓인 줄이 없다
+  dhAttach(rows,t0,top0);
+}
+// 방금 genDraft 가 쌓은 줄에만 붙인다 — 맨 앞 줄이 누르기 전 맨 앞 줄과 다르고, 시각(ts)이 누른 뒤이며, 건수·발주일이 이번 줄과 같을 때. 아니면 아무것도 하지 않는다(요약만)
+function dhAttach(rows,t0,top0){
+  const h=ld(K.H,[]),e=Array.isArray(h)?h[0]:null,dt=document.getElementById('draft-date')?.value||'';
+  if(!e||typeof e!=='object'||e.detail||JSON.stringify(e)===top0||!(Number(e.ts)>=t0)||e.rows!==rows.length||e.date!==dt)return false;
+  const detail={v:1,by:String(S&&(S.name||S.email)||''),rows,dt,stockOnly:rows.every(r=>!r.install)};
+  if(rows.length>DH_MAX_ROWS||JSON.stringify(detail).length>DH_MAX_CHARS)return false;   // 큰 발주서는 요약만
+  h[0]={...e,detail};
+  sv(K.H,h);   // genDraft 가 50건으로 잘라 둔 배열 — 줄 수는 그대로
+  return true;
 }
 
 // @outside-app
