@@ -691,6 +691,9 @@ b,strong{font-weight:600;}
 .tbl td.dh-num{font-variant-numeric:tabular-nums;white-space:nowrap;}
 .tbl th.dh-r,.tbl td.dh-r{text-align:right;}
 .tbl td.dh-wrap{white-space:normal;overflow-wrap:anywhere;min-width:160px;}
+/* PDF 저장(기능③) — 그리는 동안만 인쇄할 때의 CSS 와 같은 모양: 테두리·안쪽 여백 없음 · A4 인쇄 폭(190mm = 718px) · 인쇄 단추 숨김 */
+#draft-area.pdf-shot .draft-preview{width:718px!important;max-width:none!important;margin:0!important;padding:0!important;border:none!important;border-radius:0!important;box-shadow:none!important;}
+#draft-area.pdf-shot .no-print{display:none!important;}
 
 /* MODAL — 반경 16·안쪽 24·배경막 #1B1B1A 60% */
 .mo{display:none;position:fixed;inset:0;background:var(--dl-backdrop);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
@@ -1137,6 +1140,7 @@ b,strong{font-weight:600;}
               <button class="btn bp" onclick="draftGen()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> 미리보기 생성</button>
               <button class="btn bo" onclick="sendDraftMail()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2,4 12,13 22,4"/></svg> 이메일 발송</button>
               <button class="btn bo" onclick="printDraft()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 6 2 18 2 18 9"/><rect x="6" y="14" width="12" height="8"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/></svg> 인쇄</button>
+              <button class="btn bo" id="draft-pdf-btn" onclick="draftPdf()" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> PDF 저장</button>
               <button class="btn bo" onclick="openAmaranthModal('draft')" style="flex:1;min-width:120px;display:flex;align-items:center;justify-content:center;gap:5px"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
             </div>
           </div>
@@ -4773,6 +4777,81 @@ function dhFill(e){
   document.getElementById('draft-area').innerHTML='';   // 옛 미리보기는 지운다 — [미리보기 생성]을 다시 눌러야 PDF·인쇄가 이 내용이 된다
   toast('s','발주서를 다시 열었어요',`${d.rows.length}줄 · 발주일 ${escH(d.dt||'—')}${miss?` · 지금 지점 목록에 없는 지점 ${miss}줄 — 확인해 주세요`:''} · [미리보기 생성]을 누르면 새 기록으로 쌓여요`);
   document.getElementById('draft-rows-table')?.scrollIntoView({behavior:'smooth',block:'center'});
+}
+/* ── PDF 저장(기능③) ──
+   지금 만든 발주서(#draft-area 의 미리보기)를 인쇄 창 없이 A4 세로 PDF 로 내려받는다. 처음 누를 때만 cdnjs 에서 두 도구를 불러온다 —
+   판을 못 박은 주소 + 무결성 해시(받은 파일이 한 글자라도 다르면 브라우저가 실행하지 않는다).
+   그리는 동안만 #draft-area 에 pdf-shot 을 씌워 인쇄할 때의 CSS 와 같은 모양(테두리·안쪽 여백 없음 · 인쇄 폭 190mm · 인쇄 단추 숨김)으로 그린다.
+   넘치면 여러 쪽 — 쪽 끝은 표의 줄·덩어리 경계에서 자른다(글줄이 반으로 잘리지 않게). 파일 이름은 printDraft 가 인쇄 창에 주는 이름과 같다.
+   불러오기·그리기가 실패하면 [인쇄]의 'PDF로 저장'을 권한다 */
+const PDF_LIBS=[
+  {url:'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',sri:'sha512-BNaRQnYJYiPSqHHDb58B0yaPfCu+Wgds8Gp/gU33kqBtgNS4tSPHuGibyoeqMV/TJlSKda6FXzoEyYGjTe+vXA==',ok:()=>typeof window.html2canvas==='function'},
+  {url:'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',sri:'sha512-qZvrmS2ekKPF2mSznTQsxqPgnpkI4DNTlrdUmTzrDgektczlKNRRhy5X5AAOnx5S09ydFYWWNSfcEqDTTHgtNA==',ok:()=>!!(window.jspdf&&typeof window.jspdf.jsPDF==='function')}
+];
+let PDF_LOAD=null,PDF_BUSY=false;
+function pdfLoad(){
+  if(!PDF_LOAD)PDF_LOAD=Promise.all(PDF_LIBS.map(l=>l.ok()?null:new Promise((done,fail)=>{
+    const s=document.createElement('script'),t=setTimeout(()=>{s.remove();fail(new Error('시간 초과 '+l.url));},20000);
+    s.src=l.url;s.integrity=l.sri;s.crossOrigin='anonymous';s.referrerPolicy='no-referrer';
+    s.onload=()=>{clearTimeout(t);if(l.ok())done();else fail(new Error('도구 없음 '+l.url));};
+    s.onerror=()=>{clearTimeout(t);s.remove();fail(new Error('불러오기 실패 '+l.url));};
+    document.head.appendChild(s);
+  }))).catch(e=>{PDF_LOAD=null;throw e;});   // 실패하면 다음 클릭에 다시 불러온다
+  return PDF_LOAD;
+}
+// 쪽 끝 — total 그림 높이 · page 한 쪽 높이 · cands 자를 수 있는 자리(표의 줄·덩어리 아래 끝). 한 쪽의 뒤쪽 절반 안에서 가장 아래 자리, 없으면 쪽 높이에서 자른다
+function pdfCuts(total,page,cands){
+  const out=[];let s=0;
+  while(total-s>page){
+    const ok=cands.filter(c=>c>s+page/2&&c<=s+page);
+    const e=ok.length?Math.max(...ok):s+page;
+    out.push(e);s=e;
+  }
+  out.push(total);
+  return out;
+}
+// 파일 이름 — printDraft 가 인쇄 창에 주는 이름(document.title)과 같은 규칙: [도어락발주서] 지점·지점_날짜
+function draftPdfName(){
+  const rows=getDraftRows();
+  const dt=document.getElementById('draft-date')?.value||new Date().toISOString().substring(0,10);
+  const branches=[...new Set(rows.map(r=>r.branch).filter(Boolean))];
+  return`[도어락발주서] ${branches.length?branches.join('·'):'지점'}_${dt.replace(/-/g,'')}`;
+}
+async function draftPdf(){
+  const area=document.getElementById('draft-area'),pv=area&&area.querySelector('.draft-preview');
+  if(!pv){toast('e','PDF 저장','먼저 [미리보기 생성]을 눌러 발주서를 만들어 주세요');return;}
+  if(PDF_BUSY)return;
+  PDF_BUSY=true;
+  const btn=document.getElementById('draft-pdf-btn');if(btn)btn.setAttribute('aria-busy','true');
+  try{
+    if(!PDF_LIBS.every(l=>l.ok()))toast('i','PDF 만드는 중','처음 한 번은 도구를 불러오느라 몇 초 걸려요');
+    await pdfLoad();
+    const SC=2;
+    area.classList.add('pdf-shot');
+    const top=pv.getBoundingClientRect().top;
+    const cands=[...pv.querySelectorAll('tr'),...pv.children].filter(x=>!x.closest('.no-print')).map(x=>Math.round((x.getBoundingClientRect().bottom-top)*SC));
+    const canvas=await window.html2canvas(pv,{scale:SC,useCORS:true,logging:false});
+    area.classList.remove('pdf-shot');
+    const pdf=new window.jspdf.jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const X=10,Y=12,W=190,PAGE=273,mm=W/canvas.width;   // A4 210×297mm — 인쇄 CSS(@page)와 같은 여백(위아래 12 · 좌우 10mm)
+    let s=0;
+    pdfCuts(canvas.height,Math.floor(PAGE/mm),cands).forEach((e,n)=>{
+      const c=document.createElement('canvas');c.width=canvas.width;c.height=e-s;
+      const g=c.getContext('2d');g.fillStyle='white';g.fillRect(0,0,c.width,c.height);
+      g.drawImage(canvas,0,s,canvas.width,e-s,0,0,canvas.width,e-s);
+      if(n)pdf.addPage();
+      pdf.addImage(c.toDataURL('image/jpeg',0.95),'JPEG',X,Y,W,(e-s)*mm);
+      s=e;
+    });
+    const name=draftPdfName()+'.pdf';
+    pdf.save(name);
+    toast('s','PDF 저장',escH(name));
+  }catch(err){
+    console.warn('PDF 저장 실패',err);
+    toast('e','PDF 저장 실패',"PDF 를 만들지 못했어요 — [인쇄] 에서 'PDF로 저장' 을 쓰세요");
+  }finally{
+    area.classList.remove('pdf-shot');PDF_BUSY=false;if(btn)btn.removeAttribute('aria-busy');
+  }
 }
 
 // @outside-app
