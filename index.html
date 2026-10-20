@@ -943,6 +943,28 @@ b,strong{font-weight:600;}
 .cm-foot{display:flex;align-items:center;gap:8px;}
 .cm-note{flex:1;font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);}
 .cm-ac[hidden],.cm-foot .btn[hidden]{display:none;}
+/* ── 기능④ 내 알림 — 메뉴 맨 위(로고 아래) 종 선 아이콘 + 안 읽은 수. 접힌 메뉴에서는 아이콘·배지만(이름은 읽기 프로그램만) ── */
+.sb-ib-w{padding:8px 8px 0;}
+.sb-ib{position:relative;display:flex;align-items:center;gap:10px;width:100%;padding:8px 12px;background:none;border:1px solid transparent;border-radius:8px;color:var(--plott-color-neutral700);font-size:14px;line-height:20px;text-align:left;cursor:pointer;}
+.sb-ib:hover{background:var(--plott-color-neutral50);color:var(--plott-color-text-default);}
+.sb-ib:focus-visible,.ib-i:focus-visible{outline:2px solid var(--plott-color-action-primary);outline-offset:2px;box-shadow:var(--plott-focus-ring-default);}
+.sb-ib svg{flex-shrink:0;}
+.sb-ib-n{margin-left:auto;min-width:20px;padding:0 6px;border-radius:9999px;background:var(--plott-color-danger700);color:var(--plott-color-text-inverse);font-size:12px;line-height:16px;font-weight:600;text-align:center;}
+.sb-ib-n[hidden]{display:none;}
+.sb-col .sb-ib{justify-content:center;gap:0;padding:8px 0;}
+.sb-col .sb-ib-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}
+.sb-col .sb-ib-n{position:absolute;top:2px;right:2px;margin:0;min-width:16px;padding:0 4px;}
+.ib-hd{display:inline-flex;align-items:center;gap:8px;flex-shrink:0;}
+.ib-i{display:flex;align-items:flex-start;gap:10px;width:100%;padding:12px 8px;background:none;border:0;border-radius:8px;text-align:left;cursor:pointer;}
+.ib-i+.ib-i{margin-top:2px;}
+.ib-i:hover{background:var(--plott-color-neutral50);}
+.ib-dot{flex-shrink:0;width:8px;height:8px;margin-top:6px;border-radius:50%;}
+.ib-new .ib-dot{background:var(--plott-color-danger700);}
+.ib-tx{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.ib-msg{font-size:14px;line-height:20px;color:var(--plott-color-text-default);}
+.ib-new .ib-msg{font-weight:600;}
+.ib-sub{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);}
+#r-body tr.r-hl td{background:var(--plott-tag-brand-background-color);}
 .sr-only{position:absolute;left:0;max-width:100%;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}   /* 화면에서만 숨기는 글(읽기 프로그램은 읽는다) — 동기화 줄의 안내 칸(#sb-sync-live). 높이 1px + clip 으로 아무것도 그려지지 않는다. 폭은 글 폭 그대로(글은 다 담긴 채 가려진다)이되 담는 칸(없으면 화면)의 왼쪽 끝에서 그 폭을 넘지 않는다(left:0 · max-width:100%) — 글이 아무리 길어도 쪽에 가로 스크롤이 생기지 않는다 */
 </style>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
@@ -1004,6 +1026,7 @@ b,strong{font-weight:600;}
 <div id="app">
   <aside class="sb">
     <div class="sb-logo"><span class="sb-wordmark" role="img" aria-label="plott"></span><div><div class="brand">도어락 통합관리</div><div class="tag">접수 · 발주 · 설치 · 정산</div></div><button type="button" class="sb-tog" id="sb-tog" aria-label="메뉴 접기" title="메뉴 접기" aria-expanded="true" aria-controls="sb-nav" onclick="sbColToggle()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button></div>
+    <div class="sb-ib-w"><span class="sr-only" id="sb-ib-live" aria-live="polite"></span><button type="button" class="sb-ib" id="sb-ib" aria-label="내 알림" onclick="ibOpen()"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg><span class="sb-ib-t">내 알림</span><span class="sb-ib-n" id="sb-ib-n" hidden></span></button></div>
     <div class="sb-uw" style="padding:10px 12px 0">
       <div class="sb-user"><div class="un" id="sb-n">—</div><div class="ub" id="sb-b">—</div><span class="ur" id="sb-r"></span></div>
     </div>
@@ -1980,6 +2003,14 @@ b,strong{font-weight:600;}
 </div>
 </div>
 
+<!-- 내 알림 창(기능④) — 최신순. 누르면 그 접수의 댓글 창(상태 변화는 접수 관리에서 그 줄을 강조) -->
+<div class="mo dl-side" id="ib-mo" role="dialog" aria-modal="true" aria-labelledby="ib-title">
+<div class="mb">
+  <div class="mh"><span class="mt2" id="ib-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>내 알림</span><span class="ib-hd"><button class="btn bo bsm" id="ib-all" onclick="ibAllRead()">모두 읽음</button><button class="mx" aria-label="닫기" onclick="closeMo('ib-mo')">✕</button></span></div>
+  <div class="ib-list" id="ib-list"></div>
+</div>
+</div>
+
 <div class="cfm" id="cfm">
   <div class="cfmb">
     <div class="ci" id="cfm-i"></div>
@@ -2057,6 +2088,7 @@ const setLoaded=(el,v)=>{if(!el)return;const t=v==null?'':String(v);el.value=t;e
 let SB_SYNCED=false;
 const sv=(k,v)=>{
   localStorage.setItem(k,JSON.stringify(v));
+  if(k===K.R)ibQuiet();   // 내 알림(기능④) — 이 탭이 바꾼 접수 상태는 알리지 않는다(지난 상태 기준만 맞춘다)
   if(!SB_SYNCED&&localStorage.getItem('__init__'+k))return;   // 첫 동기화 전 씨앗은 올리지 않는다
   localStorage.removeItem('__init__'+k);
   sbSet(k,v);
@@ -2828,7 +2860,7 @@ const PV_OK=[
   '.mx','[onclick^="closeMo("]','#cfm-no','[onclick^="goP("]',                                                           // 창 닫기 · 다른 화면으로 가기
   '[onclick^="openBrMo("]:not([onclick="openBrMo(null)"])',                                                               // 지점 정보 보기(창 안 칸·저장·삭제는 막힌다) — 지점 추가는 막는다
   '[onclick^="editR("]','[onclick^="openOMo("]:not([onclick="openOMo(null)"])',                                           // 기록 창 열어 읽기 — 접수·발주 [수정](창 안 칸·저장은 막힌다) — 새 발주 등록·새 접수 등록 같은 빈 창은 막는다
-  '[onclick^="cmOpen("]'                                                                                                  // 접수 댓글 창 열어 읽기(기능④ — 창 안의 입력·등록·수정·삭제는 막힌다)
+  '[onclick^="cmOpen("]','#ib-mo button'                                                                                  // 접수 댓글 창 열어 읽기(기능④ — 창 안의 입력·등록·수정·삭제는 막힌다) · 내 알림 목록·[모두 읽음]
 ].join(',');
 const PV_TEXT=/^(text|search|email|tel|url|number|password|date|month|week|time|datetime-local)$/;   // readOnly 가 듣는 칸
 const PV={on:false,t:0};   // on 지금 화면이 보기만인가 · t 마지막 '보기만' 알림 시각(잇단 클릭에 알림이 쌓이지 않게)
@@ -6207,11 +6239,112 @@ function cmAfterSync(){
   try{
     if(!(S&&S.token))return;
     if(CM.rid&&document.getElementById('cm-mo')?.classList.contains('show'))cmRender();
+    ibDiff(false);ibBadge();
+    if(document.getElementById('ib-mo')?.classList.contains('show'))ibRender();
     cmHashOpen();
   }catch(e){console.warn('댓글 갱신 실패',e);}
 }
 cmHashTake();
 addEventListener('hashchange',()=>{if(cmHashTake())cmHashOpen();});
+
+/* ── 내 알림(기능④) ──
+   세 갈래: ① 나를 부른 댓글 ② 내 접수 건(r.regEmail 이 나)에 남이 쓴 새 댓글 — 둘은 댓글에서 바로 만든다(남이 쓴 것만 · 지운 것·볼 수 없는 접수는 빼고 · 시각은 댓글의 at)
+   ③ 내 접수 건의 상태 변화(발주됨 · 설치 일정 잡힘/바뀜 · 설치 완료) — 이 브라우저에 기억해 둔 지난 상태(dl.inbox.snap)와 동기화 뒤의 상태를 견줘 그때 한 줄(dl.inbox.items, 최근 100)을 만든다.
+   처음 켰을 땐 기준만 잡는다. 이 탭이 접수를 저장하면(sv) 기준만 맞춘다 — 내가 바꾼 것은 알리지 않는다.
+   읽음 = dl.inbox.readAt(이 시각보다 뒤 것이 안 읽음) — 기기마다 따로다. 세 값 모두 누구 것인지(me)를 같이 적어, 한 컴퓨터를 같이 쓰다 사람이 바뀌면 새로 잡는다. localStorage 는 모두 try 로 */
+const IB_SNAP='dl.inbox.snap',IB_ITEMS='dl.inbox.items',IB_READ='dl.inbox.readAt',IB_MAX=100;
+const ibGet=k=>{try{const v=JSON.parse(localStorage.getItem(k)||'null'),me=cmMe();return v&&typeof v==='object'&&me&&v.me===me?v:null;}catch{return null;}};
+const ibPut=(k,v)=>{try{localStorage.setItem(k,JSON.stringify({...v,me:cmMe()}));}catch{}};
+const ibMine=()=>{const me=cmMe();return me?getRc().filter(r=>r&&typeof r.id==='string'&&cmLow(r.regEmail)===me):[];};
+const ibStage=r=>({s:String(r.status||''),d:String(r.expectedInstallDate||''),i:String(r.installDate||'')});
+const ibMd=d=>{const m=/^\d{4}-(\d{2})-(\d{2})/.exec(d);return m?`${Number(m[1])}/${Number(m[2])}`:d;};
+// 지난 상태 a → 지금 상태 b 사이의 알림 글(되돌리기·결제는 알리지 않는다)
+function ibEvents(a,b){
+  const out=[];
+  if(a.s==='접수'&&['발주','설치','결제'].includes(b.s))out.push('발주됐어요');
+  if(b.d&&b.d!==a.d)out.push(a.d?`설치 일정이 바뀌었어요(${ibMd(b.d)})`:`설치 일정이 잡혔어요(${ibMd(b.d)})`);
+  if(b.s==='결제'&&a.s!=='결제'&&b.i)out.push('설치가 끝났어요');
+  return out;
+}
+// 지난 상태와 견준다 — quiet 면 기준만 맞추고 알림은 만들지 않는다
+function ibDiff(quiet){
+  if(!cmMe())return;
+  const mine=ibMine(),snap=ibGet(IB_SNAP),now={};
+  for(const r of mine)now[r.id]=ibStage(r);
+  if(!quiet&&snap&&snap.r&&typeof snap.r==='object'){
+    const got=ibGet(IB_ITEMS),items=Array.isArray(got&&got.list)?got.list.filter(x=>x&&typeof x==='object'):[];
+    let t=Date.now(),add=0;
+    for(const r of mine){
+      const a=snap.r[r.id];if(!a||typeof a!=='object')continue;   // 이번에 처음 보는 내 접수 — 기준만
+      for(const msg of ibEvents(a,now[r.id])){items.push({k:'s',id:'s_'+t.toString(36)+'_'+add,rid:r.id,at:new Date(t++).toISOString(),msg});add++;}
+    }
+    if(add)ibPut(IB_ITEMS,{list:items.sort((x,y)=>String(y.at).localeCompare(String(x.at))).slice(0,IB_MAX)});
+  }
+  ibPut(IB_SNAP,{r:now});
+}
+function ibQuiet(){try{if(S)ibDiff(true);}catch{}}
+// 지금 보일 알림(최신순 100) — 댓글에서 만든 것 + 기억해 둔 상태 변화. 볼 수 없는 접수는 뺀다
+function ibItems(){
+  const me=cmMe();if(!me)return[];
+  const rc=new Map(getRc().filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r])),out=[];
+  for(const c of cmRows()){
+    if(c.del||cmLow(c.email)===me)continue;
+    const r=rc.get(c.rid);if(!cmSeeR(r))continue;
+    const k=cmMentions(c).includes(me)?'m':cmLow(r.regEmail)===me?'c':'';
+    if(k)out.push({k,id:'c_'+c.id,rid:c.rid,at:String(c.at||''),by:String(c.by||c.email||'')});
+  }
+  const got=ibGet(IB_ITEMS);
+  for(const x of Array.isArray(got&&got.list)?got.list:[])if(x&&typeof x==='object'&&x.k==='s'&&cmSeeR(rc.get(x.rid)))out.push(x);
+  return out.sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,IB_MAX);
+}
+const ibReadAt=()=>{const v=ibGet(IB_READ);return v&&typeof v.at==='string'?v.at:'';};
+let IB_LAST=null,IB_ROWS=[];   // 지난번 안 읽은 수(늘었을 때만 읽기 프로그램이 읽는다) · 창에 그린 알림(단추엔 번호만)
+function ibBadge(){
+  const b=document.getElementById('sb-ib-n'),btn=document.getElementById('sb-ib');if(!b||!btn)return;
+  const ra=ibReadAt(),n=ibItems().filter(x=>String(x.at)>ra).length;
+  b.hidden=!n;b.textContent=n>99?'99+':String(n);
+  btn.setAttribute('aria-label',n?`내 알림 — 안 읽은 알림 ${n}개`:'내 알림');
+  const live=document.getElementById('sb-ib-live');
+  if(live&&IB_LAST!=null&&n>IB_LAST)live.textContent=`새 알림이 있어요 — 안 읽은 알림 ${n}개`;
+  IB_LAST=n;
+}
+function ibOpen(){if(!S)return;ibRender();openMo('ib-mo');document.querySelector('#ib-mo .mx')?.focus();}
+function ibRender(){
+  const box=document.getElementById('ib-list');if(!box)return;
+  const items=ibItems(),ra=ibReadAt(),rc=new Map(getRc().filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r]));
+  IB_ROWS=items;
+  box.innerHTML=items.length?items.map((x,i)=>{
+    const r=rc.get(x.rid)||{},nw=String(x.at)>ra;
+    const msg=x.k==='m'?`${escH(x.by)}님이 회원님을 불렀어요`:x.k==='c'?`${escH(x.by)}님이 내 접수에 댓글을 남겼어요`:escH(x.msg);
+    return`<button type="button" class="ib-i${nw?' ib-new':''}" onclick="ibGo(${i})"><span class="ib-dot" aria-hidden="true"></span><span class="ib-tx"><span class="ib-msg">${msg}${nw?'<span class="sr-only"> · 안 읽음</span>':''}</span><span class="ib-sub">${escH(r.branch||'')} ${escH(r.room||'')} · ${escH(tKst(x.at))}</span></span></button>`;
+  }).join(''):'<div class="ib-empty">새 알림이 없어요</div>';
+  document.getElementById('ib-all').disabled=!items.some(x=>String(x.at)>ra);
+}
+function ibAllRead(){
+  const top=ibItems().reduce((m,x)=>String(x.at)>m?String(x.at):m,new Date().toISOString());
+  ibPut(IB_READ,{at:top});ibRender();ibBadge();
+}
+function ibGo(i){
+  const x=IB_ROWS[i];if(!x)return;
+  closeMo('ib-mo');
+  if(!cmSeeR(cmFindR(x.rid))){toast('w','내 알림','그 접수를 볼 수 없어요 — 지워졌거나 다른 지점 건이에요');return;}
+  if(!cmOnR())goP('receipt');
+  if(x.k==='s')ibHighlight(x.rid);else cmOpenId(x.rid);
+}
+// 상태 알림 — 접수 관리에서 그 줄을 찾아(거름에 가려 있으면 거름을 비우고) 4초 강조한다
+function ibHighlight(rid){
+  const find=()=>document.querySelector(`#r-body button[onclick="cmOpen(${cmNo(rid)})"]`)?.closest('tr');
+  let tr=find();
+  if(!tr){
+    pipeR='all';document.querySelectorAll('#pipe-r .ps').forEach(s=>s.classList.toggle('on',s.dataset.s==='all'));
+    ['fr-b','fr-m','fr-s'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';try{sessionStorage.removeItem('filter_'+id);}catch{}});
+    renderR();tr=find();
+  }
+  if(!tr)return;
+  document.querySelectorAll('#r-body tr.r-hl').forEach(x=>x.classList.remove('r-hl'));
+  tr.classList.add('r-hl');tr.scrollIntoView({block:'center'});
+  setTimeout(()=>tr.classList.remove('r-hl'),4000);
+}
 
 /* ── EXCEL EXPORT ── */
 function exportToExcel(type){
