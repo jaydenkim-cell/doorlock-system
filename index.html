@@ -680,6 +680,11 @@ b,strong{font-weight:600;}
 .sb-col .ni .ni-ro{display:none;}
 /* 보기만(기능②-3) — 막힌 단추·칸은 흐리게(누르면 알림만) */
 [data-pv]{opacity:var(--plott-opacity-disabled);cursor:not-allowed;}
+/* 팀·개인 권한 창(기능②-3) — 구성원 고르기 목록 · 안내 글 · 긴 이메일 줄바꿈 */
+.pa-mems{display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;margin-top:8px;padding:8px 12px;border:1px solid var(--plott-color-border-default);border-radius:8px;}
+.pa-mems .pa-mem{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;line-height:20px;font-weight:400;color:var(--plott-color-text-default);cursor:pointer;}
+.pa-note{font-size:12px;line-height:16px;color:var(--plott-color-text-secondary);}
+.tbl td.pa-wrap{white-space:normal;overflow-wrap:anywhere;}
 
 /* MODAL — 반경 16·안쪽 24·배경막 #1B1B1A 60% */
 .mo{display:none;position:fixed;inset:0;background:var(--dl-backdrop);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
@@ -1459,6 +1464,14 @@ b,strong{font-weight:600;}
             </table>
           </div>
         </div>
+        <!-- 팀·개인 권한(기능②-3 §3.7) — 내용(#pa-body)은 paRender 가 그린다. 팀은 [+ 팀], 사람은 위 사용자 목록 줄의 [권한] -->
+        <div class="panel" id="pa-panel" style="margin-bottom:16px">
+          <div class="ph">
+            <span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> 팀·개인 권한</span>
+            <button class="btn bp bsm" id="pa-add" onclick="paOpenTeam(-1)">+ 팀</button>
+          </div>
+          <div id="pa-body"></div>
+        </div>
         <div class="panel">
           <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> 승인 대기 중</span><span id="pend-cnt" style="font-size:12px;color:var(--yellow);font-weight:600;margin-left:8px"></span></div>
           <div class="user-table-wrap">
@@ -1886,6 +1899,24 @@ b,strong{font-weight:600;}
     </div>
   </div>
   <div class="mfoot"><button class="btn bo" onclick="closeMo('mo-adduser')">취소</button><button class="btn bp" onclick="submitAddUser()">추가</button></div>
+</div>
+</div>
+
+<!-- 팀·개인 권한 창(기능②-3 §3.7) — paOpenTeam·paOpenPerson 이 채운다. 이름·이메일·팀 이름은 escH·textContent 로만 그린다 -->
+<div class="mo" id="mo-pa">
+<div class="mb" style="width:640px">
+  <div class="mh"><span class="mt2" id="pa-title">권한</span><button class="mx" aria-label="닫기" onclick="closeMo('mo-pa')">✕</button></div>
+  <div class="mbody">
+    <div id="pa-team-f">
+      <div class="fg"><label for="pa-name">팀 이름 <span class="req">*</span></label><input class="fi" id="pa-name" maxlength="30" autocomplete="off" placeholder="예: 운영팀"></div>
+      <div class="fg"><label for="pa-mem-q">구성원</label><input class="fi" id="pa-mem-q" autocomplete="off" placeholder="이름·이메일로 찾기" oninput="paMemFilter()" aria-describedby="pa-mem-n">
+        <div class="pa-note" id="pa-mem-n" style="margin-top:6px"></div>
+        <div class="pa-mems" id="pa-mems" role="group" aria-label="구성원"></div></div>
+    </div>
+    <div class="pa-note" id="pa-who" style="margin-bottom:12px"></div>
+    <div class="user-table-wrap"><table class="tbl"><thead><tr><th>메뉴</th><th>권한</th><th id="pa-eff-h">실제 권한</th></tr></thead><tbody id="pa-rows"></tbody></table></div>
+  </div>
+  <div class="mfoot"><button class="btn br2" id="pa-del" onclick="paDelTeam()" style="margin-right:auto">팀 삭제</button><button class="btn bo" onclick="closeMo('mo-pa')">취소</button><button class="btn bp" id="pa-save" onclick="paSave()">저장</button></div>
 </div>
 </div>
 
@@ -3942,37 +3973,40 @@ const ROLE_BADGE = {superadmin:'rb-sa',admin:'rb-admin',user:'rb-user',pending:'
 
 function renderUsers(){
   if(!isSA()){toast('e','권한 없음','최고관리자만 접근할 수 있습니다.');return;}
+  USR_IDS=[];   // onclick 에 넣지 않는 ID 의 자리표(uidJs)
   const users=getUsers();
   const active=users.filter(u=>u.role!=='pending');
   const pending=users.filter(u=>u.role==='pending');
   document.getElementById('pend-cnt').textContent=pending.length>0?`${pending.length}명 대기 중`:'없음';
-  document.getElementById('users-tbody').innerHTML=active.length?active.map(u=>{
+  PA_USERS=active;   // [권한](기능②-3)은 이 배열 번호만 넘긴다
+  document.getElementById('users-tbody').innerHTML=active.length?active.map((u,i)=>{
     const isSelf=u.id===S.id;
     const saList=getSAIds();
     const isThisSA=saList.includes(u.id)||u.role==='superadmin';
     const roleOpts=['user','admin'].map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABELS[r]}</option>`).join('');
     const roleSel=isThisSA||isSelf?`<span class="role-badge ${ROLE_BADGE[u.role]||'rb-pending'}">${ROLE_LABELS[u.role]||u.role}</span>`:
-      `<select class="role-sel" onchange="setUserRole('${u.id}',this.value)"><option value="" disabled>변경</option>${roleOpts}</select>`;
+      `<select class="role-sel" onchange="setUserRole(${uidJs(u.id)},this.value)"><option value="" disabled>변경</option>${roleOpts}</select>`;
     return`<tr>
       <td style="font-weight:600">${slackAvatar(u.email||u.id,u.name)}</td>
-      <td class="idc">${u.id}</td>
+      <td class="idc">${escH(u.id)}</td>
       <td><span class="role-badge ${ROLE_BADGE[u.role]||'rb-pending'}">${ROLE_LABELS[u.role]||u.role}</span></td>
       <td style="color:var(--text3)">${u.approvedAt?u.approvedAt.substring(0,10):'—'}</td>
       <td style="color:var(--text3)">${u.approvedBy||'—'}</td>
       <td>${roleSel}</td>
-      <td>${isSelf||isThisSA?'—':`<button class="btn br2 bsm reject-btn" onclick="removeUser('${u.id}')">삭제</button>`}</td>
+      <td style="white-space:nowrap"><button class="btn bo bsm pa-btn" onclick="paOpenPerson(${i})">권한</button>${isSelf||isThisSA?'':` <button class="btn br2 bsm reject-btn" onclick="removeUser(${uidJs(u.id)})">삭제</button>`}</td>
     </tr>`;
   }).join(''):`<tr><td colspan="7" style="text-align:center;padding:28px;color:var(--text3)">승인된 사용자가 없습니다</td></tr>`;
   document.getElementById('pending-tbody').innerHTML=pending.length?pending.map(u=>`
     <tr class="pending-row">
-      <td class="idc">${u.id}</td>
+      <td class="idc">${escH(u.id)}</td>
       <td style="color:var(--text3)">${u.loginAt?new Date(u.loginAt).toLocaleString('ko-KR'):'—'}</td>
       <td>
-        <button class="btn bp bsm approve-btn" style="margin-right:6px" onclick="approveUser('${u.id}','user')">직원으로 승인</button>
-        <button class="btn bg bsm approve-btn" style="margin-right:6px" onclick="approveUser('${u.id}','admin')">관리자로 승인</button>
-        <button class="btn br2 bsm reject-btn" onclick="removeUser('${u.id}')">거절</button>
+        <button class="btn bp bsm approve-btn" style="margin-right:6px" onclick="approveUser(${uidJs(u.id)},'user')">직원으로 승인</button>
+        <button class="btn bg bsm approve-btn" style="margin-right:6px" onclick="approveUser(${uidJs(u.id)},'admin')">관리자로 승인</button>
+        <button class="btn br2 bsm reject-btn" onclick="removeUser(${uidJs(u.id)})">거절</button>
       </td>
     </tr>`).join(''):`<tr><td colspan="3" style="text-align:center;padding:20px;color:var(--green)">대기 중인 사용자 없음 ✓</td></tr>`;
+  paRender();   // 팀·개인 권한 패널(기능②-3)
   if(FILL_FORCE)nmLoad(false);else nmRender();   // 신규 패널(기능② §3.6) — 메뉴로 들어올 때만 슬랙 명단을 묻는다(10분 안이면 받아 둔 명단). 추가·승인·삭제 뒤에는 다시 그리기만
 }
 
@@ -4080,6 +4114,128 @@ function nmIgnore(i){
   // 누른 단추가 사라져 초점이 body 로 떨어진다 — 그 자리로 올라온 다음 줄의 첫 단추로(마지막 줄이었으면 앞 줄), 줄이 하나도 안 남았으면 [다시 불러오기]로 옮긴다
   const rows=document.querySelectorAll('#nm-body tbody tr'),next=rows[i]||rows[rows.length-1],to=(next&&next.querySelector('button'))||document.getElementById('nm-reload');
   if(to)to.focus();
+}
+/* 사용자 ID 를 onclick 글자에 넣을 때(기능②-3, ②-2 리뷰에서 남긴 일) — 이메일 꼴 글자뿐이면 지금처럼 따옴표 글자로,
+   그 밖(옛 계정·따옴표·꺾쇠 등)은 USR_IDS 자리표로 넘긴다(그 글자를 onclick 에 넣지 않는다). 표의 ID 칸은 escH */
+let USR_IDS=[];
+const uidJs=id=>{const s=String(id==null?'':id);if(/^[A-Za-z0-9@._%+-]+$/.test(s))return`'${s}'`;USR_IDS.push(s);return`USR_IDS[${USR_IDS.length-1}]`;};
+/* ── 팀·개인 권한 화면(기능②-3 §3.7, 최고관리자 — 사용자 관리 안 패널 #pa-panel · 창 #mo-pa) ──
+   팀: [+ 팀] → 이름 · 구성원(도어락 사용자에서 고름) · 메뉴 13개 × 기본/안 보임/보기만/고치기
+   사람: 사용자 목록 줄의 [권한] → 같은 표 + 실제 권한 미리보기(팀·역할 상한 반영)
+   저장은 지금 저장값(permData)을 다시 읽어 고친 팀·사람 한 칸만 바꾼다(다른 최고관리자가 그사이 바꾼 칸을 되돌리지 않게) — 지문 저장(K.PR)
+   변경 이력: '권한 변경' · 팀 이름 또는 이메일 · 바뀐 메뉴. 이름·이메일·팀 이름은 escH·textContent 로만 그린다(알림 포함) */
+const PA={kind:'',id:'',email:'',users:[]};   // kind 'team'|'person' · id 고치는 팀(새 팀이면 '') · email 고치는 사람 · users 구성원 고르기 목록 [{e 이메일, n 이름}]
+let PA_USERS=[],PA_ROWS=[];   // 사용자 목록에 그린 줄 · 패널에 그린 줄 — [권한]·[수정]은 배열 번호만 넘긴다(이름·이메일을 onclick 글자에 넣지 않는다)
+const paEmail=u=>permLow(u&&(u.email||u.id));
+const paIsSA=u=>!!u&&(u.role==='superadmin'||getSAIds().map(permLow).some(x=>x===permLow(u.id)||x===permLow(u.email)));
+const paIsAdm=u=>!!u&&(u.role==='admin'||paIsSA(u));
+const paSum=m=>PERM_MENUS.filter(p=>m[p]).map(p=>`${PM[p][0]} ${PERM_LABEL[m[p]]}`).join(' · ');
+function paRender(){
+  const el=document.getElementById('pa-body');if(!el)return;
+  const d=permData(),users=getUsers(),nameOf=e=>{const u=users.find(x=>paEmail(x)===e);return u&&u.name?String(u.name):e;};
+  PA_ROWS=d.teams.map(t=>({kind:'team',id:t.id,k:'팀',n:t.name,m:t.members.map(nameOf).join(', ')||'—',s:paSum(t.menus)||'모두 기본'}))
+    .concat(Object.keys(d.people).filter(e=>paSum(d.people[e])).sort().map(e=>({kind:'person',email:e,k:'개인',n:nameOf(e),m:e,s:paSum(d.people[e])})));
+  el.innerHTML=PA_ROWS.length?`<div class="user-table-wrap"><table class="tbl"><thead><tr><th>구분</th><th>이름</th><th>구성원 · 이메일</th><th>정한 메뉴</th><th>처리</th></tr></thead><tbody>${PA_ROWS.map((r,i)=>`<tr><td>${r.k}</td><td style="font-weight:600">${escH(r.n)}</td><td class="pa-wrap">${escH(r.m)}</td><td class="pa-wrap">${escH(r.s)}</td><td><button class="btn bo bsm" onclick="paOpenRow(${i})">수정</button></td></tr>`).join('')}</tbody></table></div>`
+    :`<div class="pb pa-note">정한 권한이 없어요 — 모두 역할 기본(지금과 같아요). 팀은 [+ 팀], 사람은 사용자 목록의 [권한]에서 정해요</div>`;
+}
+function paOpenRow(i){const r=PA_ROWS[i];if(!r)return;if(r.kind==='team')paOpenTeam(permData().teams.findIndex(t=>t.id===r.id));else paOpenPersonEmail(r.email);}
+// 메뉴 표 — vals 고른 값({메뉴:값}, 없으면 기본) · eff 사람 창이면 실제 권한 칸을 보인다
+function paRows(vals,eff){
+  document.getElementById('pa-eff-h').hidden=!eff;
+  document.getElementById('pa-rows').innerHTML=PERM_MENUS.map(p=>{
+    const opts=[['','기본'],...(p==='dashboard'?[]:[['none','안 보임']]),['view','보기만'],['edit','고치기']]   // 대시보드는 안 보임을 고를 수 없다
+      .map(([v,l])=>`<option value="${v}"${(vals[p]||'')===v?' selected':''}>${l}</option>`).join('');
+    return `<tr><td><label for="pa-m-${p}">${PM[p][0]}</label></td><td><select class="fs" id="pa-m-${p}" onchange="paPreview()">${opts}</select></td><td class="pa-wrap" id="pa-e-${p}"${eff?'':' hidden'}></td></tr>`;
+  }).join('');
+}
+function paOpenTeam(i){
+  if(!isSA())return;
+  const d=permData(),t=i>=0?d.teams[i]:null;if(i>=0&&!t)return;
+  Object.assign(PA,{kind:'team',id:t?t.id:'',email:''});
+  document.getElementById('pa-title').textContent=t?`팀 권한 — ${t.name}`:'새 팀';
+  document.getElementById('pa-team-f').hidden=false;document.getElementById('pa-who').hidden=true;document.getElementById('pa-del').hidden=!t;
+  document.getElementById('pa-name').value=t?t.name:'';document.getElementById('pa-mem-q').value='';
+  // 구성원 고르기 — 활성 도어락 사용자(대기 빼고) + 지금 구성원인데 목록에 없는 사람(지운 사용자 — 저장할 때 말없이 빠지지 않게)
+  const on=new Set(t?t.members:[]),other=e=>d.teams.find(x=>x!==t&&x.members.includes(e));
+  PA.users=getUsers().filter(u=>u&&u.role!=='pending'&&paEmail(u)).map(u=>({e:paEmail(u),n:String(u.name||'')}));
+  if(t)t.members.forEach(e=>{if(!PA.users.some(x=>x.e===e))PA.users.push({e,n:''});});
+  // 다른 팀에 든 사람은 그 팀 이름을 옆에 — 한 사람은 팀 하나(둘 이상이면 목록 앞 팀이 먼저)
+  document.getElementById('pa-mems').innerHTML=PA.users.map((x,j)=>{const o=other(x.e);
+    return `<label class="pa-mem"><input type="checkbox" value="${j}"${on.has(x.e)?' checked':''} onchange="paMemFilter()"><span>${escH(x.n||x.e)}</span><span class="idc">${escH(x.e)}</span>${o?`<span class="pa-note">· ${escH(o.name)}</span>`:''}</label>`;}).join('')
+    ||'<div class="pa-note">도어락 사용자가 없어요</div>';
+  paMemFilter();paRows(t?t.menus:{},false);
+  openMo('mo-pa');
+}
+// 구성원 찾기(이름·이메일) · 고른 사람 수
+function paMemFilter(){
+  const q=permLow(document.getElementById('pa-mem-q').value),ls=[...document.querySelectorAll('#pa-mems .pa-mem')];
+  ls.forEach(l=>{l.hidden=!!q&&!l.textContent.toLowerCase().includes(q);});
+  document.getElementById('pa-mem-n').textContent=`${ls.filter(l=>l.querySelector('input').checked).length}명 골랐어요`;
+}
+function paOpenPerson(i){const u=PA_USERS[i];if(u)paOpenPersonEmail(paEmail(u));}
+function paOpenPersonEmail(email){
+  if(!isSA()||!email)return;
+  const d=permData(),u=getUsers().find(x=>paEmail(x)===email),team=permTeamOf(d,email);
+  Object.assign(PA,{kind:'person',id:'',email});
+  document.getElementById('pa-title').textContent=`${u&&u.name?u.name:email} — 개인 권한`;
+  document.getElementById('pa-team-f').hidden=true;document.getElementById('pa-del').hidden=true;
+  const who=document.getElementById('pa-who');who.hidden=false;
+  who.textContent=`${email} · ${paIsSA(u)?'최고관리자':paIsAdm(u)?'관리자':'직원'} · ${team?`팀 ${team.name}`:'팀 없음'} — '기본'은 ${team?'팀':'역할'} 값을 따릅니다`;
+  paRows(d.people[email]||{},true);paPreview();
+  openMo('mo-pa');
+}
+// 사람 창의 실제 권한 미리보기 — 고르는 대로 바로(사람 > 팀 > 역할 기본, 직원 상한)
+function paPreview(){
+  if(PA.kind!=='person')return;
+  const d=permData(),u=getUsers().find(x=>paEmail(x)===PA.email),team=permTeamOf(d,PA.email),mine={};
+  PERM_MENUS.forEach(p=>{const v=document.getElementById('pa-m-'+p).value;if(v)mine[p]=v;});
+  PERM_MENUS.forEach(p=>{
+    const r=permEff(p,paIsAdm(u),team,mine),why=r.from==='person'?'개인':r.from==='team'?`팀 ${team.name}`:'역할 기본';
+    document.getElementById('pa-e-'+p).textContent=`${PERM_LABEL[r.v]} · ${why}${r.cap?' · 직원은 보기만까지':''}`;
+  });
+}
+function paSave(){
+  if(!isSA()||!PA.kind)return;
+  const d=permData(),menus={};
+  PERM_MENUS.forEach(p=>{const v=document.getElementById('pa-m-'+p).value;if(PERM_LV.includes(v)&&!(p==='dashboard'&&v==='none'))menus[p]=v;});
+  const diff=(a,b)=>PERM_MENUS.filter(p=>(a[p]||'')!==(b[p]||'')).map(p=>`${PM[p][0]} ${a[p]?PERM_LABEL[a[p]]:'기본'}→${b[p]?PERM_LABEL[b[p]]:'기본'}`);
+  let target,ch;
+  if(PA.kind==='team'){
+    const nm=document.getElementById('pa-name'),name=nm.value.trim().replace(/\s+/g,' ').slice(0,30);
+    if(!name){toast('e','입력 오류','팀 이름을 넣어 주세요.');nm.focus();return;}
+    const old=PA.id?d.teams.find(t=>t.id===PA.id):null;
+    if(PA.id&&!old){toast('w','다른 곳에서 먼저 바뀌었습니다','이 팀이 지워졌습니다. 다시 열어 주세요.');closeMo('mo-pa');paRender();return;}
+    if(d.teams.some(t=>t!==old&&t.name===name)){toast('e','입력 오류','같은 이름의 팀이 있습니다.');nm.focus();return;}
+    const members=[...new Set([...document.querySelectorAll('#pa-mems input:checked')].map(c=>PA.users[+c.value]&&PA.users[+c.value].e).filter(Boolean))];
+    ch=diff(old?old.menus:{},menus);
+    if(old){
+      if(old.name!==name)ch.unshift(`이름 ${old.name}→${name}`);
+      const add=members.filter(e=>!old.members.includes(e)),del=old.members.filter(e=>!members.includes(e));
+      if(add.length)ch.push(`구성원 더함 ${add.join(', ')}`);
+      if(del.length)ch.push(`구성원 뺌 ${del.join(', ')}`);
+      if(!ch.length){toast('i','바꾼 내용 없음','저장할 것이 없습니다.');return;}
+    }else ch.unshift(`새 팀 · 구성원 ${members.length}명`);
+    const t={id:old?old.id:'tm_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),name,members,menus};
+    d.teams=old?d.teams.map(x=>x===old?t:x):[...d.teams,t];
+    target=name;
+  }else{
+    const old=d.people[PA.email]||{};ch=diff(old,menus);
+    if(!ch.length){toast('i','바꾼 내용 없음','저장할 것이 없습니다.');return;}
+    if(Object.keys(menus).length)d.people[PA.email]=menus;else delete d.people[PA.email];
+    target=PA.email;
+  }
+  sv(K.PR,d);logAudit('권한 변경',target,ch.join(' · '));
+  closeMo('mo-pa');permApply();
+  toast('s','권한 저장',`${escH(target)} — 이 화면은 바로, 다른 사람 화면은 30초 안에 바뀝니다`);   // toast 는 innerHTML — 팀 이름·이메일은 escH
+}
+function paDelTeam(){
+  if(!isSA()||PA.kind!=='team'||!PA.id)return;
+  const t=permData().teams.find(x=>x.id===PA.id);if(!t){closeMo('mo-pa');paRender();return;}
+  showCfm(CI.trash,'팀 삭제',`${t.name} 팀을 지웁니다. 구성원은 개인·역할 기본 권한을 따르게 됩니다.`,()=>{   // 확인창은 textContent 로 그린다
+    const d=permData();d.teams=d.teams.filter(x=>x.id!==t.id);
+    sv(K.PR,d);logAudit('권한 변경',t.name,'팀 삭제');
+    closeMo('mo-pa');permApply();toast('s','팀 삭제',`${escH(t.name)} 팀을 지웠습니다`);
+  });
 }
 
 /* ── BRANCHES ── */
