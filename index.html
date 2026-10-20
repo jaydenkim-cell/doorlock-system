@@ -2637,7 +2637,7 @@ function repairOrders(){
       ors.push({id:nid,receiptId:r.id,branch:r.branch,room:r.room,qty:rQty,
         type:tmap[r.type]||r.type||'신규',price:b?.lockPrice||132000,
         install:instUnit(rQty),extra:brExtra(b),
-        orderDate:r.date||new Date().toISOString().substring(0,10),
+        orderDate:r.date||ymdLocal(new Date()),
         openDate:r.openDate||'',doneDate:r.installDate||'',
         installed:r.status==='결제',paid:r.paymentDone||false,
         note:'누락 자동복구 ('+r.id+')'});
@@ -3251,7 +3251,7 @@ const emp=c=>`<tr><td colspan="${c}" style="text-align:center;padding:28px;color
 
 /* ── DASHBOARD ── */
 function renderD(){
-  const ym=new Date().toISOString().substring(0,7);
+  const ym=ymdLocal(new Date()).substring(0,7);
   /* 지점 계정은 자기 지점만 본다. 접수(renderR)·발주(renderO)·설치(renderI) 에는 이미
      같은 필터가 있는데 대시보드에만 없어서, 지점 직원 화면에 전 지점 수치가 그대로 떴다. */
   const onlyMine=!!(S&&S.role==='user'&&S.branch&&S.branch!=='본사');
@@ -3435,7 +3435,7 @@ function advR(id,ns){
         type:'교체',                       // 재고는 교체 전용 → 수선비·지점출금 6055
         price:b?.lockPrice||132000,
         install:0, extra:0,                  // ★ 설치비는 이 라인에 절대 안 들어간다
-        orderDate:new Date().toISOString().substring(0,10), openDate:'',
+        orderDate:ymdLocal(new Date()), openDate:'',
         doneDate:'', installed:false, paid:false,
         note:'접수→재고발주 ('+id+')',
         inv:true, recvDate:'',               // ★ 입고 확인 전 — 정산·잔량 모두 미반영
@@ -3468,7 +3468,7 @@ function advR(id,ns){
       ors.push({
         id:nid, receiptId:id, branch:r.branch, room:r.room, qty:rQty, type:orderType,
         price:b?.lockPrice||132000, install:autoInstall, extra:brExtra(b),
-        orderDate:new Date().toISOString().substring(0,10),
+        orderDate:ymdLocal(new Date()),
         openDate:r.openDate||'', doneDate:'', installed:false, paid:false, note:'접수→자동발주 ('+id+')'
       });
       sv(K.O,ors);
@@ -3488,7 +3488,7 @@ function advR(id,ns){
     ors.push({id:nid,receiptId:rid,branch:receipt.branch,room:receipt.room,qty:rQty,
       type:tmap[receipt.type]||receipt.type||'신규',price:b?.lockPrice||132000,
       install:instUnit(rQty),extra:brExtra(b),
-      orderDate:new Date().toISOString().substring(0,10),openDate:receipt.openDate||'',
+      orderDate:ymdLocal(new Date()),openDate:receipt.openDate||'',
       doneDate:'',installed:false,paid:false,note:'자동생성('+rid+')'});
     sv(K.O,ors);
     return getOr();
@@ -3535,7 +3535,7 @@ function renderO(){
 }
 
 function openOMo(id){
-  const today=new Date().toISOString().substring(0,10);
+  const today=ymdLocal(new Date());
   if(id===null){
     document.getElementById('edit-order-id').value='';document.getElementById('modal-title').innerHTML=`${CI.box} 발주 등록`;
     document.getElementById('m-branch').value=S.role==='user'?S.branch:'';document.getElementById('m-room').value='';document.getElementById('m-qty').value='1';document.getElementById('m-type').value='신규';document.getElementById('m-price').value='';document.getElementById('m-install').value='';document.getElementById('m-extra').value='';document.getElementById('m-total').value='';document.getElementById('m-order-date').value=today;document.getElementById('m-open-date').value='';document.getElementById('m-done-date').value='';document.getElementById('m-installed').value='false';document.getElementById('m-paid').value='false';document.getElementById('m-memo').value='';
@@ -4510,7 +4510,7 @@ function closeBranch(id){
   const b=getBr().find(x=>x.id===id);if(!b)return;
   showCfm(CI.building,'지점 종료','"'+b.name+'" 지점을 종료 처리할까요? 과거 발주·청구 이력은 그대로 보존되고, 목록과 드롭다운에서 숨겨집니다. [종료 지점] 메뉴에서 언제든 다시 재개할 수 있습니다.',()=>{
     const brs=getBr(),idx=brs.findIndex(x=>x.id===id);
-    if(idx>=0){brs[idx].closed=true;brs[idx].closedDate=new Date().toISOString().substring(0,10);sv(K.B,brs);}
+    if(idx>=0){brs[idx].closed=true;brs[idx].closedDate=ymdLocal(new Date());sv(K.B,brs);}
     logAudit('지점종료', b.name, `지점 종료 처리 (ID ${id})`);
     populateSels();renderBr();toast('s','종료 완료',escH(b.name)+' 지점이 종료 처리되었습니다.');
   });
@@ -4546,7 +4546,7 @@ function loadDCfg(){
   });
   // 날짜가 비어있을 때만 오늘 날짜로 초기화
   const dtEl=document.getElementById('draft-date');
-  if(dtEl&&!dtEl.value)dtEl.value=new Date().toISOString().substring(0,10);
+  if(dtEl&&!dtEl.value)dtEl.value=ymdLocal(new Date());
   // 행이 없으면 기본 1행 추가
   if(!document.getElementById('draft-tbody').children.length) addDraftRow();
   dhRender();   // 발주서 목록(기능③)
@@ -4774,7 +4774,7 @@ function genDraft(){
 
 function printDraft(){
   const rows=getDraftRows();
-  const dt=document.getElementById('draft-date')?.value||new Date().toISOString().substring(0,10);
+  const dt=document.getElementById('draft-date')?.value||ymdLocal(new Date());
   const branches=[...new Set(rows.map(r=>r.branch).filter(Boolean))];
   const branchStr=branches.length?branches.join('·'):'지점';
   const dateStr=dt.replace(/-/g,'');
@@ -4907,7 +4907,7 @@ function pdfCuts(total,page,cands){
 // 파일 이름 — printDraft 가 인쇄 창에 주는 이름(document.title)과 같은 규칙: [도어락발주서] 지점·지점_날짜
 function draftPdfName(){
   const rows=getDraftRows();
-  const dt=document.getElementById('draft-date')?.value||new Date().toISOString().substring(0,10);
+  const dt=document.getElementById('draft-date')?.value||ymdLocal(new Date());
   const branches=[...new Set(rows.map(r=>r.branch).filter(Boolean))];
   return`[도어락발주서] ${branches.length?branches.join('·'):'지점'}_${dt.replace(/-/g,'')}`;
 }
@@ -5255,7 +5255,7 @@ function submitR(){
     /* 배열 길이 기반(rcs.length+1) 채번은 삭제·동시접수에서 id 가 겹친다.
        겹치면 repairOrders·submitI 가 엉뚱한 발주를 건드린다.
        그 달 접수의 최대 번호 다음을 쓰되, 툼스톤(삭제된 id)까지 피한다. */
-    const rcs2=getRc(),now=new Date(),ym=now.toISOString().substring(2,4)+now.toISOString().substring(5,7);
+    const rcs2=getRc(),now=new Date(),ym=ymdLocal(now).substring(2,4)+ymdLocal(now).substring(5,7);
     const pre=`DL-${ym}-`;
     const taken=new Set();
     rcs2.forEach(r=>{const id=String(r&&r.id||'');if(id.startsWith(pre))taken.add(id);});
@@ -5263,7 +5263,7 @@ function submitR(){
     let n=0;
     taken.forEach(id=>{const v=parseInt(id.slice(pre.length),10);if(Number.isFinite(v)&&v>n)n=v;});
     let seq;do{n++;seq=String(n).padStart(3,'0');}while(taken.has(pre+seq));
-    const newR={id:`DL-${ym}-${seq}`,branch:br,room:rm,type:document.getElementById('r-type').value,qty:Math.max(1,parseInt(document.getElementById('r-qty').value)||1),openDate:document.getElementById('r-open-date').value||'',urgent:urgOn,status:'접수',memo:document.getElementById('r-memo').value,date:now.toISOString().substring(0,10),regBy:S.name||S.id||'unknown',regEmail:S.email||S.id||'',installDate:'',installModel:'',installMemo:''};
+    const newR={id:`DL-${ym}-${seq}`,branch:br,room:rm,type:document.getElementById('r-type').value,qty:Math.max(1,parseInt(document.getElementById('r-qty').value)||1),openDate:document.getElementById('r-open-date').value||'',urgent:urgOn,status:'접수',memo:document.getElementById('r-memo').value,date:ymdLocal(now),regBy:S.name||S.id||'unknown',regEmail:S.email||S.id||'',installDate:'',installModel:'',installMemo:''};
     rcs2.push(newR);
     sv(K.R,rcs2);closeMo('mo-r');renderR();renderD();toast('s','접수 완료',`${escH(br)} ${escH(rm)} (DL-${ym}-${seq})`);
     sendSlackNoti(newR);
@@ -5277,7 +5277,7 @@ function submitR(){
 }
 
 /* ── INSTALL MODAL ── */
-function openIMo(id){instId=id;document.getElementById('inst-noti').innerHTML=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> 접수 ID: <strong>${escH(id)}</strong>`;document.getElementById('inst-date').value=new Date().toISOString().substring(0,10);document.getElementById('inst-model').value='';document.getElementById('inst-memo').value='';openMo('mo-i');}
+function openIMo(id){instId=id;document.getElementById('inst-noti').innerHTML=`<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="vertical-align:middle;margin-right:4px"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg> 접수 ID: <strong>${escH(id)}</strong>`;document.getElementById('inst-date').value=ymdLocal(new Date());document.getElementById('inst-model').value='';document.getElementById('inst-memo').value='';openMo('mo-i');}
 function submitI(){
   const rcs=getRc(),r=rcs.find(x=>x.id===instId);if(!r)return;
   // 이 버튼은 지점 직원도 누른다(renderI). 권한은 그대로 두되 마감월 침범만 막는다.
@@ -5298,7 +5298,7 @@ function submitI(){
   // 재고 출고 라인은 이미 installed:true 이고 doneDate 가 정산 인식월이다. 덮어쓰면 월이 바뀐다.
   // 입고 라인(inv)은 설치가 아니다. installed/doneDate 를 찍으면 mLines 의 ② 가지를 타서
   // 물건값이 recvDate 월과 doneDate 월에 각각 한 번씩, 두 번 잡힌다.
-  if(o&&!o.insOf&&!o.inv){o.installed=true;o.doneDate=r.installDate||new Date().toISOString().substring(0,10);sv(K.O,ors);}
+  if(o&&!o.insOf&&!o.inv){o.installed=true;o.doneDate=r.installDate||ymdLocal(new Date());sv(K.O,ors);}
   closeMo('mo-i');renderR();renderI();
   toast('s','설치 완료',`${escH(r.branch)} ${escH(r.room)} — 결제대기 상태로 전환`);
 }
@@ -5532,7 +5532,7 @@ function submitPtReq(){
   // 모달의 disabled 는 표시일 뿐이다 — 지점 계정이 값을 바꿔 남의 지점으로 신청하지 못하게 한다
   if(S.branchLocked&&br!==S.branch){toast('e','권한 없음','다른 지점으로는 신청할 수 없습니다.');return;}
   const arr=getPt();
-  const today=new Date().toISOString().substring(0,10);
+  const today=ymdLocal(new Date());
   const note=document.getElementById('ptq-note').value||'';
   /* ★ newPtId(arr) — arr 을 넘겨야 방금 push 한 줄의 id 까지 피한다.
      newOid() 를 쓰면 커버·모듈이 같은 id 로 저장돼 둘째 줄이 발송 불가가 된다. */
@@ -5548,7 +5548,7 @@ function submitPtReq(){
 
 function openPtInMo(){
   if(!isAdm()){toast('e','권한 없음','관리자만 등록할 수 있습니다.');return;}
-  document.getElementById('pti-date').value=new Date().toISOString().substring(0,10);
+  document.getElementById('pti-date').value=ymdLocal(new Date());
   PT_ITEMS.forEach(it=>{const el=document.getElementById('pti-qty-'+it);if(el)el.value=0;});
   document.getElementById('pti-note').value='';
   openMo('mo-pt-in');
@@ -5586,7 +5586,7 @@ function sendPt(id){
   if(s0==='접수'){toast('w','확인이 먼저입니다','물량 확인 처리를 한 뒤 발송하세요.');return;}
   const have=ptStock(x.item),q=Number(x.qty)||0;
   const go=()=>{
-    x.status='발송';x.sentDate=new Date().toISOString().substring(0,10);
+    x.status='발송';x.sentDate=ymdLocal(new Date());
     sv(K.P,arr);
     logAudit('부자재발송',x.branch,`${x.item} ${q}개 · 잔여 ${ptStock(x.item)}개`);
     renderParts();
@@ -5658,7 +5658,7 @@ function ptPrintLabels(branch){
 
   const w=window.open('','_blank');
   if(!w){toast('e','팝업 차단','브라우저에서 이 사이트의 팝업을 허용해주세요.');return;}
-  const d=w.document,today=new Date().toISOString().substring(0,10);
+  const d=w.document,today=ymdLocal(new Date());
   d.title=`부자재 택배라벨_${today}`;
   const style=d.createElement('style');
   style.textContent=`@page{size:A4;margin:14mm;}
@@ -5766,7 +5766,7 @@ function sendPtG(gi){
   const g=ptG(gi);if(!g)return;
   const {arr,t}=ptGPick(g,'확인');
   if(!t.length){toast('i','발송할 건 없음','확인 처리된 건이 없습니다. 먼저 확인 처리하세요.');return;}
-  const today=new Date().toISOString().substring(0,10);
+  const today=ymdLocal(new Date());
   const go=()=>{
     t.forEach(x=>{x.status='발송';x.sentDate=today;});
     sv(K.P,arr);
@@ -5983,7 +5983,7 @@ async function sendInstallDateDM(r,date){
 // @end
 /* 설정 화면 [테스트 알림] — 새 접수 알림과 같은 모양의 시험 글 */
 async function testSlackNoti(){
-  const r=await sendSlackNoti({id:'TEST-001',branch:'테스트 지점',room:'101호',type:'신규 설치',qty:1,urgent:false,openDate:'2026-06-01',date:new Date().toISOString().substring(0,10),regBy:S?.name||'관리자'});
+  const r=await sendSlackNoti({id:'TEST-001',branch:'테스트 지점',room:'101호',type:'신규 설치',qty:1,urgent:false,openDate:'2026-06-01',date:ymdLocal(new Date()),regBy:S?.name||'관리자'});
   if(r.ok)toast('s','테스트 발송','Slack으로 테스트 메시지를 전송했습니다.');
   else slackFailToast(r.error);
 }
@@ -6349,7 +6349,7 @@ function ibHighlight(rid){
 /* ── EXCEL EXPORT ── */
 function exportToExcel(type){
   if(typeof XLSX==='undefined'){toast('e','오류','엑셀 라이브러리를 불러오는 중입니다. 잠시 후 다시 시도하세요.');return;}
-  const today=new Date().toISOString().substring(0,10);
+  const today=ymdLocal(new Date());
   let rows=[],fileName='';
 
   if(type==='receipt'){
@@ -6493,7 +6493,7 @@ function backupAllData(){
     try{dump.data[k]=JSON.parse(raw);}catch{dump.data[k]=raw;}
   }
   dump._meta.keyCount=Object.keys(dump.data).length;
-  const today=new Date().toISOString().substring(0,10);
+  const today=ymdLocal(new Date());
   const fileName=`도어락_전체백업_${today}.json`;
   const blob=new Blob([JSON.stringify(dump,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob);
@@ -6614,7 +6614,7 @@ function svcSolitiMap(accounts){
 async function svcAutoFetch(force){
   const st=document.getElementById('auto-status');
   const mInp=document.getElementById('auto-month');
-  if(!mInp.value)mInp.value=(document.getElementById('svc-inp-month')?.value)||new Date().toISOString().substring(0,7);
+  if(!mInp.value)mInp.value=(document.getElementById('svc-inp-month')?.value)||ymdLocal(new Date()).substring(0,7);
   AUTO={rows:[],updatedAt:'',solitiAt:'',err:'',orphan:[]};
   try{
     st.textContent='지점 객실 수(duck) 가져오는 중...';
@@ -6943,7 +6943,7 @@ async function svcHandleYolo(ev){
   ev.target.value='';
   if(!files.length)return;
   const mInp=document.getElementById('yolo-month');
-  if(!mInp.value)mInp.value=(document.getElementById('svc-inp-month')?.value)||new Date().toISOString().substring(0,7);
+  if(!mInp.value)mInp.value=(document.getElementById('svc-inp-month')?.value)||ymdLocal(new Date()).substring(0,7);
   document.getElementById('yolo-status').textContent=`${files.length}개 파일 읽는 중...`;
   YOLO={rows:[],files:[],err:[]};
   for(const f of files){
@@ -7467,7 +7467,7 @@ function buildServiceFeeHtml(d){
 function buildDraftAmaData(){
   const rows=getDraftRows();
   if(!rows.length){toast('e','오류','발주 행을 먼저 추가해주세요.');return null;}
-  const dt=document.getElementById('draft-date').value||new Date().toISOString().substring(0,10);
+  const dt=document.getElementById('draft-date').value||ymdLocal(new Date());
   const tp=document.getElementById('draft-type').value||'신규';
   const total=rows.reduce((s,r)=>s+(r.price+r.install+r.extra)*r.qty,0);
   const stockOnly=rows.every(r=>!r.install);   // 설치비 없음 = 재고 납품 건
@@ -7500,7 +7500,7 @@ function buildOrderAmaData(){
   const total=sel.reduce((s,o)=>s+(o.qty||1)*((o.price||0)+(o.install||0)+(o.extra||0)),0);
   const branches=[...new Set(sel.map(o=>o.branch))];
   // 발주월 = 선택 발주 중 가장 최근 발주일 기준
-  const latest=sel.map(o=>o.orderDate).filter(Boolean).sort().reverse()[0]||new Date().toISOString().substring(0,10);
+  const latest=sel.map(o=>o.orderDate).filter(Boolean).sort().reverse()[0]||ymdLocal(new Date());
   const[y,m]=latest.split('-').map(Number);
   const execDate=m===12?`${y+1}-01-10`:`${y}-${String(m+1).padStart(2,'0')}-10`;
   const ym=latest.substring(2,7).replace('-','.');
@@ -8724,7 +8724,7 @@ function renderStock(){
 /* ── 입고 ── */
 function openStkMo(){
   stkBrOpts('stk-branch','');
-  document.getElementById('stk-date').value=new Date().toISOString().substring(0,10);
+  document.getElementById('stk-date').value=ymdLocal(new Date());
   document.getElementById('stk-qty').value=1;
   document.getElementById('stk-price').value=132000;
   document.getElementById('stk-vendor').value='(주)솔리티';
@@ -8790,7 +8790,7 @@ function openRecvMo(id){
   recvId=id;
   document.getElementById('recv-noti').innerHTML=`<strong>${escH(r.branch)}</strong> · 접수 ${escH(id)} · 발주 ${escH(o.qty||1)}개`;
   // 이미 입고 확인한 건을 다시 열면 그때 날짜를 보여준다(오늘로 덮으면 인식월이 조용히 바뀐다)
-  document.getElementById('recv-date').value=o.recvDate||new Date().toISOString().substring(0,10);
+  document.getElementById('recv-date').value=o.recvDate||ymdLocal(new Date());
   document.getElementById('recv-qty').value=o.qty||1;
   document.getElementById('recv-price').value=o.price||132000;
   document.getElementById('recv-vendor').value=o.vendor||'(주)솔리티';
@@ -8844,7 +8844,7 @@ function submitRecv(){
 /* ── 출고(설치) ── */
 function openOutMo(){
   stkBrOpts('out-branch',document.getElementById('fstk-b')?.value||'',true);
-  document.getElementById('out-date').value=new Date().toISOString().substring(0,10);
+  document.getElementById('out-date').value=ymdLocal(new Date());
   document.getElementById('out-qty').value=1;
   document.getElementById('out-room').value='';
   document.getElementById('out-vendor').value='(주)솔리티';
@@ -9004,7 +9004,7 @@ function saveOut(){
    지점에 엑셀(exportToExcel('stock'))을 보내 실물 수량을 받아 여기서 차이를 맞춘다.
    조정 라인은 adj:true 라 mLines 가 건너뛴다 — 수량만 움직이고 금액은 0이다. */
 function openAdjMo(){
-  document.getElementById('adj-date').value=new Date().toISOString().substring(0,10);
+  document.getElementById('adj-date').value=ymdLocal(new Date());
   document.getElementById('adj-note').value='';
   const rows=getStkBr().map(b=>({n:b.name,bal:stkBal(b.name),closed:!!b.closed})).filter(x=>x.bal!==0)
     .sort((a,b)=>b.bal-a.bal||a.n.localeCompare(b.n,'ko'));
