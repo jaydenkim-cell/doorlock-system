@@ -674,12 +674,13 @@ b,strong{font-weight:600;}
 .b-d{background:var(--plott-banner-success-background-color);color:var(--plott-banner-success-text-color);}.b-d::before{background:var(--plott-color-success500);}
 .b-w{background:var(--plott-banner-danger-background-color);color:var(--plott-banner-danger-text-color);}.b-w::before{background:var(--plott-color-danger500);}
 .hq-nb{margin-left:auto;min-width:20px;padding:0 6px;border-radius:9999px;background:var(--plott-color-danger700);color:var(--plott-color-text-inverse);font-size:12px;line-height:16px;font-weight:600;text-align:center;}
-/* 메뉴 이름 옆 작은 '보기만'(기능②-3) — 접힌 메뉴에서는 숨긴다 */
+/* 메뉴 이름 옆 작은 '보기만'(기능②-3) — 접힌 메뉴에서는 화면에서만 가린다(읽기 프로그램은 읽는다) */
 .ni-ro{margin-left:auto;padding:0 6px;border-radius:6px;background:var(--plott-color-bg-muted);color:var(--plott-color-text-secondary);font-size:12px;line-height:16px;font-weight:600;}
 .ni-ro~.hq-nb{margin-left:4px;}
-.sb-col .ni .ni-ro{display:none;}
+.sb-col .ni .ni-ro{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;}
 /* 보기만(기능②-3) — 막힌 단추·칸은 흐리게(누르면 알림만) */
 [data-pv]{opacity:var(--plott-opacity-disabled);cursor:not-allowed;}
+[data-pv]:focus-visible{opacity:1;}   /* 키보드로 닿으면 흐림을 푼다 — 안 풀면 초점 윤곽까지 옅어져 위치를 잃는다 */
 /* 팀·개인 권한 창(기능②-3) — 구성원 고르기 목록 · 안내 글 · 긴 이메일 줄바꿈 */
 .pa-mems{display:flex;flex-direction:column;gap:2px;max-height:220px;overflow-y:auto;margin-top:8px;padding:8px 12px;border:1px solid var(--plott-color-border-default);border-radius:8px;}
 .pa-mems .pa-mem{display:flex;align-items:center;gap:8px;margin:0;font-size:14px;line-height:20px;font-weight:400;color:var(--plott-color-text-default);cursor:pointer;}
@@ -2741,8 +2742,8 @@ function permApply(){
 /* ── 보기만(기능②-3 §3.7) ──
    지금 화면의 실제 권한이 보기만이면 그 화면 · 윗줄 단추(#tb-r) · 모든 창(.mo — 창은 지금 화면에서만 열린다) · 확인창(.cfm)에서
    허락 목록(PV_OK)에 없는 단추·칸을 막는다. 처리 함수마다 검사를 넣지 않고 문서 맨 앞(캡처 단계)에서 한 번에 막는다 — 나중에 그려지는 줄·창도 같다.
-   허락 목록 = 설계서의 '그대로' 다섯(거름·검색 · 보기 전환(목록|달력) · 엑셀 내려받기 · 새로고침) + 창 닫기 · 다른 화면으로 가기 · 달력 일정 보기 · 지점 정보 보기.
-   막는 길: 누르기(click) · 고르기(선택칸·체크·라디오 — mousedown·keydown) · 글 넣기(readOnly — 한글 입력까지) · 붙여넣기·잘라내기·끌어 놓기 · input·change 처리기.
+   허락 목록 = 보기만이어도 그대로 두는 것 — 거름·검색 · 보기 전환(목록|달력) · 엑셀 내려받기 · 새로고침 + 창 닫기 · 다른 화면으로 가기 · 달력 일정 보기 · 지점 정보 보기 · 기록 창 열어 읽기(접수·발주 [수정]).
+   막는 길: 누르기(click) · 고르기(선택칸·체크·라디오 — mousedown · 값을 바꾸는 keydown) · 글 넣기(readOnly — 한글 입력까지) · 붙여넣기·잘라내기·끌어 놓기 · input·change 처리기.
    표시: 막힌 단추·칸에 aria-disabled="true" + data-pv(흐림). 새로 그려진 것은 MutationObserver 가 단다 */
 const PV_SCOPE='.page.on,#tb-r,.mo,.cfm';
 const PV_CTL='button,input,select,textarea,[onclick],[onchange],[oninput]';
@@ -2751,7 +2752,8 @@ const PV_OK=[
   '#i-view-list','#i-view-cal','#cal-prev','#cal-today','#cal-next','#cal-hide','.cal-chip','.cal-more',                    // 보기 전환 · 달력 넘기기 · 일정 보기(상세 창 안의 처리 단추는 막힌다)
   '[onclick^="exportToExcel("]','[onclick="h2oExcel()"]','#hq-srv-btn','[onclick="renderLog()"]',                         // 엑셀 내려받기 · 새로고침(서버와 대조 · 변경 이력)
   '.mx','[onclick^="closeMo("]','#cfm-no','[onclick^="goP("]',                                                           // 창 닫기 · 다른 화면으로 가기
-  '[onclick^="openBrMo("]:not([onclick="openBrMo(null)"])'                                                                // 지점 정보 보기(창 안 칸·저장·삭제는 막힌다) — 지점 추가는 막는다
+  '[onclick^="openBrMo("]:not([onclick="openBrMo(null)"])',                                                               // 지점 정보 보기(창 안 칸·저장·삭제는 막힌다) — 지점 추가는 막는다
+  '[onclick^="editR("]','[onclick^="openOMo("]:not([onclick="openOMo(null)"])'                                            // 기록 창 열어 읽기 — 접수·발주 [수정](창 안 칸·저장은 막힌다) — 새 발주 등록·새 접수 등록 같은 빈 창은 막는다
 ].join(',');
 const PV_TEXT=/^(text|search|email|tel|url|number|password|date|month|week|time|datetime-local)$/;   // readOnly 가 듣는 칸
 const PV={on:false,t:0};   // on 지금 화면이 보기만인가 · t 마지막 '보기만' 알림 시각(잇단 클릭에 알림이 쌓이지 않게)
@@ -2776,11 +2778,19 @@ function pvMark(){
 }
 // 화면에 들어올 때(goP)·권한이 바뀔 때(permApply) — 표시를 다 지우고 보기만이면 다시 단다. 알림은 화면마다 첫 클릭에 한 번은 뜨게
 function pvSet(p){PV.on=!!S&&PERM_MENUS.includes(p)&&permOf(p)==='view';PV.t=0;pvClear();pvMark();}
+// 값을 바꾸는 키 — 화살표·Home·End·PageUp·PageDown·Enter·Space·F4·글자 하나(첫 글자로 찾아 고르기). Cmd·Ctrl·Alt 를 같이 누른 것(Cmd+F·Cmd+R·Cmd+L·Ctrl+Tab·Alt+←)은 브라우저·OS 단축키라 막지 않는다.
+// 다만 Space 는 Cmd·Ctrl 과 눌러도 체크가 바뀌고 Alt+↑↓ 는 고르는 창을 연다 — 이 둘은 계속 막는다
+const PV_EDIT=/^(?:Arrow(?:Up|Down|Left|Right)|Home|End|Page(?:Up|Down)|Enter|F4|.)$/u;
+function pvEditKey(ev){
+  const k=ev.key||'';
+  if(k===' '||(ev.altKey&&(k==='ArrowUp'||k==='ArrowDown')))return true;
+  return!(ev.metaKey||ev.ctrlKey||ev.altKey)&&PV_EDIT.test(k);
+}
 function pvGuard(ev){
   const c=pvBlocked(ev.target);if(!c)return;
   const ty=ev.type,text=pvIsText(c),pick=!text&&/^(INPUT|SELECT)$/.test(c.tagName)&&!/^(button|submit|reset|image)$/.test(c.type);
   if(ty==='focusin'){if(text&&!c.readOnly){c.readOnly=true;c.dataset.pv='ro';c.setAttribute('aria-disabled','true');}return;}   // 앱이 readOnly 를 푼 칸도 들어가는 순간 다시
-  if(ty==='keydown'&&(!pick||ev.key==='Tab'||ev.key==='Escape'))return;   // 글칸은 readOnly 가(커서 옮기기·복사는 된다), 단추는 click 이 막는다 · Tab·Esc 는 그대로
+  if(ty==='keydown'&&(!pick||!pvEditKey(ev)))return;   // 글칸은 readOnly 가(커서 옮기기·복사는 된다), 단추는 click 이 막는다 · 선택칸·체크는 값을 바꾸는 키만 막는다(Tab·Esc·단축키는 그대로)
   if(ty==='mousedown'&&!pick)return;                                      // 선택칸·체크만 눌러 열리지 않게 — 글칸은 눌러 글을 고를 수 있다
   ev.preventDefault();ev.stopImmediatePropagation();
   if(ty==='click'&&!text&&Date.now()-PV.t>3000){PV.t=Date.now();toast('e','권한 없음','보기만 — 이 화면에서는 고칠 수 없습니다.');}
@@ -3048,8 +3058,8 @@ function buildNav(){
     const vis=list.filter(([p])=>see(p));
     if(!vis.length)continue;
     html.push(`<div class="sg">${sep}</div>`);
-    // 보기만인 메뉴는 이름 옆에 작은 '보기만'(기능②-3) — 접힌 메뉴에서는 숨는다(.sb-col)
-    for(const[p,ic,l]of vis)html.push(`<div class="ni" data-p="${p}" onclick="goP('${p}')"><span class="ic">${ic}</span>${l}${permOf(p)==='view'?'<span class="ni-ro">보기만</span>':''}</div>`);
+    // 보기만인 메뉴는 이름 옆에 작은 '보기만'(기능②-3) — 읽기 프로그램이 이름과 따로 읽도록 앞에 보이지 않는 쉼표를 둔다. 접힌 메뉴(.sb-col)에서는 화면에서만 가린다
+    for(const[p,ic,l]of vis)html.push(`<div class="ni" data-p="${p}" onclick="goP('${p}')"><span class="ic">${ic}</span>${l}${permOf(p)==='view'?'<span class="ni-ro"><span class="sr-only">, </span>보기만</span>':''}</div>`);
   }
   document.getElementById('sb-nav').innerHTML=html.join('');
   hqBadge();   // 메뉴를 다시 그리면 숫자도 다시 단다
@@ -3063,7 +3073,7 @@ function sbColApply(){
   tog.setAttribute('aria-label',label);tog.title=label;tog.setAttribute('aria-expanded',String(!col));
   // 이름은 화면에서만 숨는다(읽기 프로그램은 그대로 읽는다) — 접혔을 때는 마우스를 올리면 이름이 뜨게 title 을 단다
   document.querySelectorAll('#sb-nav .ni').forEach(ni=>{
-    const name=[...ni.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim();
+    const name=[...ni.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent).join('').trim()+(ni.querySelector('.ni-ro')?' · 보기만':'');   // 보기만 메뉴는 이름 뒤에 '· 보기만'(기능②-3)
     if(col)ni.title=name;else ni.removeAttribute('title');
   });
   if(col)lo.title='로그아웃';else lo.removeAttribute('title');
@@ -3390,7 +3400,7 @@ function advR(id,ns){
 
 /* ── ORDERS ── */
 function renderO(){
-  repairOrders();
+  if(isAdm()&&!PV.on)repairOrders();   // 보기만이거나 관리자가 아니면 그리기만 한다 — 화면을 열었다고(30초 다시 그리기 포함) 공유 발주를 새로 쓰지 않게
   /* 재고 입출고 라인은 성격이 달라 발주 목록에 섞이면 "금액이 안 들어간 누락 발주"처럼 보인다.
      기본 숨김 + 토글. 구버전 탭에는 이 토글이 없어 그대로 보이지만, room 이 '[재고입고]' 라
      정체는 드러나고 금액도 각 라인 기준으로 정확하다. */
@@ -3984,14 +3994,15 @@ function renderUsers(){
     const saList=getSAIds();
     const isThisSA=saList.includes(u.id)||u.role==='superadmin';
     const roleOpts=['user','admin'].map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABELS[r]}</option>`).join('');
-    const roleSel=isThisSA||isSelf?`<span class="role-badge ${ROLE_BADGE[u.role]||'rb-pending'}">${ROLE_LABELS[u.role]||u.role}</span>`:
+    // 승인자·승인일·ID·역할 글은 로그인한 누구나 합치기 키(사용자 목록)에 넣을 수 있는 글자다 — 표에 그릴 때 전부 escH
+    const roleSel=isThisSA||isSelf?`<span class="role-badge ${ROLE_BADGE[u.role]||'rb-pending'}">${escH(ROLE_LABELS[u.role]||u.role)}</span>`:
       `<select class="role-sel" onchange="setUserRole(${uidJs(u.id)},this.value)"><option value="" disabled>변경</option>${roleOpts}</select>`;
     return`<tr>
       <td style="font-weight:600">${slackAvatar(u.email||u.id,u.name)}</td>
       <td class="idc">${escH(u.id)}</td>
-      <td><span class="role-badge ${ROLE_BADGE[u.role]||'rb-pending'}">${ROLE_LABELS[u.role]||u.role}</span></td>
-      <td style="color:var(--text3)">${u.approvedAt?u.approvedAt.substring(0,10):'—'}</td>
-      <td style="color:var(--text3)">${u.approvedBy||'—'}</td>
+      <td><span class="role-badge ${ROLE_BADGE[u.role]||'rb-pending'}">${escH(ROLE_LABELS[u.role]||u.role)}</span></td>
+      <td style="color:var(--text3)">${u.approvedAt?escH(String(u.approvedAt).substring(0,10)):'—'}</td>
+      <td style="color:var(--text3)">${escH(u.approvedBy||'—')}</td>
       <td>${roleSel}</td>
       <td style="white-space:nowrap"><button class="btn bo bsm pa-btn" onclick="paOpenPerson(${i})">권한</button>${isSelf||isThisSA?'':` <button class="btn br2 bsm reject-btn" onclick="removeUser(${uidJs(u.id)})">삭제</button>`}</td>
     </tr>`;
@@ -4013,16 +4024,16 @@ function renderUsers(){
 function approveUser(uid, role){
   const users=getUsers();const u=users.find(x=>x.id===uid);if(!u)return;
   u.role=role;u.approvedAt=new Date().toISOString();u.approvedBy=S.id;
-  sv(K.U,users);renderUsers();toast('s','승인 완료',`${uid} → ${ROLE_LABELS[role]}`);
+  sv(K.U,users);renderUsers();toast('s','승인 완료',`${escH(uid)} → ${ROLE_LABELS[role]}`);   // toast 는 innerHTML — ID 는 escH
 }
 function setUserRole(uid, role){
   if(!role)return;const users=getUsers();const u=users.find(x=>x.id===uid);if(!u)return;
-  u.role=role;u.approvedBy=S.id;sv(K.U,users);renderUsers();toast('s','역할 변경',`${uid} → ${ROLE_LABELS[role]}`);
+  u.role=role;u.approvedBy=S.id;sv(K.U,users);renderUsers();toast('s','역할 변경',`${escH(uid)} → ${ROLE_LABELS[role]}`);
 }
 function removeUser(uid){
   showCfm(CI.trash,'사용자 삭제',`${uid} 의 접근 권한을 제거합니다.`,()=>{
     markDel(K.U,uid);
-    sv(K.U,getUsers().filter(u=>u.id!==uid));renderUsers();toast('s','삭제 완료',`${uid} 권한이 제거되었습니다.`);
+    sv(K.U,getUsers().filter(u=>u.id!==uid));renderUsers();toast('s','삭제 완료',`${escH(uid)} 권한이 제거되었습니다.`);   // 확인창은 textContent 라 그대로 · 알림은 innerHTML 이라 escH
   });
 }
 function openAddUserMo(){
@@ -4115,8 +4126,8 @@ function nmIgnore(i){
   const rows=document.querySelectorAll('#nm-body tbody tr'),next=rows[i]||rows[rows.length-1],to=(next&&next.querySelector('button'))||document.getElementById('nm-reload');
   if(to)to.focus();
 }
-/* 사용자 ID 를 onclick 글자에 넣을 때(기능②-3, ②-2 리뷰에서 남긴 일) — 이메일 꼴 글자뿐이면 지금처럼 따옴표 글자로,
-   그 밖(옛 계정·따옴표·꺾쇠 등)은 USR_IDS 자리표로 넘긴다(그 글자를 onclick 에 넣지 않는다). 표의 ID 칸은 escH */
+/* 사용자 ID 를 onclick 글자에 넣을 때 — 이메일 꼴 글자뿐이면 지금처럼 따옴표 글자로,
+   그 밖(옛 계정·따옴표·꺾쇠 등)은 USR_IDS 자리표로 넘긴다(그 글자를 onclick 에 넣지 않는다). 표의 ID 칸과 알림 속 ID 는 escH */
 let USR_IDS=[];
 const uidJs=id=>{const s=String(id==null?'':id);if(/^[A-Za-z0-9@._%+-]+$/.test(s))return`'${s}'`;USR_IDS.push(s);return`USR_IDS[${USR_IDS.length-1}]`;};
 /* ── 팀·개인 권한 화면(기능②-3 §3.7, 최고관리자 — 사용자 관리 안 패널 #pa-panel · 창 #mo-pa) ──
@@ -4194,6 +4205,22 @@ function paPreview(){
     document.getElementById('pa-e-'+p).textContent=`${PERM_LABEL[r.v]} · ${why}${r.cap?' · 직원은 보기만까지':''}`;
   });
 }
+/* 권한(K.PR) 저장 — 서버가 받아 준 것을 확인한 뒤에만 변경 이력과 성공 알림을 남긴다(충돌로 서버값에 진 저장을 성공이라 하지 않게).
+   저장 줄(casPush)이 끝났을 때 '서버와 맞춘 값'(기준 지문)이 방금 저장한 값의 지문이면 서버가 받은 것이다. 그렇지 않으면
+   ① 이 탭의 사본이 서버값으로 바뀌었다 = 충돌 — 기준을 이미 아는 탭은 저장 줄(casAdopt)이 안내를 띄웠으니, 아직 못 본 탭에만 같은 글을 띄운다
+   ② 사본이 그대로다 = 서버에 못 올렸다 — 사본을 되돌리고 알린다(나중에 동기화가 이력 없이 몰래 올리지 않게). 화면은 저장하자마자 바뀌어 있으므로 다시 맞춘다 */
+function paCommit(d,line,ok){
+  const h=vHash(d),raw=JSON.stringify(d),prev=localStorage.getItem(K.PR),hadBase=!!baseGet(K.PR);
+  sv(K.PR,d);
+  (CAS_Q[K.PR]||Promise.resolve()).then(()=>{
+    if(baseGet(K.PR)===h){logAudit(...line);ok();return;}
+    if(localStorage.getItem(K.PR)===raw){
+      if(prev==null)localStorage.removeItem(K.PR);else localStorage.setItem(K.PR,prev);
+      toast('e','저장하지 못했어요','서버에 올리지 못해 바꾸지 않았습니다. 연결을 확인한 뒤 다시 저장해 주세요.');
+      permApply();
+    }else if(!hadBase)toast('w','다른 곳에서 먼저 바뀌었습니다','최신 내용으로 맞췄습니다. 방금 저장한 내용이 빠졌다면 다시 입력해 주세요.');   // casAdopt 와 같은 글
+  }).catch(e=>console.warn('권한 저장 뒷일 실패',e));
+}
 function paSave(){
   if(!isSA()||!PA.kind)return;
   const d=permData(),menus={};
@@ -4224,17 +4251,16 @@ function paSave(){
     if(Object.keys(menus).length)d.people[PA.email]=menus;else delete d.people[PA.email];
     target=PA.email;
   }
-  sv(K.PR,d);logAudit('권한 변경',target,ch.join(' · '));
+  paCommit(d,['권한 변경',target,ch.join(' · ')],()=>toast('s','권한 저장',`${escH(target)} — 이 화면은 바로, 다른 사람 화면은 30초 안에 바뀝니다`));   // toast 는 innerHTML — 팀 이름·이메일은 escH
   closeMo('mo-pa');permApply();
-  toast('s','권한 저장',`${escH(target)} — 이 화면은 바로, 다른 사람 화면은 30초 안에 바뀝니다`);   // toast 는 innerHTML — 팀 이름·이메일은 escH
 }
 function paDelTeam(){
   if(!isSA()||PA.kind!=='team'||!PA.id)return;
   const t=permData().teams.find(x=>x.id===PA.id);if(!t){closeMo('mo-pa');paRender();return;}
   showCfm(CI.trash,'팀 삭제',`${t.name} 팀을 지웁니다. 구성원은 개인·역할 기본 권한을 따르게 됩니다.`,()=>{   // 확인창은 textContent 로 그린다
     const d=permData();d.teams=d.teams.filter(x=>x.id!==t.id);
-    sv(K.PR,d);logAudit('권한 변경',t.name,'팀 삭제');
-    closeMo('mo-pa');permApply();toast('s','팀 삭제',`${escH(t.name)} 팀을 지웠습니다`);
+    paCommit(d,['권한 변경',t.name,'팀 삭제'],()=>toast('s','팀 삭제',`${escH(t.name)} 팀을 지웠습니다`));
+    closeMo('mo-pa');permApply();
   });
 }
 
