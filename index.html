@@ -678,6 +678,8 @@ b,strong{font-weight:600;}
 .ni-ro{margin-left:auto;padding:0 6px;border-radius:6px;background:var(--plott-color-bg-muted);color:var(--plott-color-text-secondary);font-size:12px;line-height:16px;font-weight:600;}
 .ni-ro~.hq-nb{margin-left:4px;}
 .sb-col .ni .ni-ro{display:none;}
+/* 보기만(기능②-3) — 막힌 단추·칸은 흐리게(누르면 알림만) */
+[data-pv]{opacity:var(--plott-opacity-disabled);cursor:not-allowed;}
 
 /* MODAL — 반경 16·안쪽 24·배경막 #1B1B1A 60% */
 .mo{display:none;position:fixed;inset:0;background:var(--dl-backdrop);z-index:1000;align-items:flex-start;justify-content:center;padding:40px 16px;overflow-y:auto;}
@@ -2702,8 +2704,58 @@ function permApply(){
     goP('dashboard');return;
   }
   document.querySelector(`.ni[data-p="${cur}"]`)?.classList.add('on');
+  pvSet(cur);   // 보기만을 다시 건다(기능②-3)
   if(cur==='users'&&typeof paRender==='function')paRender();
 }
+/* ── 보기만(기능②-3 §3.7) ──
+   지금 화면의 실제 권한이 보기만이면 그 화면 · 윗줄 단추(#tb-r) · 모든 창(.mo — 창은 지금 화면에서만 열린다) · 확인창(.cfm)에서
+   허락 목록(PV_OK)에 없는 단추·칸을 막는다. 처리 함수마다 검사를 넣지 않고 문서 맨 앞(캡처 단계)에서 한 번에 막는다 — 나중에 그려지는 줄·창도 같다.
+   허락 목록 = 설계서의 '그대로' 다섯(거름·검색 · 보기 전환(목록|달력) · 엑셀 내려받기 · 새로고침) + 창 닫기 · 다른 화면으로 가기 · 달력 일정 보기 · 지점 정보 보기.
+   막는 길: 누르기(click) · 고르기(선택칸·체크·라디오 — mousedown·keydown) · 글 넣기(readOnly — 한글 입력까지) · 붙여넣기·잘라내기·끌어 놓기 · input·change 처리기.
+   표시: 막힌 단추·칸에 aria-disabled="true" + data-pv(흐림). 새로 그려진 것은 MutationObserver 가 단다 */
+const PV_SCOPE='.page.on,#tb-r,.mo,.cfm';
+const PV_CTL='button,input,select,textarea,[onclick],[onchange],[oninput]';
+const PV_OK=[
+  '.frow .fsel','.frow .finp','#pipe-r .ps','#db-m','#db-b','#o-stk-show','#svc-f-month','#svc-f-branch','#svc-f-brand',   // 거름·검색
+  '#i-view-list','#i-view-cal','#cal-prev','#cal-today','#cal-next','#cal-hide','.cal-chip','.cal-more',                    // 보기 전환 · 달력 넘기기 · 일정 보기(상세 창 안의 처리 단추는 막힌다)
+  '[onclick^="exportToExcel("]','[onclick="h2oExcel()"]','#hq-srv-btn','[onclick="renderLog()"]',                         // 엑셀 내려받기 · 새로고침(서버와 대조 · 변경 이력)
+  '.mx','[onclick^="closeMo("]','#cfm-no','[onclick^="goP("]',                                                           // 창 닫기 · 다른 화면으로 가기
+  '[onclick^="openBrMo("]:not([onclick="openBrMo(null)"])'                                                                // 지점 정보 보기(창 안 칸·저장·삭제는 막힌다) — 지점 추가는 막는다
+].join(',');
+const PV_TEXT=/^(text|search|email|tel|url|number|password|date|month|week|time|datetime-local)$/;   // readOnly 가 듣는 칸
+const PV={on:false,t:0};   // on 지금 화면이 보기만인가 · t 마지막 '보기만' 알림 시각(잇단 클릭에 알림이 쌓이지 않게)
+const pvIsText=c=>c.tagName==='TEXTAREA'||(c.tagName==='INPUT'&&PV_TEXT.test(c.type));
+// 막을 단추·칸 — 누른 곳에서 위로 올라가며 단추·칸(라벨이면 그 칸)을 보고, 허락 목록 밖인 첫 것을 돌려준다. 막을 것이 없으면 null
+function pvBlocked(t){
+  if(!PV.on||!(t instanceof Element)||!t.closest(PV_SCOPE))return null;
+  for(let e=t;e&&e!==document.body;e=e.parentElement){
+    const c=e.tagName==='LABEL'?e.control:e.matches(PV_CTL)?e:null;
+    if(c&&c.type!=='hidden'&&!c.matches(PV_OK))return c;
+  }
+  return null;
+}
+function pvClear(){document.querySelectorAll('[data-pv]').forEach(c=>{if(c.dataset.pv==='ro')c.readOnly=false;c.removeAttribute('aria-disabled');c.removeAttribute('data-pv');});}
+function pvMark(){
+  if(!PV.on)return;
+  document.querySelectorAll(PV_SCOPE).forEach(r=>r.querySelectorAll(PV_CTL).forEach(c=>{
+    if(c.type==='hidden'||c.hasAttribute('data-pv')||c.getAttribute('aria-disabled')==='true'||c.matches(PV_OK))return;   // 앱이 이미 막아 둔 것은 그대로(풀 때 건드리지 않게)
+    c.setAttribute('aria-disabled','true');
+    if(pvIsText(c)&&!c.readOnly){c.readOnly=true;c.dataset.pv='ro';}else c.dataset.pv='';
+  }));
+}
+// 화면에 들어올 때(goP)·권한이 바뀔 때(permApply) — 표시를 다 지우고 보기만이면 다시 단다. 알림은 화면마다 첫 클릭에 한 번은 뜨게
+function pvSet(p){PV.on=!!S&&PERM_MENUS.includes(p)&&permOf(p)==='view';PV.t=0;pvClear();pvMark();}
+function pvGuard(ev){
+  const c=pvBlocked(ev.target);if(!c)return;
+  const ty=ev.type,text=pvIsText(c),pick=!text&&/^(INPUT|SELECT)$/.test(c.tagName)&&!/^(button|submit|reset|image)$/.test(c.type);
+  if(ty==='focusin'){if(text&&!c.readOnly){c.readOnly=true;c.dataset.pv='ro';c.setAttribute('aria-disabled','true');}return;}   // 앱이 readOnly 를 푼 칸도 들어가는 순간 다시
+  if(ty==='keydown'&&(!pick||ev.key==='Tab'||ev.key==='Escape'))return;   // 글칸은 readOnly 가(커서 옮기기·복사는 된다), 단추는 click 이 막는다 · Tab·Esc 는 그대로
+  if(ty==='mousedown'&&!pick)return;                                      // 선택칸·체크만 눌러 열리지 않게 — 글칸은 눌러 글을 고를 수 있다
+  ev.preventDefault();ev.stopImmediatePropagation();
+  if(ty==='click'&&!text&&Date.now()-PV.t>3000){PV.t=Date.now();toast('e','권한 없음','보기만 — 이 화면에서는 고칠 수 없습니다.');}
+}
+['click','mousedown','keydown','beforeinput','paste','cut','drop','input','change','focusin'].forEach(t=>document.addEventListener(t,pvGuard,true));
+new MutationObserver(()=>{if(PV.on)pvMark();}).observe(document.body,{childList:true,subtree:true});
 
 /* ── STATE ── */
 let S=null,urgOn=false,cfmCb=null,cfmHold=0,pipeR='all',instId=null,brDelId=null;
@@ -2998,6 +3050,7 @@ function goP(p){
   document.querySelectorAll('.ni').forEach(e=>e.classList.remove('on'));
   const pg=document.getElementById('page-'+p);if(pg)pg.classList.add('on');
   const ni=document.querySelector(`.ni[data-p="${p}"]`);if(ni)ni.classList.add('on');
+  pvSet(p);   // 보기만(기능②-3) — 그리기 전에 켜 둔다
   const[t,s]=PM[p]||[p,''];
   document.getElementById('pg-t').textContent=t;document.getElementById('pg-s').textContent=s;
   document.getElementById('tb-r').innerHTML='';
