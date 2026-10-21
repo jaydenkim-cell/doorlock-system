@@ -4431,7 +4431,7 @@ function filterBr(){
 async function syncDuckRoomsAndRender(){
   const duck=await syncDuckRooms();
   renderBr();
-  if(duck)toast('s','Duck 동기화 완료',`객실수 업데이트 완료 (${escH(kstDate(duck.updatedAt))})`);
+  if(duck)toast('s','Duck 동기화 완료',`객실수 업데이트 완료 (${escH(duck.updatedAt?kstDate(duck.updatedAt):'')})`);
   else toast('w','동기화 데이터 없음','스케줄 작업이 아직 실행되지 않았습니다');
 }
 function openBrMo(id){
@@ -6402,7 +6402,7 @@ function exportToExcel(type){
     if(MS.rows.length){
       const tt=MS.total;
       rows.push(['합계','','','',tt.cnt,tt.qty||'',tt.p,tt.i,tt.e,tt.ex,tt.tax,tt.t,
-        (MS.snap?`${MS.backfilled?'사후확정':'마감확정'}(${kstDate(MS.closedAt)}) · `:'')
+        (MS.snap?`${MS.backfilled?'사후확정':'마감확정'}(${MS.closedAt?kstDate(MS.closedAt):''}) · `:'')
         +'부가세 기준: 지점·구분·구분2·공급처 단위 반올림 합산 · 수량은 물건=구매 개수, 설치=설치 실수']);
     }
     // 지점/검색 필터가 걸린 채 내보내면 부분 정산이므로 파일명에 범위를 드러낸다
@@ -6653,7 +6653,7 @@ async function svcAutoFetch(force){
     });
     AUTO.orphan=[...accMap].filter(([id,r])=>r.length>0&&!usedIds.has(id))
                            .map(([id,r])=>({id,n:r.length}));
-    st.textContent=`duck ${tKst(AUTO.updatedAt)} · 솔리티 ${tKst(AUTO.solitiAt)}`;   // 한국 시간(예전엔 세계 표준시 글자를 잘라 9시간 이르게 보였다)
+    st.textContent=`duck ${AUTO.updatedAt?tKst(AUTO.updatedAt):''} · 솔리티 ${AUTO.solitiAt?tKst(AUTO.solitiAt):''}`;   // 한국 시간(예전엔 세계 표준시 글자를 잘라 9시간 이르게 보였다)
     // 솔리티 조회가 실패해 이전 값을 쓰면 청구에 낡은 객실 수가 들어갈 수 있다 — 회색 글자만으론 놓치기 쉬워 아이콘 + 경고색을 붙인다(고정 문구라 HTML 로 넣어도 사용자 값이 섞이지 않는다. 위 시각은 textContent 그대로)
     if(sol.stale)st.insertAdjacentHTML('beforeend',' · <span class="t-warn">'+CI.alertIn+' 솔리티 조회 실패로 이전 값 사용</span>');
   }catch(e){
@@ -7639,7 +7639,7 @@ const dayDiff=(a,b)=>Math.round((new Date(b+'T00:00:00')-new Date(a+'T00:00:00')
 const addDays=(ymd,n)=>{const x=new Date(ymd+'T00:00:00');x.setDate(x.getDate()+n);return ymdLocal(x);};
 const md=d=>{const[,m,dd]=String(d).split('-');return `${+m}/${+dd}`;};
 const isYmd=v=>/^\d{4}-\d{2}-\d{2}$/.test(String(v||''))&&+String(v).substring(0,4)>=2020;
-const tKst=iso=>{const x=new Date(iso);return isNaN(x)?'':`${ymdLocal(x)} ${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}`;};   // 화면 표시는 한국 시간
+const tKst=iso=>{const x=new Date(iso);return isNaN(x)?'':`${ymdLocal(x)} ${String(x.getHours()).padStart(2,'0')}:${String(x.getMinutes()).padStart(2,'0')}`;};   // 화면 표시는 한국 시간 — 맥북 시간대 기준(핸디즈 기기는 모두 한국 시간). 시간대와 상관없이 한국 날짜가 필요하면 kstDate
 function addBizDays(ymd,n){let d=ymd;for(let i=0;i<n;i++){const x=new Date(d+'T00:00:00');x.setDate(x.getDate()+1);d=nextBizDay(ymdLocal(x));}return d;}
 const kstDate=t=>{const x=new Date(t);return isNaN(x)?String(t||'').substring(0,10):ymdLocal(new Date(x.getTime()+(9*60+x.getTimezoneOffset())*60000));};
 let H2OL=null,H2O_BUSY=false,H2O_DEFAULTED=false;   // 불러온 결과(화면 상태). 저장 전까지는 kv 에 쓰지 않는다
