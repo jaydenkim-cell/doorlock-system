@@ -6251,13 +6251,17 @@ async function cmDM(c,emails,later){
   return{sent:Number(d&&d.sent)||0,failed,stale};
 }
 /* 서버가 받지 않은 댓글(게이트웨이 v12 의 답 ignored:[{id, why}]).
-   거절(CM_NO — 꼴 · 남의 댓글 · 저장 공간)이면 이 브라우저에서도 그 줄을 지우고 사유와 함께 한 번 알린다(그대로 두면 30초마다 다시 올린다). 서버에 있던 줄을 고친 것이었으면 다음 동기화가 서버 것으로 되돌린다.
-   미룸(too_many_new 한 번에 50줄 넘음 · cap_user 한 사람 24시간 200줄 넘음 · future 이 컴퓨터 시계가 5분 넘게 빠름)은 지우지도 알리지도 않는다 — 30초 동기화가 다시 올린다 */
-const CM_NO=new Map([['bad_row','형식'],['bad_shape','형식'],['core','형식'],['not_owner','남의 댓글'],['admin_delete_only','남의 댓글'],['cap_total','저장 공간']]);
+   거절(CM_NO — 꼴 · 남의 댓글 · 저장 공간 · 오래됨(past 새 줄의 쓴 때가 24시간보다 오래됨))이면 이 브라우저에서도 그 줄을 지우고 사유와 함께 한 번 알린다(그대로 두면 30초마다 다시 올린다). 서버에 있던 줄을 고친 것이었으면 다음 동기화가 서버 것으로 되돌린다.
+   미룸(too_many_new 한 번에 50줄 넘음 · cap_user 한 사람 24시간 200줄 넘음 · future 이 컴퓨터 시계가 5분 넘게 빠름)은 지우지도 거절로 알리지도 않는다 — 30초 동기화가 다시 올린다.
+   다만 future 는 시계 탓이라(줄은 그대로 두고 시계가 맞을 때까지 못 올라간다) 짧은 안내를 세션에 한 번만 띄운다(CM_FUT_TOLD — 새 키 없음) */
+const CM_NO=new Map([['bad_row','형식'],['bad_shape','형식'],['core','형식'],['not_owner','남의 댓글'],['admin_delete_only','남의 댓글'],['cap_total','저장 공간'],['past','오래됨']]);
+let CM_FUT_TOLD=false;
 const CM_ID_OK=/^cm_[a-z0-9_]{6,40}$/;   // 게이트웨이와 같은 댓글 id 꼴 — bad_row(서버가 id 를 돌려주지 못한 줄)는 이 꼴로 찾는다
 const cmWhy=(res,id)=>{const x=(Array.isArray(res&&res.ignored)?res.ignored:[]).find(x=>x&&x.id===id);return x?String(x.why||'?'):'';};   // 그 줄을 서버가 받지 않은 사유('' = 받았다)
 function cmIgnored(res){
-  const ign=(Array.isArray(res&&res.ignored)?res.ignored:[]).filter(x=>x&&CM_NO.has(x.why));
+  const all=Array.isArray(res&&res.ignored)?res.ignored:[];
+  if(!CM_FUT_TOLD&&all.some(x=>x&&x.why==='future')){CM_FUT_TOLD=true;toast('w','댓글','이 컴퓨터 시계가 빨라 댓글이 아직 올라가지 않았어요 — 시계를 맞춰 주세요');}   // 미룬 줄은 그대로 둔다 — 안내만
+  const ign=all.filter(x=>x&&CM_NO.has(x.why));
   if(!ign.length)return;
   const why=new Map(ign.filter(x=>typeof x.id==='string').map(x=>[x.id,x.why])),bad=ign.some(x=>x.why==='bad_row'),out=new Set();
   const arr=getCM(),keep=arr.filter(x=>{const w=x&&typeof x==='object'&&typeof x.id==='string'&&CM_ID_OK.test(x.id)?why.get(x.id):bad?'bad_row':'';if(w)out.add(CM_NO.get(w));return!w;});
