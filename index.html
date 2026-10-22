@@ -2281,8 +2281,10 @@ function syncRun(resave){
     try{
       const n=SYNC.pulls,resent=[];
       await sbSync();
-      // 받은 값을 이 브라우저에 다 담지 못한 동기화(SB_LS_FAIL — 저장 공간)면 다시 저장하지 않는다 — 브라우저 사본이 합치기 전 값이라 그사이 다른 곳에서 더한 것을 덮는다
-      if(resave&&SYNC.pulls>n&&!SB_LS_FAIL.size)for(const k of [...SYNC.failed]){
+      // 받은 값을 이 브라우저에 담지 못한 키(SB_LS_FAIL — 저장 공간)만 다시 저장하지 않는다 — 그 키의 브라우저 사본은 합치기 전 값이라 그사이 다른 곳에서 더한 것을 덮는다.
+      // 담은 키는 그대로 다시 저장한다(다른 키 하나가 모자라다고 전부 건너뛰면 이 키의 실패가 풀리지 않는다)
+      if(resave&&SYNC.pulls>n)for(const k of [...SYNC.failed]){
+        if(SB_LS_FAIL.has(k))continue;
         let v=null;try{v=JSON.parse(localStorage.getItem(k));}catch{}
         if(v==null){SYNC.failed.delete(k);continue;}                         // 지워졌거나 읽을 수 없는 키 — 다시 보낼 값이 없다
         await sbSet(k,v);resent.push(k);
