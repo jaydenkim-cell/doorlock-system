@@ -6319,7 +6319,9 @@ addEventListener('hashchange',()=>{if(cmHashTake())cmHashOpen();});
    ③ 내 접수 건의 상태 변화(발주됨 · 설치 일정 잡힘/바뀜 · 설치 완료) — 이 브라우저에 기억해 둔 지난 상태(dl.inbox.snap)와 동기화 뒤의 상태를 견줘 그때 한 줄(dl.inbox.items, 최근 100)을 만든다.
    처음 켰을 땐 기준만 잡는다. 이 탭이 접수를 저장하면(sv) 기준만 맞춘다 — 내가 바꾼 것은 알리지 않는다.
    읽음 = 읽은 알림 id 목록(dl.inbox.readAt 의 ids · 최근 300개 — ibRead) — 기기마다 따로다. 옛 값(시각 하나 at)은 처음 한 번 그때까지의 알림 id 로 옮긴다.
+   보이는 알림은 최신 100개라 그 밖에도 알림이 있을 때 [모두 읽음](옛 값 옮기기도)은 보이던 가장 오래된 알림의 시각을 바닥(floor)으로 같이 적는다 — 바닥 이하는 읽음(보이던 알림이 지워져 옛 알림이 올라와도).
    알림 id 는 갈래까지 넣는다(m_ 나를 부름 · c_ 내 접수 새 댓글 · s_ 상태) — 고친 댓글에서 새로 부르면 새 알림이고, 그 시각은 고친 때다.
+   나를 부른 댓글의 알림 시각은 처음 본 때 정해 dl.inbox.snap 의 m(댓글 id → 시각)에 둔다 — 지난번에 본 모습과 견줘 고쳐서 새로 부른 것만 고친 때, 글만 고친 댓글은 그대로(ibMentAt).
    세 값 모두 누구 것인지(me)를 같이 적어, 한 컴퓨터를 같이 쓰다 사람이 바뀌면 새로 잡는다. localStorage 는 모두 try 로 */
 const IB_SNAP='dl.inbox.snap',IB_ITEMS='dl.inbox.items',IB_READ='dl.inbox.readAt',IB_MAX=100;
 const ibGet=k=>{try{const v=JSON.parse(localStorage.getItem(k)||'null'),me=cmMe();return v&&typeof v==='object'&&me&&v.me===me?v:null;}catch{return null;}};
@@ -6349,36 +6351,54 @@ function ibDiff(quiet){
     }
     if(add)ibPut(IB_ITEMS,{list:items.sort((x,y)=>String(y.at).localeCompare(String(x.at))).slice(0,IB_MAX)});
   }
-  ibPut(IB_SNAP,{r:now});
+  // 나를 부른 댓글(지운 것·내가 쓴 것 빼고)과 그 알림 시각 — 다음에 견줄 '지난번에 본 모습'. 볼 수 없는 접수의 댓글도 적는다(접수가 다시 보여도 시각이 그대로)
+  const me=cmMe(),when=ibMentAt(snap),m={};
+  for(const c of cmRows())if(!c.del&&cmLow(c.email)!==me&&cmMentions(c).includes(me))m[c.id]=when(c);
+  ibPut(IB_SNAP,{r:now,m});
 }
 function ibQuiet(){try{if(S)ibDiff(true);}catch{}}
-// 지금 보일 알림(최신순 100) — 댓글에서 만든 것 + 기억해 둔 상태 변화. 볼 수 없는 접수는 뺀다
-function ibItems(){
+/* 나를 부른 댓글의 알림 시각 — snap = dl.inbox.snap(지난번에 본 모습 · 그 m 은 댓글 id → 알림 시각).
+   m 에 있던 멘션은 그 시각 그대로(글만 고쳐도 바뀌지 않는다) · 없던 멘션(새 댓글 · 고쳐서 새로 부름)은 고친 때(없으면 쓴 때).
+   지난번 모습이 없으면(이 브라우저에서 처음) 쓴 때 — 다만 내 접수 새 댓글(c_)로 읽은 댓글이 이제 나를 부르면(m_ 은 안 읽음) 고친 때 */
+function ibMentAt(snap){
+  const m=snap&&snap.m&&typeof snap.m==='object'&&!Array.isArray(snap.m)?snap.m:null;
+  if(m)return c=>typeof m[c.id]==='string'?m[c.id]:String(c.upd||c.at||'');
+  const v=ibGet(IB_READ),rd=new Set(v&&Array.isArray(v.ids)?v.ids:[]);
+  return c=>String((c.upd&&rd.has('c_'+c.id)&&!rd.has('m_'+c.id)?c.upd:c.at)||'');
+}
+// 지금 보일 알림(최신순 100 — all 이면 전부) — 댓글에서 만든 것 + 기억해 둔 상태 변화. 볼 수 없는 접수는 뺀다
+function ibItems(all){
   const me=cmMe();if(!me)return[];
-  const rc=new Map(getRc().filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r])),out=[],names=cmNames();
+  const rc=new Map(getRc().filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r])),out=[],names=cmNames(),when=ibMentAt(ibGet(IB_SNAP));
   for(const c of cmRows()){
     if(c.del||cmLow(c.email)===me)continue;
     const r=rc.get(c.rid);if(!cmSeeR(r))continue;
     const k=cmMentions(c).includes(me)?'m':cmLow(r.regEmail)===me?'c':'';
-    if(k)out.push({k,id:k+'_'+c.id,rid:c.rid,at:String((k==='m'&&c.upd)||c.at||''),by:cmName(c,names),email:cmLow(c.email)});   // 고쳐서 새로 부르면 새 알림(id 가 다르다) · 그 시각은 고친 때
+    if(k)out.push({k,id:k+'_'+c.id,rid:c.rid,at:k==='m'?when(c):String(c.at||''),by:cmName(c,names),email:cmLow(c.email)});   // 고쳐서 새로 부르면 새 알림(id 가 다르다) · 그 시각은 ibMentAt
   }
   const got=ibGet(IB_ITEMS);
   for(const x of Array.isArray(got&&got.list)?got.list:[])if(x&&typeof x==='object'&&x.k==='s'&&cmSeeR(rc.get(x.rid)))out.push(x);
-  return out.sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,IB_MAX);
+  out.sort((a,b)=>String(b.at).localeCompare(String(a.at)));
+  return all?out:out.slice(0,IB_MAX);
 }
-// 읽은 알림 id — 옛 값(at 하나 — 그 시각까지 온 알림을 읽음으로 쳤다)이면 처음 한 번 그때까지의 알림 id 로 옮겨 적는다(at 은 그대로 둔다 — 새로고침 안 한 옛 탭이 읽는다)
+// 읽음 — {ids 읽은 알림 id, floor 바닥 시각('' = 없음)}. 옛 값(at 하나 — 그 시각까지 온 알림을 읽음으로 쳤다)이면 처음 한 번 그때까지의 알림 id 로 옮겨 적는다(at 은 그대로 둔다 — 새로고침 안 한 옛 탭이 읽는다).
+// 옮길 때 보이는 100개 밖에도 알림이 있으면 바닥 = 보이던 가장 오래된 알림 시각과 옛 at 가운데 이른 쪽(창 밖 알림은 옛 규칙대로 읽음)
 const IB_READ_MAX=300;
 function ibRead(){
-  const v=ibGet(IB_READ);
-  if(v&&Array.isArray(v.ids))return new Set(v.ids.filter(x=>typeof x==='string'));
-  const at=v&&typeof v.at==='string'?v.at:'',ids=at?ibItems().filter(x=>String(x.at)<=at).map(x=>x.id):[];
-  if(at)ibPut(IB_READ,{at,ids:ids.slice(-IB_READ_MAX)});
-  return new Set(ids);
+  const v=ibGet(IB_READ),floor=v&&typeof v.floor==='string'?v.floor:'';
+  if(v&&Array.isArray(v.ids))return{ids:new Set(v.ids.filter(x=>typeof x==='string')),floor};
+  const at=v&&typeof v.at==='string'?v.at:'';
+  if(!at)return{ids:new Set(),floor:''};
+  const all=ibItems(true),vis=all.slice(0,IB_MAX),ids=vis.filter(x=>String(x.at)<=at).map(x=>x.id).slice(-IB_READ_MAX);
+  const fl=all.length>IB_MAX?[String(vis[vis.length-1].at),at].sort()[0]:'';
+  ibPut(IB_READ,{at,ids,...(fl?{floor:fl}:{})});
+  return{ids:new Set(ids),floor:fl};
 }
+const ibSeen=(rd,x)=>rd.ids.has(x.id)||(!!rd.floor&&String(x.at)<=rd.floor);   // 읽은 알림인가 — id 가 있거나 바닥 이하
 let IB_LAST=null,IB_ROWS=[];   // 지난번 안 읽은 수(늘었을 때만 읽기 프로그램이 읽는다) · 창에 그린 알림(단추엔 번호만)
 function ibBadge(){
   const b=document.getElementById('sb-ib-n'),btn=document.getElementById('sb-ib');if(!b||!btn)return;
-  const read=ibRead(),n=ibItems().filter(x=>!read.has(x.id)).length;
+  const rd=ibRead(),n=ibItems().filter(x=>!ibSeen(rd,x)).length;
   b.hidden=!n;b.textContent=n>99?'99+':String(n);
   btn.setAttribute('aria-label',n?`내 알림 — 안 읽은 알림 ${n}개`:'내 알림');
   const live=document.getElementById('sb-ib-live');
@@ -6391,25 +6411,27 @@ function ibOpen(){if(!S)return;ibRender();openMo('ib-mo');document.querySelector
 function ibClose(){closeMo('ib-mo');document.getElementById('sb-ib')?.focus();}   // 닫으면 연 단추(종)로 초점
 function ibRender(){
   const box=document.getElementById('ib-list');if(!box)return;
-  const items=ibItems(),read=ibRead(),rc=new Map(getRc().filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r]));
+  const items=ibItems(),rd=ibRead(),rc=new Map(getRc().filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r]));
   IB_ROWS=items;
   box.innerHTML=items.length?items.map((x,i)=>{
-    const r=rc.get(x.rid)||{},nw=!read.has(x.id);
+    const r=rc.get(x.rid)||{},nw=!ibSeen(rd,x);
     const who=`<span class="ib-by" title="${escH(x.email||'')}">${escH(x.by)}</span>`;   // 이름 칸 — 마우스를 올리면 이메일
     const msg=x.k==='m'?`${who}님이 회원님을 불렀어요`:x.k==='c'?`${who}님이 내 접수에 댓글을 남겼어요`:escH(x.msg);
     return`<button type="button" class="ib-i${nw?' ib-new':''}" onclick="ibGo(${i})"><span class="ib-dot" aria-hidden="true"></span><span class="ib-tx"><span class="ib-msg">${msg}${nw?'<span class="sr-only"> · 안 읽음</span>':''}</span><span class="ib-sub">${escH(r.branch||'')} ${escH(r.room||'')} · ${escH(tKst(x.at))}</span></span></button>`;
   }).join(''):'<div class="ib-empty">새 알림이 없어요</div>';
-  document.getElementById('ib-all').disabled=!items.some(x=>!read.has(x.id));
+  document.getElementById('ib-all').disabled=!items.some(x=>!ibSeen(rd,x));
 }
-// 모두 읽음 — 지금 보이는 알림의 id 를 읽음 목록 맨 뒤에(300개를 넘으면 오래 읽은 것부터 빠진다). 시각으로 정하지 않는다 — 동기화 전에 온 알림·앞날 시각 댓글이 다음 알림을 가리지 않게
+// 모두 읽음 — 지금 보이는 알림의 id 를 읽음 목록 맨 뒤에(300개를 넘으면 오래 읽은 것부터 빠진다). 시각으로 정하지 않는다 — 동기화 전에 온 알림·앞날 시각 댓글이 다음 알림을 가리지 않게.
+// 다만 보이는 100개 밖에도 알림이 있으면 보이던 가장 오래된 알림의 시각을 바닥으로(창 밖 알림은 id 를 적지 않았다 — 보이던 알림이 지워져 올라와도 읽음)
 function ibAllRead(){
-  const v=ibGet(IB_READ),now=ibItems().map(x=>x.id),keep=[...ibRead()].filter(id=>!now.includes(id));
-  ibPut(IB_READ,{...(v&&typeof v.at==='string'?{at:v.at}:{}),ids:[...keep,...now].slice(-IB_READ_MAX)});
+  const v=ibGet(IB_READ),rd=ibRead(),all=ibItems(true),now=all.slice(0,IB_MAX).map(x=>x.id),keep=[...rd.ids].filter(id=>!now.includes(id));
+  const floor=[rd.floor,all.length>IB_MAX?String(all[IB_MAX-1].at):''].sort().pop();   // 늦은 쪽 — 바닥은 내려가지 않는다
+  ibPut(IB_READ,{...(v&&typeof v.at==='string'?{at:v.at}:{}),ids:[...keep,...now].slice(-IB_READ_MAX),...(floor?{floor}:{})});
   ibRender();ibBadge();
 }
 function ibGo(i){
   const x=IB_ROWS[i];if(!x)return;
-  closeMo('ib-mo');
+  ibClose();   // 닫는 함수로 — 초점이 종으로 돌아간다(댓글 창을 열면 그 창으로, 그 창을 닫으면 다시 종으로)
   if(!cmSeeR(cmFindR(x.rid))){toast('w','내 알림','그 접수를 볼 수 없어요 — 지워졌거나 다른 지점 건이에요');return;}
   if(!cmOnR())goP('receipt');
   if(x.k==='s')ibHighlight(x.rid);else cmOpenId(x.rid,'#sb-ib');
