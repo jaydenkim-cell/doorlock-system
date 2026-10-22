@@ -2006,7 +2006,7 @@ b,strong{font-weight:600;}
 <!-- 내 알림 창(기능④) — 최신순. 누르면 그 접수의 댓글 창(상태 변화는 접수 관리에서 그 줄을 강조) -->
 <div class="mo dl-side" id="ib-mo" role="dialog" aria-modal="true" aria-labelledby="ib-title">
 <div class="mb">
-  <div class="mh"><span class="mt2" id="ib-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>내 알림</span><span class="ib-hd"><button class="btn bo bsm" id="ib-all" onclick="ibAllRead()">모두 읽음</button><button class="mx" aria-label="닫기" onclick="closeMo('ib-mo')">✕</button></span></div>
+  <div class="mh"><span class="mt2" id="ib-title"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>내 알림</span><span class="ib-hd"><button class="btn bo bsm" id="ib-all" onclick="ibAllRead()">모두 읽음</button><button class="mx" aria-label="닫기" onclick="ibClose()">✕</button></span></div>
   <div class="ib-list" id="ib-list"></div>
 </div>
 </div>
@@ -3186,6 +3186,7 @@ function sbColApply(){
     if(col)ni.title=name;else ni.removeAttribute('title');
   });
   if(col)lo.title='로그아웃';else lo.removeAttribute('title');
+  ibTitle();   // 내 알림 종(기능④)도 접히면 title
   syncPaint();   // 동기화 줄 — 접히면 점만 남고 글은 title 로
 }
 function sbColToggle(){SB_COL=!sbCol();lsSet('dl.sb.collapsed',SB_COL?'1':'0');sbColApply();}
@@ -5386,7 +5387,12 @@ function showCfm(icon,title,msg,cb,opt){opt=opt||{};document.getElementById('cfm
 function cfmYes(){if(Date.now()<cfmHold)return;closeCfm(true);}   // 이어 뜬 확인창을 빠른 두 번 클릭으로 넘기지 않게
 function closeCfm(ok){document.getElementById('cfm').classList.remove('show');if(ok&&cfmCb)cfmCb();cfmCb=null;}
 function toast(type,title,desc){const w=document.getElementById('tw'),el=document.createElement('div');const ic={s:CI.check,e:CI.xCircle,i:CI.info,w:CI.alert};el.className=`toast toast-${ic[type]?type:'i'}`;el.innerHTML=`<div class="tic">${ic[type]||CI.info}</div><div><div class="tt2">${title}</div><div class="td">${desc}</div></div>`;w.appendChild(el);setTimeout(()=>el.classList.add('show'),10);setTimeout(()=>{el.classList.remove('show');setTimeout(()=>el.remove(),350);},3500);}
-document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.mo.show,.cfm.show').forEach(m=>m.classList.remove('show'));});
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  const cm=document.getElementById('cm-mo')?.classList.contains('show'),ib=document.getElementById('ib-mo')?.classList.contains('show');
+  document.querySelectorAll('.mo.show,.cfm.show').forEach(m=>m.classList.remove('show'));
+  if(cm)cmClose();else if(ib)ibClose();   // 댓글 창·내 알림 창은 닫는 함수로 — 접수 표의 댓글 수를 바로 맞추고 연 단추로 초점을 돌린다
+});
 // m-qty 변경 시 onBrSel 재호출 → 10개 이상 지점 설치비 22,000원 자동 체크
 const _mqty=document.getElementById('m-qty');if(_mqty)_mqty.addEventListener('input',onBrSel);
 ['m-price','m-install','m-extra'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',calcT);});
@@ -6074,21 +6080,24 @@ const cmOnR=()=>document.getElementById('page-receipt')?.classList.contains('on'
 // 쓴 사람 이름 — 사용자 목록에서 그 댓글의 이메일로 찾는다(by 는 쓴 탭이 적은 글이라 믿지 않는다 — 게이트웨이 v12 는 직원이 남의 사용자 행 이름을 못 바꾸게 막는다). 없으면 by, 그것도 없으면 이메일
 function cmNames(){const m=new Map(),us=getUsers();for(const u of Array.isArray(us)?us:[])if(u&&typeof u==='object'&&typeof u.name==='string'&&u.name.trim()){const e=cmLow(u.email||u.id);if(e&&!m.has(e))m.set(e,u.name.trim());}return m;}
 const cmName=(c,names)=>(names||cmNames()).get(cmLow(c&&c.email))||(c&&typeof c.by==='string'&&c.by.trim())||cmLow(c&&c.email)||'—';
-const CM={rid:null,edit:null,picks:new Map(),ac:[],acI:0};   // 지금 연 접수 · 고치는 댓글 id · 고른 사람(이메일 → 이름) · '@' 목록
+const CM={rid:null,edit:null,picks:new Map(),ac:[],acI:0,back:null};   // 지금 연 접수 · 고치는 댓글 id · 고른 사람(이메일 → 이름) · '@' 목록 · 닫으면 초점을 돌릴 단추(선택자)
 let CM_ROWS=[];   // 창에 그린 댓글 id — [수정]·[삭제]는 이 배열의 번호만 넘긴다
-function cmOpen(no){const rid=CM_IDS[no];if(typeof rid==='string')cmOpenId(rid);}
-function cmOpenId(rid){
+function cmOpen(no){const rid=CM_IDS[no];if(typeof rid==='string')cmOpenId(rid,`#r-body button[onclick="cmOpen(${Number(no)})"]`);}   // 닫으면 이 단추로 초점(표를 다시 그려도 같은 번호)
+function cmOpenId(rid,back){
   const r=cmFindR(rid);
   if(!cmSeeR(r)){toast('w','댓글','이 접수를 볼 수 없어요 — 지워졌거나 다른 지점 건이에요');return false;}
   if(CM.rid!==rid){CM.edit=null;CM.picks=new Map();document.getElementById('cm-text').value='';}
-  CM.rid=rid;
+  CM.rid=rid;CM.back=back||null;
   document.getElementById('cm-title').textContent=`접수 ${rid} · ${String(r.branch||'')} ${String(r.room||'')} 댓글`;
   cmAcClose();cmRender();openMo('cm-mo');
   const list=document.getElementById('cm-list');list.scrollTop=list.scrollHeight;
   (cmCanWrite()?document.getElementById('cm-text'):document.querySelector('#cm-mo .mx')).focus();
   return true;
 }
-function cmClose(){closeMo('cm-mo');cmAcClose();if(cmOnR())renderR();}   // 닫으면 접수 표의 댓글 수를 바로 맞춘다
+function cmClose(){
+  closeMo('cm-mo');cmAcClose();if(cmOnR())renderR();   // 닫으면 접수 표의 댓글 수를 바로 맞춘다
+  const b=CM.back&&document.querySelector(CM.back);CM.back=null;if(b)b.focus();   // 연 단추로 초점(접수 표의 그 줄 · 내 알림에서 열었으면 종)
+}
 // '@이름' 강조 — 글을 먼저 escH 하고, 이 댓글이 부른 사람의 이름(도어락 사용자 이름)도 escH 한 글자로 찾아 감싼다
 function cmBody(c){
   const h=escH(cmText(c.text)),us=getUsers();
@@ -6136,13 +6145,13 @@ function cmInput(){
 function cmAcPaint(){
   const box=document.getElementById('cm-ac');
   if(!CM.ac.length){cmAcClose();return;}
-  box.innerHTML=CM.ac.map((u,i)=>`<button type="button" class="cm-ac-i${i===CM.acI?' on':''}" role="option" aria-selected="${i===CM.acI}" onmousedown="event.preventDefault()" onclick="cmPick(${i})"><span class="cm-ac-n">${escH(u.n)}</span><span class="cm-ac-e">${escH(u.e)}</span></button>`).join('');
+  box.innerHTML=CM.ac.map((u,i)=>`<button type="button" class="cm-ac-i${i===CM.acI?' on':''}" role="option" id="cm-ac-${i}" aria-selected="${i===CM.acI}" onmousedown="event.preventDefault()" onclick="cmPick(${i})"><span class="cm-ac-n">${escH(u.n)}</span><span class="cm-ac-e">${escH(u.e)}</span></button>`).join('');
   box.hidden=false;
-  document.getElementById('cm-text').setAttribute('aria-expanded','true');
+  const ta=document.getElementById('cm-text');ta.setAttribute('aria-expanded','true');ta.setAttribute('aria-activedescendant','cm-ac-'+CM.acI);   // 읽기 프로그램 — 지금 고른 사람
 }
 function cmAcClose(){
   const box=document.getElementById('cm-ac');if(box){box.hidden=true;box.innerHTML='';}
-  CM.ac=[];document.getElementById('cm-text')?.setAttribute('aria-expanded','false');
+  CM.ac=[];const ta=document.getElementById('cm-text');if(ta){ta.setAttribute('aria-expanded','false');ta.removeAttribute('aria-activedescendant');}
 }
 function cmPick(i){
   const u=CM.ac[i],ta=document.getElementById('cm-text');if(!u||!ta)return;
@@ -6265,7 +6274,9 @@ addEventListener('hashchange',()=>{if(cmHashTake())cmHashOpen();});
    세 갈래: ① 나를 부른 댓글 ② 내 접수 건(r.regEmail 이 나)에 남이 쓴 새 댓글 — 둘은 댓글에서 바로 만든다(남이 쓴 것만 · 지운 것·볼 수 없는 접수는 빼고 · 시각은 댓글의 at)
    ③ 내 접수 건의 상태 변화(발주됨 · 설치 일정 잡힘/바뀜 · 설치 완료) — 이 브라우저에 기억해 둔 지난 상태(dl.inbox.snap)와 동기화 뒤의 상태를 견줘 그때 한 줄(dl.inbox.items, 최근 100)을 만든다.
    처음 켰을 땐 기준만 잡는다. 이 탭이 접수를 저장하면(sv) 기준만 맞춘다 — 내가 바꾼 것은 알리지 않는다.
-   읽음 = dl.inbox.readAt(이 시각보다 뒤 것이 안 읽음) — 기기마다 따로다. 세 값 모두 누구 것인지(me)를 같이 적어, 한 컴퓨터를 같이 쓰다 사람이 바뀌면 새로 잡는다. localStorage 는 모두 try 로 */
+   읽음 = 읽은 알림 id 목록(dl.inbox.readAt 의 ids · 최근 300개 — ibRead) — 기기마다 따로다. 옛 값(시각 하나 at)은 처음 한 번 그때까지의 알림 id 로 옮긴다.
+   알림 id 는 갈래까지 넣는다(m_ 나를 부름 · c_ 내 접수 새 댓글 · s_ 상태) — 고친 댓글에서 새로 부르면 새 알림이고, 그 시각은 고친 때다.
+   세 값 모두 누구 것인지(me)를 같이 적어, 한 컴퓨터를 같이 쓰다 사람이 바뀌면 새로 잡는다. localStorage 는 모두 try 로 */
 const IB_SNAP='dl.inbox.snap',IB_ITEMS='dl.inbox.items',IB_READ='dl.inbox.readAt',IB_MAX=100;
 const ibGet=k=>{try{const v=JSON.parse(localStorage.getItem(k)||'null'),me=cmMe();return v&&typeof v==='object'&&me&&v.me===me?v:null;}catch{return null;}};
 const ibPut=(k,v)=>{try{localStorage.setItem(k,JSON.stringify({...v,me:cmMe()}));}catch{}};
@@ -6305,46 +6316,59 @@ function ibItems(){
     if(c.del||cmLow(c.email)===me)continue;
     const r=rc.get(c.rid);if(!cmSeeR(r))continue;
     const k=cmMentions(c).includes(me)?'m':cmLow(r.regEmail)===me?'c':'';
-    if(k)out.push({k,id:'c_'+c.id,rid:c.rid,at:String(c.at||''),by:cmName(c,names),email:cmLow(c.email)});
+    if(k)out.push({k,id:k+'_'+c.id,rid:c.rid,at:String((k==='m'&&c.upd)||c.at||''),by:cmName(c,names),email:cmLow(c.email)});   // 고쳐서 새로 부르면 새 알림(id 가 다르다) · 그 시각은 고친 때
   }
   const got=ibGet(IB_ITEMS);
   for(const x of Array.isArray(got&&got.list)?got.list:[])if(x&&typeof x==='object'&&x.k==='s'&&cmSeeR(rc.get(x.rid)))out.push(x);
   return out.sort((a,b)=>String(b.at).localeCompare(String(a.at))).slice(0,IB_MAX);
 }
-const ibReadAt=()=>{const v=ibGet(IB_READ);return v&&typeof v.at==='string'?v.at:'';};
+// 읽은 알림 id — 옛 값(at 하나 — 그 시각까지 온 알림을 읽음으로 쳤다)이면 처음 한 번 그때까지의 알림 id 로 옮겨 적는다(at 은 그대로 둔다 — 새로고침 안 한 옛 탭이 읽는다)
+const IB_READ_MAX=300;
+function ibRead(){
+  const v=ibGet(IB_READ);
+  if(v&&Array.isArray(v.ids))return new Set(v.ids.filter(x=>typeof x==='string'));
+  const at=v&&typeof v.at==='string'?v.at:'',ids=at?ibItems().filter(x=>String(x.at)<=at).map(x=>x.id):[];
+  if(at)ibPut(IB_READ,{at,ids:ids.slice(-IB_READ_MAX)});
+  return new Set(ids);
+}
 let IB_LAST=null,IB_ROWS=[];   // 지난번 안 읽은 수(늘었을 때만 읽기 프로그램이 읽는다) · 창에 그린 알림(단추엔 번호만)
 function ibBadge(){
   const b=document.getElementById('sb-ib-n'),btn=document.getElementById('sb-ib');if(!b||!btn)return;
-  const ra=ibReadAt(),n=ibItems().filter(x=>String(x.at)>ra).length;
+  const read=ibRead(),n=ibItems().filter(x=>!read.has(x.id)).length;
   b.hidden=!n;b.textContent=n>99?'99+':String(n);
   btn.setAttribute('aria-label',n?`내 알림 — 안 읽은 알림 ${n}개`:'내 알림');
   const live=document.getElementById('sb-ib-live');
   if(live&&IB_LAST!=null&&n>IB_LAST)live.textContent=`새 알림이 있어요 — 안 읽은 알림 ${n}개`;
-  IB_LAST=n;
+  IB_LAST=n;ibTitle();
 }
+// 접힌 메뉴에서는 종 단추의 이름이 안 보인다 — 다른 메뉴처럼 title 로(안 읽은 수까지)
+function ibTitle(){const b=document.getElementById('sb-ib');if(!b)return;if(sbCol())b.title=b.getAttribute('aria-label')||'내 알림';else b.removeAttribute('title');}
 function ibOpen(){if(!S)return;ibRender();openMo('ib-mo');document.querySelector('#ib-mo .mx')?.focus();}
+function ibClose(){closeMo('ib-mo');document.getElementById('sb-ib')?.focus();}   // 닫으면 연 단추(종)로 초점
 function ibRender(){
   const box=document.getElementById('ib-list');if(!box)return;
-  const items=ibItems(),ra=ibReadAt(),rc=new Map(getRc().filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r]));
+  const items=ibItems(),read=ibRead(),rc=new Map(getRc().filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r]));
   IB_ROWS=items;
   box.innerHTML=items.length?items.map((x,i)=>{
-    const r=rc.get(x.rid)||{},nw=String(x.at)>ra;
+    const r=rc.get(x.rid)||{},nw=!read.has(x.id);
     const who=`<span class="ib-by" title="${escH(x.email||'')}">${escH(x.by)}</span>`;   // 이름 칸 — 마우스를 올리면 이메일
     const msg=x.k==='m'?`${who}님이 회원님을 불렀어요`:x.k==='c'?`${who}님이 내 접수에 댓글을 남겼어요`:escH(x.msg);
     return`<button type="button" class="ib-i${nw?' ib-new':''}" onclick="ibGo(${i})"><span class="ib-dot" aria-hidden="true"></span><span class="ib-tx"><span class="ib-msg">${msg}${nw?'<span class="sr-only"> · 안 읽음</span>':''}</span><span class="ib-sub">${escH(r.branch||'')} ${escH(r.room||'')} · ${escH(tKst(x.at))}</span></span></button>`;
   }).join(''):'<div class="ib-empty">새 알림이 없어요</div>';
-  document.getElementById('ib-all').disabled=!items.some(x=>String(x.at)>ra);
+  document.getElementById('ib-all').disabled=!items.some(x=>!read.has(x.id));
 }
+// 모두 읽음 — 지금 보이는 알림의 id 를 읽음 목록 맨 뒤에(300개를 넘으면 오래 읽은 것부터 빠진다). 시각으로 정하지 않는다 — 동기화 전에 온 알림·앞날 시각 댓글이 다음 알림을 가리지 않게
 function ibAllRead(){
-  const top=ibItems().reduce((m,x)=>String(x.at)>m?String(x.at):m,new Date().toISOString());
-  ibPut(IB_READ,{at:top});ibRender();ibBadge();
+  const v=ibGet(IB_READ),now=ibItems().map(x=>x.id),keep=[...ibRead()].filter(id=>!now.includes(id));
+  ibPut(IB_READ,{...(v&&typeof v.at==='string'?{at:v.at}:{}),ids:[...keep,...now].slice(-IB_READ_MAX)});
+  ibRender();ibBadge();
 }
 function ibGo(i){
   const x=IB_ROWS[i];if(!x)return;
   closeMo('ib-mo');
   if(!cmSeeR(cmFindR(x.rid))){toast('w','내 알림','그 접수를 볼 수 없어요 — 지워졌거나 다른 지점 건이에요');return;}
   if(!cmOnR())goP('receipt');
-  if(x.k==='s')ibHighlight(x.rid);else cmOpenId(x.rid);
+  if(x.k==='s')ibHighlight(x.rid);else cmOpenId(x.rid,'#sb-ib');
 }
 // 상태 알림 — 접수 관리에서 그 줄을 찾아(거름에 가려 있으면 거름을 비우고) 4초 강조한다
 function ibHighlight(rid){
