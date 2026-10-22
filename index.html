@@ -2308,8 +2308,10 @@ async function sbSet(k,v){
   if(CAS_KEYS.has(k))return casPush(k);   // 설정 키는 지문과 함께, 키마다 한 줄로 세워서 보낸다
   try{
     if(!(S&&S.token))return;
-    await kvFn('set',{key:k,value:v});
+    const r=await kvFn('set',{key:k,value:v});
     PUSH_FAIL=0;
+    if(k===K.CM)cmIgnored(r);   // 접수 댓글 — 서버가 받지 않은 줄(게이트웨이 v12 답의 ignored)은 이 브라우저에서도 지운다
+    return r;                   // 서버 답 — 멘션 DM 은 댓글이 저장된 뒤에 보낸다(cmSubmit)
   }catch(e){
     console.warn('서버 저장 실패',k,e);
     if(++PUSH_FAIL>=3)showPushFail();
@@ -2551,7 +2553,7 @@ async function sbSync(){
     // localStorage → Supabase (최초 마이그레이션) — 서버에 그 키가 아예 없을 때만
     const migrKeys=[K.B,K.O,K.R,K.U,K.SA,K.SP,K.SV,K.HQ,K.CM];   // K.HQ: 첫 신고를 올리다 실패해도 서버에 키가 생길 때까지 다음 동기화가 올린다 · K.CM 도 같다(기능④) · 은퇴 키(K.A)는 넣지 않는다
     for(const k of migrKeys){
-      if(!sbKeys.has(k)){const v=localStorage.getItem(k);if(v)await sbSet(k,JSON.parse(v));}
+      if(!sbKeys.has(k)){const v=localStorage.getItem(k);if(v)await sbSet(k,k===K.CM?cmFirst(JSON.parse(v)):JSON.parse(v));}   // 댓글은 내 줄만(cmFirst — 공용 PC)
     }
     cmAfterSync();   // 접수 댓글(기능④) — 열린 댓글 창 다시 그리기 · #c- 바로가기 · 내 알림. 안에서 오류를 삼킨다
   }catch{}
@@ -3311,6 +3313,7 @@ function renderR(){
   const sv2=document.getElementById('fr-s')?.value.toLowerCase();if(sv2)list=list.filter(r=>(r.id||'').toLowerCase().includes(sv2)||(r.room||'').toLowerCase().includes(sv2));
   const tbody=document.getElementById('r-body');
   if(!list.length){tbody.innerHTML=emp(11);return;}
+  cmCountAll();   // 댓글 수(기능④) — 표 한 번에 한 번만 센다
   tbody.innerHTML=list.sort((a,b)=>(b.date||'').localeCompare(a.date||'')).map(r=>{
     let act='',badge='';
     // 뱃지
@@ -6017,12 +6020,13 @@ async function sendSlackNoti(r){
    한 줄 = {id:'cm_…', rid 접수 id, email 쓴 사람(소문자), by 이름, text 글(2,000자), mentions:[부른 사람 소문자 이메일 — 10명까지], at 쓴 때, upd? 고친 때, del? 지움(본문·멘션 비움)}.
    지운 댓글은 줄이 남아 '삭제된 댓글이에요'로 보인다. 화면의 모든 글자는 escH, 단추에는 줄 번호만, 슬랙에는 슬랙 이스케이프.
    권한: 접수 관리 '고치기'면 쓰기, '보기만'이면 읽기만. 직원은 자기 지점 접수만 보이므로 그 댓글만 */
-const CM_MAX_TEXT=2000,CM_MAX_MENTIONS=10,CM_AC_MAX=8,CM_EXCERPT=80;
-const CM_APP='https://jaydenkim-cell.github.io/doorlock-system/';   // 슬랙 DM 의 앱 바로가기(#c-<접수 id>)
+const CM_MAX_TEXT=2000,CM_MAX_MENTIONS=10,CM_AC_MAX=8;   // 멘션 DM 의 글(글 앞 80자 · 앱 바로가기)은 게이트웨이 v12 가 만든다(slack 'cm')
+const cmMailOk=e=>e.length<=120&&/^[a-z0-9._%+-]+@[a-z0-9.-]+$/.test(e);   // 게이트웨이와 같은 이메일 꼴(댓글 mentions 칸) — 그 밖의 이메일은 '@' 목록에 넣지 않는다(서버가 받지 않는다)
 CI.chat=`<svg ${_s} width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`;
 const cmLow=x=>String(x==null?'':x).trim().toLowerCase();
 const cmMe=()=>cmLow(S&&(S.email||S.id));
 const getCM=()=>{const v=ld(K.CM,[]);return Array.isArray(v)?v:[];};
+const cmSave=arr=>{localStorage.setItem(K.CM,JSON.stringify(arr));return sbSet(K.CM,arr);};   // sv 와 같은 길(이 키에는 씨앗이 없다) — 서버 답을 돌려준다
 const cmText=x=>typeof x==='string'?x:'';
 const cmMentions=c=>Array.isArray(c&&c.mentions)?c.mentions.filter(m=>typeof m==='string').map(cmLow):[];
 const cmId=()=>'cm_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
@@ -6035,26 +6039,25 @@ const cmOf=rid=>cmRows().filter(c=>c.rid===rid).sort((a,b)=>String(a.at||'').loc
 /* 같은 id 는 더 새것(upd, 없으면 at 이 늦은 쪽) — ★ 게이트웨이 v11 의 cmNewer 와 같은 규칙. 지우기는 시각과 상관없이 이기고, 서버에서 지운 줄은 그대로 둔다 */
 const cmNewer=(a,b)=>String(a?.upd??a?.at??'')>String(b?.upd??b?.at??'');
 function cmMergeRows(sbVal,localVal,dead){
-  const raw=Array.isArray(sbVal)?sbVal:[];
+  const raw=Array.isArray(sbVal)?sbVal:[],me=cmMe();
   const sb=notTomb(raw.filter(x=>x&&typeof x==='object'&&typeof x.id==='string'),dead);
   const m=new Map(sb.map(x=>[x.id,x]));
   let push=sb.length!==raw.length;
   notTomb(Array.isArray(localVal)?localVal:[],dead).forEach(x=>{
     if(!x||typeof x!=='object'||typeof x.id!=='string')return;
     const s=m.get(x.id);
-    if(!s){m.set(x.id,x);push=true;return;}
+    if(!s){if(cmLow(x.email)!==me)return;m.set(x.id,x);push=true;return;}   // 서버에 없고 내 것도 아닌 줄(공용 PC 에 남은 다른 사람의 못 보낸 댓글)은 버린다 — 서버도 받지 않는다
     if(s.del===true||canon(s)===canon(x))return;
     if(x.del===true||cmNewer(x,s)){m.set(x.id,x);push=true;}
   });
   return{merged:[...m.values()],push};
 }
-// 지우지 않은 댓글 수 — 접수 표가 줄마다 부르므로 저장값이 바뀔 때만 다시 센다
-let CM_CNT_RAW=null,CM_CNT=new Map();
-function cmCount(rid){
-  const raw=lsGet(K.CM,'')+'|'+lsGet(K.TS,'');
-  if(raw!==CM_CNT_RAW){CM_CNT_RAW=raw;CM_CNT=new Map();for(const c of cmRows())if(!c.del)CM_CNT.set(c.rid,(CM_CNT.get(c.rid)||0)+1);}
-  return CM_CNT.get(rid)||0;
-}
+// 서버에 댓글 키가 아직 없을 때(첫 올리기) — 동기화 합치기와 같은 규칙으로 내 줄만 남기고(공용 PC 에 남은 다른 사람 줄은 버린다) 그것을 올린다
+function cmFirst(arr){const r=cmMergeRows([],arr,tombSet(K.CM));try{localStorage.setItem(K.CM,JSON.stringify(r.merged));}catch{}return r.merged;}
+// 지우지 않은 댓글 수 — 접수 표를 그릴 때(renderR) 한 번 세어 두고(cmCountAll) 줄마다 꺼내 쓴다. 줄마다 저장값을 다시 읽으면 댓글이 쌓일수록 표가 느려진다
+let CM_CNT=new Map();
+function cmCountAll(){CM_CNT=new Map();for(const c of cmRows())if(!c.del)CM_CNT.set(c.rid,(CM_CNT.get(c.rid)||0)+1);}
+const cmCount=rid=>CM_CNT.get(rid)||0;
 const CM_IDS=[];   // 접수 표 단추의 줄 번호 — 같은 접수는 같은 번호(30초마다 다시 그려도 늘지 않는다)
 const cmNo=id=>{let i=CM_IDS.indexOf(id);if(i<0)i=CM_IDS.push(id)-1;return i;};
 // 처리 칸 끝의 댓글 단추 — 말풍선 선 아이콘 + 개수(0 이면 아이콘만). 앞의 빈칸이 줄바꿈 자리라 표 폭을 늘리지 않는다(.cm-wrap)
@@ -6068,6 +6071,9 @@ const cmFindR=rid=>getRc().find(r=>r&&r.id===rid)||null;
 const cmSeeR=r=>!!r&&!!S&&permOf('receipt')!=='none'&&!(S.role==='user'&&S.branch&&S.branch!=='본사'&&r.branch!==S.branch);
 const cmCanWrite=()=>!!S&&canWriteReceipt()&&permOf('receipt')==='edit';
 const cmOnR=()=>document.getElementById('page-receipt')?.classList.contains('on');
+// 쓴 사람 이름 — 사용자 목록에서 그 댓글의 이메일로 찾는다(by 는 쓴 탭이 적은 글이라 믿지 않는다 — 게이트웨이 v12 는 직원이 남의 사용자 행 이름을 못 바꾸게 막는다). 없으면 by, 그것도 없으면 이메일
+function cmNames(){const m=new Map(),us=getUsers();for(const u of Array.isArray(us)?us:[])if(u&&typeof u==='object'&&typeof u.name==='string'&&u.name.trim()){const e=cmLow(u.email||u.id);if(e&&!m.has(e))m.set(e,u.name.trim());}return m;}
+const cmName=(c,names)=>(names||cmNames()).get(cmLow(c&&c.email))||(c&&typeof c.by==='string'&&c.by.trim())||cmLow(c&&c.email)||'—';
 const CM={rid:null,edit:null,picks:new Map(),ac:[],acI:0};   // 지금 연 접수 · 고치는 댓글 id · 고른 사람(이메일 → 이름) · '@' 목록
 let CM_ROWS=[];   // 창에 그린 댓글 id — [수정]·[삭제]는 이 배열의 번호만 넘긴다
 function cmOpen(no){const rid=CM_IDS[no];if(typeof rid==='string')cmOpenId(rid);}
@@ -6093,10 +6099,10 @@ function cmBody(c){
 }
 function cmRender(){
   const rid=CM.rid,list=document.getElementById('cm-list');if(!rid||!list)return;
-  const me=cmMe(),adm=isAdm(),w=cmCanWrite(),rows=cmOf(rid),end=list.scrollHeight-list.scrollTop-list.clientHeight<8;
+  const me=cmMe(),adm=isAdm(),w=cmCanWrite(),rows=cmOf(rid),end=list.scrollHeight-list.scrollTop-list.clientHeight<8,names=cmNames();
   CM_ROWS=rows.map(c=>c.id);
   list.innerHTML=rows.length?rows.map((c,i)=>{
-    const meta=`<div class="cm-meta"><span class="cm-by">${escH(c.by||c.email||'—')}</span><span>${escH(tKst(c.at))}${c.upd&&!c.del?' · 고침':''}</span></div>`;
+    const meta=`<div class="cm-meta"><span class="cm-by" title="${escH(cmLow(c.email))}">${escH(cmName(c,names))}</span><span>${escH(tKst(c.at))}${c.upd&&!c.del?' · 고침':''}</span></div>`;
     if(c.del)return`<div class="cm-item cm-gone">${meta}<div class="cm-body">삭제된 댓글이에요</div></div>`;
     const own=cmLow(c.email)===me;
     const acts=w&&(own||adm)?`<div class="cm-acts">${own?`<button class="btn bo bsm" onclick="cmEdit(${i})">수정</button>`:''}<button class="btn br2 bsm" onclick="cmDel(${i})">삭제</button></div>`:'';
@@ -6115,7 +6121,7 @@ function cmUsers(){
   for(const u of Array.isArray(us)?us:[]){
     if(!u||typeof u!=='object'||u.role==='pending')continue;
     const e=cmLow(u.email||u.id),n=typeof u.name==='string'&&u.name.trim()?u.name.trim():e;
-    if(!e.includes('@')||seen.has(e))continue;
+    if(!cmMailOk(e)||seen.has(e))continue;   // 서버가 받는 이메일 꼴만
     seen.add(e);out.push({e,n});
   }
   return out;
@@ -6140,7 +6146,7 @@ function cmAcClose(){
 }
 function cmPick(i){
   const u=CM.ac[i],ta=document.getElementById('cm-text');if(!u||!ta)return;
-  const at=ta.selectionStart,head=ta.value.slice(0,at).replace(/@([^\s@]{0,30})$/,'@'+u.n+' ');
+  const at=ta.selectionStart,head=ta.value.slice(0,at).replace(/@([^\s@]{0,30})$/,()=>'@'+u.n+' ');   // 넣을 글은 함수로 — 이름의 $& · $1 같은 글자가 바꾸기 규칙으로 읽히지 않게
   ta.value=head+ta.value.slice(at);ta.selectionStart=ta.selectionEnd=head.length;
   CM.picks.set(u.e,u.n);cmAcClose();ta.focus();
 }
@@ -6171,12 +6177,13 @@ function cmSubmit(){
   }else{
     row={id:cmId(),rid,email:me,by:String(S.name||S.email||'').slice(0,200),text,mentions,at:now};arr.push(row);fresh=mentions;
   }
-  sv(K.CM,arr);
+  const saved=cmSave(arr);
   CM.edit=null;CM.picks=new Map();ta.value='';cmAcClose();cmRender();
   const list=document.getElementById('cm-list');list.scrollTop=list.scrollHeight;
   if(cmOnR())renderR();
   toast('s','댓글',fresh.length?`댓글을 남기고 ${fresh.length}명을 불렀어요`:'댓글을 남겼어요');
-  cmDM(row,r,fresh);   // 기다리지 않는다 — 댓글은 이미 저장했다(실패하면 알림만)
+  // 멘션 DM 은 서버에 저장된 뒤에 — 게이트웨이 v12 가 저장된 댓글로 글을 만든다. 서버가 받지 않은 댓글이면(답의 ignored) 보내지 않는다. 기다리지 않는다(실패하면 알림만)
+  if(fresh.length)saved.then(res=>{if(!(Array.isArray(res&&res.ignored)&&res.ignored.some(x=>x&&x.id===row.id)))cmDM(row,fresh);});
 }
 function cmEdit(i){
   const id=CM_ROWS[i],c=cmRows().find(x=>x.id===id);
@@ -6191,7 +6198,7 @@ function cmEditCancel(){CM.edit=null;CM.picks=new Map();document.getElementById(
 function cmDel(i){
   const id=CM_ROWS[i],c=cmRows().find(x=>x.id===id),own=!!c&&cmLow(c.email)===cmMe();
   if(!c||c.del||!cmCanWrite()||!(own||isAdm()))return;
-  showCfm(CI.trash,'댓글 삭제',own?'이 댓글을 지울까요? 지운 자리에는 삭제된 댓글이라고 남아요':`${String(c.by||c.email||'')} 님의 댓글을 지울까요? 지운 자리에는 삭제된 댓글이라고 남아요`,()=>{
+  showCfm(CI.trash,'댓글 삭제',own?'이 댓글을 지울까요? 지운 자리에는 삭제된 댓글이라고 남아요':`${cmName(c)} 님의 댓글을 지울까요? 지운 자리에는 삭제된 댓글이라고 남아요`,()=>{
     const arr=getCM(),k=arr.findIndex(x=>x&&x.id===id);if(k<0)return;
     arr[k]={...arr[k],text:'',mentions:[],del:true,upd:new Date().toISOString()};
     sv(K.CM,arr);
@@ -6200,20 +6207,27 @@ function cmDel(i){
     toast('s','댓글 삭제','댓글을 지웠어요');
   });
 }
-/* 슬랙 글자 — 슬랙 규칙대로 & < > 만 바꾼다(글 안에서 링크·전체 멘션 같은 <…> 꼴을 만들지 못하게) */
-const slackEsc=s=>String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-/* 멘션 DM — 댓글을 등록한(고친) 사람의 화면이 게이트웨이 slack dm(기존 길 slackDM — 그 함수는 그대로)으로 부른 사람에게 보낸다.
-   자기 자신·같은 사람 두 번은 보내지 않는다. 실패해도 댓글은 이미 저장됐다 — 알림만 실패를 알린다 */
-async function cmDM(c,r,emails){
+/* 멘션 DM — 게이트웨이 v12 의 slack 'cm'(댓글 id 와 받을 사람만 보낸다). 글은 서버가 저장된 댓글·접수·사용자 목록으로 만들고, 받는 사람은 그 댓글의 멘션 가운데
+   to(새 댓글은 부른 사람 전부, 고친 댓글은 새로 부른 사람만)와 겹치는 사람 — 자기 자신·같은 사람 두 번·대기 중인 사람은 빠진다. 실패해도 댓글은 이미 저장됐다 — 알림만 */
+async function cmDM(c,emails){
   const me=cmMe(),to=[...new Set((emails||[]).map(cmLow))].filter(e=>e&&e!==me);
   if(!to.length)return{sent:0,failed:[]};
-  const t=Array.from(cmText(c.text).replace(/\s+/g,' ').trim()),ex=t.slice(0,CM_EXCERPT).join('')+(t.length>CM_EXCERPT?'…':'');
-  const link=CM_APP+'#c-'+encodeURIComponent(c.rid);
-  const text=`[도어락 통합관리] ${slackEsc(c.by||c.email)}님이 ${slackEsc(r&&r.branch)} ${slackEsc(r&&r.room)} 접수 댓글에서 회원님을 불렀어요 — "${slackEsc(ex)}"\n<${link}|도어락 통합관리에서 열기>`;
-  const failed=[];
-  for(const e of to){const d=await slackDM(e,text);if(!d||!d.ok)failed.push([e,d&&d.error]);}
-  if(failed.length)slackFailToast(failed[0][1],failed.length>1?`${failed[0][0]} 외 ${failed.length-1}명`:failed[0][0]);
-  return{sent:to.length-failed.length,failed};
+  const d=await slackRelay({kind:'cm',cid:c.id,to});
+  const failed=(Array.isArray(d&&d.failed)?d.failed:[]).filter(x=>x&&typeof x==='object');
+  if(failed.length)slackFailToast(failed[0].error,failed.length>1?`${failed[0].email} 외 ${failed.length-1}명`:failed[0].email);
+  else if(!d||d.ok===false)slackFailToast(d&&d.error);   // 403 stale·not_owner · 404 no_comment · 503 · 연결 끊김
+  return{sent:Number(d&&d.sent)||0,failed};
+}
+/* 서버가 받지 않은 댓글(게이트웨이 v12 의 답 ignored:[{id, why}] — 꼴·주인 아님·상한·앞날 시각 등) — 이 브라우저에서도 그 줄을 지우고 한 번 알린다.
+   그대로 두면 30초마다 다시 올린다. 서버에 있던 줄을 고친 것이었으면 다음 동기화가 서버 것으로 되돌린다 */
+function cmIgnored(res){
+  const ids=new Set((Array.isArray(res&&res.ignored)?res.ignored:[]).map(x=>x&&x.id).filter(x=>typeof x==='string'));
+  if(!ids.size)return;
+  const arr=getCM(),keep=arr.filter(x=>!(x&&ids.has(x.id)));
+  if(keep.length===arr.length)return;
+  try{localStorage.setItem(K.CM,JSON.stringify(keep));}catch{}
+  toast('w','댓글',`댓글 ${arr.length-keep.length}개를 서버가 받지 않았어요`);
+  try{if(CM.rid&&document.getElementById('cm-mo')?.classList.contains('show'))cmRender();if(cmOnR())renderR();}catch(e){console.warn('댓글 갱신 실패',e);}
 }
 /* 바로가기 #c-<접수 id> — 로그인(다른 주소로 갔다 온다)을 지나도 남게 이 탭의 세션 저장소에 적어 두고 주소에서는 지운다.
    동기화가 끝난 뒤(cmAfterSync) 접수 관리로 가서 그 접수의 댓글 창을 연다. 열려 있는 탭에 주소만 바꿔 들어오면(hashchange) 바로 연다 */
@@ -6286,12 +6300,12 @@ function ibQuiet(){try{if(S)ibDiff(true);}catch{}}
 // 지금 보일 알림(최신순 100) — 댓글에서 만든 것 + 기억해 둔 상태 변화. 볼 수 없는 접수는 뺀다
 function ibItems(){
   const me=cmMe();if(!me)return[];
-  const rc=new Map(getRc().filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r])),out=[];
+  const rc=new Map(getRc().filter(r=>r&&typeof r.id==='string').map(r=>[r.id,r])),out=[],names=cmNames();
   for(const c of cmRows()){
     if(c.del||cmLow(c.email)===me)continue;
     const r=rc.get(c.rid);if(!cmSeeR(r))continue;
     const k=cmMentions(c).includes(me)?'m':cmLow(r.regEmail)===me?'c':'';
-    if(k)out.push({k,id:'c_'+c.id,rid:c.rid,at:String(c.at||''),by:String(c.by||c.email||'')});
+    if(k)out.push({k,id:'c_'+c.id,rid:c.rid,at:String(c.at||''),by:cmName(c,names),email:cmLow(c.email)});
   }
   const got=ibGet(IB_ITEMS);
   for(const x of Array.isArray(got&&got.list)?got.list:[])if(x&&typeof x==='object'&&x.k==='s'&&cmSeeR(rc.get(x.rid)))out.push(x);
@@ -6315,7 +6329,8 @@ function ibRender(){
   IB_ROWS=items;
   box.innerHTML=items.length?items.map((x,i)=>{
     const r=rc.get(x.rid)||{},nw=String(x.at)>ra;
-    const msg=x.k==='m'?`${escH(x.by)}님이 회원님을 불렀어요`:x.k==='c'?`${escH(x.by)}님이 내 접수에 댓글을 남겼어요`:escH(x.msg);
+    const who=`<span class="ib-by" title="${escH(x.email||'')}">${escH(x.by)}</span>`;   // 이름 칸 — 마우스를 올리면 이메일
+    const msg=x.k==='m'?`${who}님이 회원님을 불렀어요`:x.k==='c'?`${who}님이 내 접수에 댓글을 남겼어요`:escH(x.msg);
     return`<button type="button" class="ib-i${nw?' ib-new':''}" onclick="ibGo(${i})"><span class="ib-dot" aria-hidden="true"></span><span class="ib-tx"><span class="ib-msg">${msg}${nw?'<span class="sr-only"> · 안 읽음</span>':''}</span><span class="ib-sub">${escH(r.branch||'')} ${escH(r.room||'')} · ${escH(tKst(x.at))}</span></span></button>`;
   }).join(''):'<div class="ib-empty">새 알림이 없어요</div>';
   document.getElementById('ib-all').disabled=!items.some(x=>String(x.at)>ra);
