@@ -2281,7 +2281,8 @@ function syncRun(resave){
     try{
       const n=SYNC.pulls,resent=[];
       await sbSync();
-      if(resave&&SYNC.pulls>n)for(const k of [...SYNC.failed]){
+      // 받은 값을 이 브라우저에 다 담지 못한 동기화(SB_LS_FAIL — 저장 공간)면 다시 저장하지 않는다 — 브라우저 사본이 합치기 전 값이라 그사이 다른 곳에서 더한 것을 덮는다
+      if(resave&&SYNC.pulls>n&&!SB_LS_FAIL.size)for(const k of [...SYNC.failed]){
         let v=null;try{v=JSON.parse(localStorage.getItem(k));}catch{}
         if(v==null){SYNC.failed.delete(k);continue;}                         // 지워졌거나 읽을 수 없는 키 — 다시 보낼 값이 없다
         await sbSet(k,v);resent.push(k);
@@ -2401,17 +2402,19 @@ async function casSend(k){
   }catch(e){
     // 409 = 그사이 서버값이 바뀌었다(또는 이 탭이 기준을 모른다). 서버값을 받고 알린다.
     // 기준을 아직 모르는 탭(base 없음 — 첫 동기화 전)이 튕기는 건 정상이라 알리지 않는다
-    if(e&&e.status===409&&e.body&&('value' in e.body)){casAdopt(k,e.body.value,!!base);casRefresh();return;}
+    if(e&&e.status===409&&e.body&&('value' in e.body)){if(!casAdopt(k,e.body.value,!!base))sbLsFail();casRefresh();return;}   // 서버 값을 담지 못했다(저장 공간) — 동기화 실패로 알린다
     console.warn('서버 저장 실패',k,e);
     if(++PUSH_FAIL>=3)showPushFail();
   }
 }
+// 서버 값을 받는다 — 이 브라우저에 담지 못하면(저장 공간) 지문·씨앗 표시는 그대로 두고 false(SB_LS_FAIL 에 남는다 — 동기화 안이면 sbSync 가, 아니면 부른 쪽이 동기화 실패로 알린다 · 다음 동기화가 다시 받는다)
 function casAdopt(k,val,conflict){
-  localStorage.setItem(k,JSON.stringify(val));
+  if(!sbPut(k,JSON.stringify(val)))return false;
   localStorage.removeItem('__init__'+k);
   baseSet(k,vHash(val));
   CAS_CHANGED.add(k);
   if(conflict)toast('w','다른 곳에서 먼저 바뀌었습니다','최신 내용으로 맞췄습니다. 방금 저장한 내용이 빠졌다면 다시 입력해 주세요.');
+  return true;
 }
 // 서버값을 받아온 키가 있으면 지금 보고 있는 화면을 다시 그린다(입력창이 옛 값을 들고 있지 않게)
 function casRefresh(){
@@ -2804,7 +2807,7 @@ const REQUIRED_SA=['jayden@handys.co.kr','jayden.kim@handys.co.kr'];
 const getSAIds=()=>{let ids=ld(K.SA,null);if(!Array.isArray(ids))ids=[];const merged=[...new Set([...REQUIRED_SA,...ids])];if(!REQUIRED_SA.every(x=>ids.includes(x)))sv(K.SA,merged);return merged.filter(x=>x!=='admin');};
 
 /* ── ROLE HELPERS ── */
-const isSA=()=>S&&(S.role==='superadmin'||getSAIds().includes(S.id)||getSAIds().includes(S.email));
+const isSA=()=>S&&(S.role==='superadmin'||getSAIds().some(x=>[S.id,S.email].some(y=>!!y&&String(y).toLowerCase()===String(x).toLowerCase())));   // 대소문자 없이(casCanWrite·paIsSA 와 같다 — 로그인 이메일은 소문자, 목록은 넣은 꼴 그대로일 수 있다)
 const isAdm=()=>S&&(isSA()||S.role==='admin');
 const canWriteReceipt=()=>S&&(isAdm()||S.role==='user');
 const canWriteInstall=()=>S&&(isAdm()||S.role==='user');
@@ -3057,7 +3060,7 @@ function _applyPlottUser(id, displayName, accessToken) {
     sv(K.U, users);
   }
   const saIds = getSAIds();
-  if (saIds.includes(id)) {
+  if (saIds.some(x => String(x).toLowerCase() === id)) {   // 목록의 이메일은 대소문자 없이(id 는 위에서 소문자로)
     S = {id, email:id, name:userRec.name||displayName, role:'superadmin', branch:'본사', token:accessToken};
     setLoginLoading(false); startApp(); return;
   }
@@ -4119,9 +4122,8 @@ function renderUsers(){
   document.getElementById('pend-cnt').textContent=pending.length>0?`${pending.length}명 대기 중`:'없음';
   PA_USERS=active;   // [권한](기능②-3)은 이 배열 번호만 넘긴다
   document.getElementById('users-tbody').innerHTML=active.length?active.map((u,i)=>{
-    const isSelf=u.id===S.id;
-    const saList=getSAIds();
-    const isThisSA=saList.includes(u.id)||u.role==='superadmin';
+    const isSelf=permLow(u.id)===permLow(S.id);   // 대소문자 없이 — 옛 앱이 만든 행은 id 가 대문자 섞인 꼴일 수 있다(로그인 이메일은 소문자)
+    const isThisSA=paIsSA(u);                     // 역할이 최고관리자이거나 최고관리자 목록에 있다(대소문자 없이)
     const roleOpts=['user','admin'].map(r=>`<option value="${r}" ${u.role===r?'selected':''}>${ROLE_LABELS[r]}</option>`).join('');
     // 승인자·승인일·ID·역할 글은 로그인한 누구나 합치기 키(사용자 목록)에 넣을 수 있는 글자다 — 표에 그릴 때 전부 escH
     const roleSel=isThisSA||isSelf?`<span class="role-badge ${ROLE_BADGE[u.role]||'rb-pending'}">${escH(ROLE_LABELS[u.role]||u.role)}</span>`:
@@ -4175,7 +4177,7 @@ function submitAddUser(){
   const nm=document.getElementById('au-name').value.trim(),uid=document.getElementById('au-id').value.trim(),role=document.getElementById('au-role').value;
   if(!nm||!uid){toast('e','입력 오류','이름과 계정 ID는 필수입니다.');return;}
   if(!SAFE_UID.test(uid)){toast('e','입력 오류','계정 ID는 이메일 형식이어야 합니다 (영문·숫자와 . _ % + - 만 쓸 수 있습니다).');return;}
-  const users=getUsers();if(users.find(u=>u.id===uid)){toast('w','중복','이미 등록된 계정입니다.');return;}
+  const users=getUsers();if(users.find(u=>u&&permLow(u.id)===permLow(uid))){toast('w','중복','이미 등록된 계정입니다.');return;}   // 대소문자 없이
   users.push({id:uid,email:uid,name:nm,role,approvedAt:new Date().toISOString(),approvedBy:S.id,loginAt:null});
   sv(K.U,users);closeMo('mo-adduser');renderUsers();toast('s','추가 완료',`${escH(nm)} (${escH(role)}) 등록됨`);   // toast 는 innerHTML 로 그린다 — 이름은 슬랙에서 온 글자일 수 있다(신규 패널의 [추가])
 }
@@ -6050,7 +6052,7 @@ CI.chat=`<svg ${_s} width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V
 const cmLow=x=>String(x==null?'':x).trim().toLowerCase();
 const cmMe=()=>cmLow(S&&(S.email||S.id));
 const getCM=()=>{const v=ld(K.CM,[]);return Array.isArray(v)?v:[];};
-const cmSave=arr=>{localStorage.setItem(K.CM,JSON.stringify(arr));return sbSet(K.CM,arr);};   // sv 와 같은 길(이 키에는 씨앗이 없다) — 서버 답을 돌려준다
+const cmSave=arr=>{if(!sbPut(K.CM,JSON.stringify(arr)))sbLsFail();return sbSet(K.CM,arr);};   // sv 와 같은 길(이 키에는 씨앗이 없다) — 서버 답을 돌려준다 · 이 브라우저에 담지 못해도(저장 공간) 서버에는 올리고 동기화 실패로 알린다
 const cmText=x=>typeof x==='string'?x:'';
 const cmMentions=c=>Array.isArray(c&&c.mentions)?c.mentions.filter(m=>typeof m==='string').map(cmLow):[];
 const cmId=()=>'cm_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
@@ -6229,7 +6231,7 @@ function cmDel(i){
   showCfm(CI.trash,'댓글 삭제',own?'이 댓글을 지울까요? 지운 자리에는 삭제된 댓글이라고 남아요':`${cmName(c)} 님의 댓글을 지울까요? 지운 자리에는 삭제된 댓글이라고 남아요`,()=>{
     const arr=getCM(),k=arr.findIndex(x=>x&&x.id===id);if(k<0)return;
     arr[k]={...arr[k],text:'',mentions:[],del:true,upd:new Date().toISOString()};
-    sv(K.CM,arr);
+    cmSave(arr);   // 저장 공간이 모자라도 멈추지 않는다(cmSave)
     if(CM.edit===id){CM.edit=null;document.getElementById('cm-text').value='';}
     cmRender();if(cmOnR())renderR();
     toast('s','댓글 삭제','댓글을 지웠어요');
