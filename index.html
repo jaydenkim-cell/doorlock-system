@@ -8163,22 +8163,26 @@ function h2oExcel(){
   if(typeof XLSX==='undefined'){toast('e','엑셀 도구를 불러오지 못했습니다','새로고침 후 다시 시도하세요.');return;}
   const[y,m]=D.month.split('-').map(Number),last=ymLast(D.month);
   const wb=XLSX.utils.book_new();
+  const amt=D.mode==='end'?h2oFacAmt(D):null,NC=amt?'M':'H',W='#,##0';   // 말일 확정이면 시설별 금액 다섯 칸(H~L)을 더하고 비고는 M — 메일 초안과 같은 계산
   const head=[[`핸디즈 · H2O 도어락 서비스 시설별 객실 목록 (${y}년 ${m}월)`],
     [D.mode==='start'?`기준: ${D.month}-01(월초) · 당월 추가·해지·말일 객실 수는 ${md(last)} 기준으로 확정해 다시 송부드립니다.`:`기준: ${last}(말일) 확정 · 월초 대비 추가·해지 반영`],[],
-    ['No','시설(핸디즈)','H2O 시설명','월초 객실 수','당월 추가','당월 해지','말일 객실 수','비고']];
+    ['No','시설(핸디즈)','H2O 시설명','월초 객실 수','당월 추가','당월 해지','말일 객실 수',...(amt?['월정액(원)','일할(원)','공급가액(원)','부가세(원)','합계(원)']:[]),'비고']];
   const ws=XLSX.utils.aoa_to_sheet(head);
   D.fac.forEach((x,i)=>{const r=5+i,sh=x.f.short,lastRow=4+x.list.length;
     const note=D.changes.filter(c=>c.fid===x.f.id).map(h2oChText).concat(D.carry.filter(c=>c.fid===x.f.id).map(c=>`${h2oLabel(c.r)} 해지 요청 ${md(c.to)} 도달 — 다음 달 반영`)).join(', ');
     XLSX.utils.sheet_add_aoa(ws,[[i+1,x.f.br,x.hotel||'']],{origin:`A${r}`});
     ws[`D${r}`]={t:'n',v:x.start};ws[`E${r}`]={t:'n',v:x.add};ws[`F${r}`]={t:'n',v:x.rem};
     ws[`G${r}`]={t:'n',v:x.list.length,f:D.mode==='start'?`COUNTA('${sh}'!C5:C${Math.max(5,lastRow)})`:`D${r}+E${r}-F${r}`};
-    if(note||x.f.whole)ws[`H${r}`]={t:'s',v:[x.f.whole?'건물 전체가 한 H2O 시설로 등록돼 있어 핸디즈 운영 객실만 동·호수로 표기':'',note].filter(Boolean).join(' · ')};});
+    if(amt){const o=amt[i];ws[`H${r}`]={t:'n',v:o.monEx,z:W};ws[`I${r}`]={t:'n',v:o.prEx,z:W};ws[`J${r}`]={t:'n',v:o.ex,f:`H${r}+I${r}`,z:W};ws[`K${r}`]={t:'n',v:o.vat,z:W};ws[`L${r}`]={t:'n',v:o.t,f:`J${r}+K${r}`,z:W};}
+    if(note||x.f.whole)ws[`${NC}${r}`]={t:'s',v:[x.f.whole?'건물 전체가 한 H2O 시설로 등록돼 있어 핸디즈 운영 객실만 동·호수로 표기':'',note].filter(Boolean).join(' · ')};});
   const tr=5+D.fac.length;
   ws[`B${tr}`]={t:'s',v:'합계'};
   ['D','E','F','G'].forEach(c=>{const v=D.fac.reduce((t,x)=>t+(c==='D'?x.start:c==='E'?x.add:c==='F'?x.rem:x.list.length),0);ws[`${c}${tr}`]={t:'n',v,f:`SUM(${c}5:${c}${tr-1})`};});
+  if(amt)[['H','monEx'],['I','prEx'],['J','ex'],['K','vat'],['L','t']].forEach(([c,k])=>{ws[`${c}${tr}`]={t:'n',v:amt.reduce((t,o)=>t+o[k],0),f:`SUM(${c}5:${c}${tr-1})`,z:W};});
   XLSX.utils.sheet_add_aoa(ws,[[],[`※ 산정 기준: 당월 1일부터 말일까지 계속 등록된 객실은 월정액(객실당 월 ${D.unit.toLocaleString()}원), 월중 추가·해지된 객실은 등록일수 × ${D.pu}원(등록일·해지일 당일 포함, 월정액 초과 불가). 금액은 부가세 별도.`],
-    ['※ 해지 기준일은 당사의 삭제 요청 메일(solution.op@h2ohospitality.io)이 도달한 날입니다.']],{origin:`A${tr+1}`});
-  ws['!ref']=`A1:H${tr+3}`;ws['!cols']=[{wch:5},{wch:28},{wch:34},{wch:12},{wch:9},{wch:9},{wch:12},{wch:50}];
+    ['※ 해지 기준일은 당사의 삭제 요청 메일(solution.op@h2ohospitality.io)이 도달한 날입니다.'],
+    ...(amt?[['※ 금액은 시설별 청구 금액입니다(공급가액 = 월정액 + 일할, 부가세는 청구 줄 단위 반올림 합산 — 메일 본문의 금액과 같습니다).']]:[])],{origin:`A${tr+1}`});
+  ws['!ref']=`A1:${NC}${tr+(amt?4:3)}`;ws['!cols']=[{wch:5},{wch:28},{wch:34},{wch:12},{wch:9},{wch:9},{wch:12},...(amt?[{wch:12},{wch:10},{wch:13},{wch:11},{wch:13}]:[]),{wch:50}];
   XLSX.utils.book_append_sheet(wb,ws,'요약');
   D.fac.forEach(x=>{
     const rows=[[`${x.f.br} — ${D.mode==='start'?D.month+'-01(월초)':last+'(말일)'} 기준 객실 목록`],[`H2O 시설명: ${x.hotel||''}`,'','','객실 수'],[],['No','동','호실','H2O 등록명','비고']];
@@ -8214,13 +8218,15 @@ function h2oMail(){
     const recs=h2oBillRows(D);
     const mon=recs.filter(x=>!isProrate(x)).reduce((t,x)=>t+x.rooms,0),days=recs.filter(isProrate).reduce((t,x)=>t+x.rooms,0);
     const ex=recs.reduce((t,x)=>t+svcCalc(x).ex,0),vat=recs.reduce((t,x)=>t+svcCalc(x).vat,0);
+    // 시설마다 말일 객실 수와 금액(부가세 별도 · 괄호는 포함) — 일할이 있는 시설은 월정액·일할을 나눠 적는다
+    const won=n=>n.toLocaleString()+'원',perAmt=h2oFacAmt(D,recs).map(o=>`  · ${o.f.short} ${o.rooms}실 · ${won(o.ex)} (부가세 포함 ${won(o.t)})${o.days?` — 월정액 ${o.mon}실 ${won(o.monEx)} + 일할 ${o.days}일 ${won(o.prEx)}`:''}`).join('\n');
     // 같은 기간 4실 이상은 한 줄로(호실은 첨부 엑셀 '추가·해지' 시트에 모두 있다)
     const chg=D.changes.length?h2oGroupCh(D.changes).flatMap(g=>g.length>=4
       ?[`  · ${g[0].f.short} ${g[0].type} ${g.length}실 (${g[0].days===0?md(g[0].to)+' 도달 · 이번 달 0일':`${md(g[0].from)}~${md(g[0].to)}, 각 ${g[0].days}일`}) — 호실은 첨부 '추가·해지' 시트`]
       :g.map(c=>`  · ${c.f.short} ${h2oChText(c)}`)).join('\n'):'  · 당월 추가·해지 객실은 없습니다.';
     const car=D.carry.length?'\n- 말일 뒤 도달한 해지 요청 (다음 달 정산에 반영)\n'+D.carry.map(c=>`  · ${c.f.short} ${h2oLabel(c.r)} (${md(c.to)} 도달)`).join('\n'):'';
     const today=ymdLocal(new Date()),reply=addBizDays(today,2),pay=nextBizDay(m===12?`${yy+1}-01-10`:`${yy}-${String(m+1).padStart(2,'0')}-10`);
-    body=`안녕하세요, ${contact}님. ${sender}입니다.\n\n${m}월 말일 기준 시설별 객실 목록을 첨부드립니다.\n\n- 월초 ${s0}실 / 당월 추가 ${a}실 / 당월 해지 ${r}실 / 말일 ${tot}실\n  ${per}\n- 당월 추가·해지 (일할 대상)\n${chg}${car}\n\n- 청구 금액 (부가세 별도)\n  월정액 ${mon}실 × ${D.unit.toLocaleString()}원 = ${(mon*D.unit).toLocaleString()}원\n  일할 ${days}일 × ${D.pu}원 = ${(days*D.pu).toLocaleString()}원\n  공급가액 ${ex.toLocaleString()}원 / 부가세 ${vat.toLocaleString()}원 / 합계 ${(ex+vat).toLocaleString()}원\n\n확인하신 뒤 ${md(reply)}까지 회신 부탁드립니다. 확정되면 ${md(last)}일자로 세금계산서 발행 부탁드립니다.\n지급은 계약대로 ${md(pay)}에 진행하겠습니다.\n\n감사합니다.\n\n${sender} 드림`;
+    body=`안녕하세요, ${contact}님. ${sender}입니다.\n\n${m}월 말일 기준 시설별 객실 목록을 첨부드립니다.\n\n- 월초 ${s0}실 / 당월 추가 ${a}실 / 당월 해지 ${r}실 / 말일 ${tot}실\n- 시설별 말일 객실 수 · 청구 금액 (부가세 별도)\n${perAmt}\n- 당월 추가·해지 (일할 대상)\n${chg}${car}\n\n- 청구 금액 (부가세 별도)\n  월정액 ${mon}실 × ${D.unit.toLocaleString()}원 = ${(mon*D.unit).toLocaleString()}원\n  일할 ${days}일 × ${D.pu}원 = ${(days*D.pu).toLocaleString()}원\n  공급가액 ${ex.toLocaleString()}원 / 부가세 ${vat.toLocaleString()}원 / 합계 ${(ex+vat).toLocaleString()}원\n\n확인하신 뒤 ${md(reply)}까지 회신 부탁드립니다. 확정되면 ${md(last)}일자로 세금계산서 발행 부탁드립니다.\n지급은 계약대로 ${md(pay)}에 진행하겠습니다.\n\n감사합니다.\n\n${sender} 드림`;
   }
   showMailDraft(body);
 }
@@ -8251,6 +8257,12 @@ function h2oBillRows(D){
         note:g.length===1?`${h2oLabel(c.r)} ${c.type} ${md(c.from)}~${md(c.to)}`:`${c.type} ${g.length}실 ${md(c.from)}~${md(c.to)} (각 ${c.days}일)`,src:'h2o'});});
   });
   return rows;
+}
+// 시설별 금액 — 청구 줄(h2oBillRows)을 시설마다 더한다. 메일 초안·엑셀 요약이 같은 값을 쓴다(부가세는 청구 줄 단위 반올림 합산 — 청구 내역 합계와 같은 기준)
+function h2oFacAmt(D,recs){
+  recs=recs||h2oBillRows(D);
+  return D.fac.map(x=>{const fr=recs.filter(v=>v.branch===x.f.br),all=svcTotal(fr),mon=svcTotal(fr.filter(v=>!isProrate(v))),pr=svcTotal(fr.filter(isProrate));
+    return{f:x.f,rooms:x.list.length,mon:all.rooms,monEx:mon.ex,days:all.days,prEx:pr.ex,ex:all.ex,vat:all.vat,t:all.t};});
 }
 // 그 달 H2O 청구 내역이 말일 확정본과 짝이 맞는가(품의서 전에 확인)
 // 그 달 H2O 5개 시설 청구 줄의 지문 — 반영한 뒤 손으로 고치거나 복사해 넣은 줄이 있으면 달라진다
