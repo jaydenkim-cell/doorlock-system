@@ -7819,7 +7819,7 @@ function buildSvcAmaData(){
     const zs=zbApplyState(tgt);
     if(zs==='stale'){toast('e','직방 청구 내역이 말일 확정본과 다릅니다','직방 월 목록에서 [저장] 뒤 [청구 내역에 반영]을 다시 누르세요.');return null;}
     if(zs==='rows'){toast('e','직방 청구 줄이 반영한 것과 다릅니다','반영한 뒤 직방 줄을 고치거나 복사해 넣었습니다. 직방 월 목록에서 [청구 내역에 반영]을 다시 누르세요.');return null;}
-    if(zbPre(zbEnd(tgt),tgt))toast('w','말일 전 저장본',`${tgt} 직방은 말일 전에 저장한 기록으로 만듭니다 — 말일 뒤 다시 확정하세요.`);   // 막지는 않는다
+    if(zbPre(zbEnd(tgt),tgt)&&ymdLocal(new Date())>=ymLast(tgt))toast('w','말일 전 저장본',`${tgt} 직방은 말일 전에 저장한 기록으로 만듭니다 — 말일 뒤 다시 확정하세요.`);   // 막지는 않는다 · 오늘이 말일 전이면 아래 '말일 전입니다' 하나만
   }
   if(zb&&ymdLocal(new Date())<ymLast(tgt))toast('w','말일 전입니다',`${tgt} 직방은 말일 운영 객실 수 기준입니다 — 말일에 객실 수를 다시 반영한 뒤 품의하세요.`);
   const won=n=>n.toLocaleString()+'원';
@@ -8462,7 +8462,7 @@ function h2oApply(){
    · 서버 목록 = 게이트웨이 zb_rooms(관리자만 · 시크릿 ZIGBANG_CRED_<duck 지점 id>). 방 이름은 앞 0 을 떼어 보인다('0718' → '718'). 같은 방 이름 기기는 한 번만 센다.
    · 대조값 = duck 판매객실 − 솔리티(H2O 월 목록과 같은 식) · 이중 등록 = 그 지점 솔리티 계정에도 있는 방(어느 쪽이 맞는지는 사람이 본다 — [빼기] 한 번에).
    · 말일 뒤 설치 = 설치일이 그 달 말일보다 뒤인 방. H2O 와 달리 자동으로 빼지 않는다(직방은 기기를 바꾸면 그 방의 설치일이 새로 바뀔 수 있다) — 이중 등록처럼 알리고 [빼기] 한 번에(사유 '말일 뒤 설치'), 저장 확인창에도 남은 방을 적는다.
-   · 지난달 =그 달 직방 말일 확정 저장본(방 목록이 있으면 방 단위로 새로·사라짐), 없으면 그 달 청구 내역의 직방 월정액 줄(직방 월 목록을 쓰기 전 달 — 실수만).
+   · 지난달 = 그 달 직방 말일 확정 저장본(방 목록이 있으면 방 단위로 새로·사라짐), 없으면 그 달 청구 내역의 직방 월정액 줄(직방 월 목록을 쓰기 전 달 — 실수만).
    · 자격증명이 없는 지점(양양)·조회 실패 지점은 실수를 직접 넣는다(기본값 = 대조값 — 판매객실을 못 읽었거나 0 이면 빈 칸, 지난달 저장값을 함께 보인다). 방 목록은 없다.
      단 말일 뒤에 저장한 그 달 저장본이 서버 원천인 지점은 조회에 실패해도 저장본 칸을 그대로 둔다(저장본 유지 — 다음 [불러오기]가 되면 풀린다). 말일 전에 저장한 기록은 그날의 서버 목록이라 굳히지 않는다 — 직접 입력(기본값 = 그 저장본의 실수).
    · 빼기 = 서버에 있지만 청구에서 뺄 방 · 넣기 = 서버에 없지만 셀 방 — 사유와 함께 저장본에 남는다. [저장] 전까지는 이 화면에만 있다.
@@ -8553,8 +8553,10 @@ async function zbLoad(){
       const sol=(b&&accMap.get(svcSolitiId(b)))||[],duck=Number(b&&b.rooms)||0,expected=Math.max(0,duck-sol.length);
       const ok=!!h&&!h.error&&Array.isArray(h.devices);
       const why=ok?'':(String((h&&h.error)||'no_cred').replace(/[^a-z_]/g,'').slice(0,20)||'list_failed');   // 서버가 이 지점을 모른다 = 자격증명 없음
-      const seen=new Set(),dupDev=[],server=[];
-      (ok?h.devices:[]).forEach(d=>{const n=zbNum(d&&d.room);if(!n)return;if(seen.has(n)){dupDev.push(n);return;}seen.add(n);server.push({n,at:isYmd(d&&d.installDt)?d.installDt:''});});
+      const seen=new Map(),dupDev=[],server=[];
+      (ok?h.devices:[]).forEach(d=>{const n=zbNum(d&&d.room);if(!n)return;const at=isYmd(d&&d.installDt)?d.installDt:'',r=seen.get(n);
+        if(!r){const x={n,at};seen.set(n,x);server.push(x);return;}
+        dupDev.push(n);if(at&&(!r.at||at<r.at))r.at=at;});   // 같은 방 이름 기기가 여럿이면 그 방의 설치일은 올바른 날 중 가장 이른 날(서버가 주는 순서로 '말일 뒤 설치'가 갈리지 않게)
       server.sort(zbCmpRoom);
       const solSet=new Set(sol.map(zbNum).filter(Boolean)),p=prev&&prev.fac[f.id];
       R.fac[f.id]={f,ok,why,server,got:ok?h.devices.length:0,total:ok?Math.max(0,Number(h.total)||0):0,dupDev,duck,soliti:sol.length,expected,duckOk:duckOk&&solOk,
@@ -8702,7 +8704,7 @@ const zbRowsSig=(month,recs)=>canon((recs||getSvc().records).filter(r=>r.month==
 // 입력(빼기·넣기·직접 입력 실수) 지문 — 저장본과 지금 화면을 견준다
 const zbInputsOf=fac=>canon(Object.fromEntries(Object.entries(fac).map(([id,x])=>[id,{ex:zbCleanAdj(x.ex).map(e=>e.n+'|'+e.why).sort(),inc:zbCleanAdj(x.inc).map(e=>e.n+'|'+e.why).sort(),man:x.src==='man'?String(x.n??''):''}])));
 // 저장 뒤 화면에서 입력을 바꿨는가(불러온 달만 — 서버 목록이 바뀐 것은 따지지 않는다) · 저장본 유지 지점은 저장본과 같다고 본다(저장하면 그 칸을 그대로 옮긴다) · 말일 전 저장본에서 직접 입력으로 바뀐 지점은 저장본(서버 원천)과 다르게 본다(다시 저장해야 한다)
-// 돌려주는 값 — false(같다) · 'pre'(말일 전 저장본 때문에만 다르다: 사람은 입력을 안 바꿨다) · true(사람이 입력을 바꿨다). 막는 쪽은 둘 다 '다름'으로 본다
+// 돌려주는 값 — false(같다) · 'pre'(지금 저장본이 말일 전 기록이고 그 때문에만 다르다: 사람은 입력을 안 바꿨다) · true(그 밖에 다르다 — 사람이 바꿨거나, 다른 탭이 말일 뒤 다시 저장해 저장본이 말일 전 기록이 아니다). 막는 쪽은 둘 다 '다름'으로 본다
 function zbDirty(month){
   if(!ZBL||ZBL.err||ZBL.month!==month)return false;
   const rec=zbEnd(month);if(!rec)return false;
@@ -8711,7 +8713,7 @@ function zbDirty(month){
       if(skipPre&&x.pre!=null&&a.man===String(x.pre))return;   // 말일 전 저장본 때문에 직접 입력(기본값)이 된 지점 — 사람이 그 값을 안 바꿨으면 견주지 않는다
       now[f.id]={src:x.ok?'srv':'man',ex:a.ex,inc:a.inc,n:x.ok?null:zbCount(x,a,month)};was[f.id]=rec.fac[f.id]||{};});
     return zbInputsOf(now)!==zbInputsOf(was);};
-  return differs(false)?(differs(true)?true:'pre'):false;
+  return differs(false)?(zbPre(rec,month)&&!differs(true)?'pre':true):false;
 }
 // 그 달 직방 청구 내역이 말일 확정본과 짝이 맞는가 — none(저장본 없음) · stale(반영 전이거나 반영 뒤 저장본·입력이 바뀜) · rows(반영한 줄을 고침) · ok
 function zbApplyState(month){const e=zbEnd(month);if(!e)return'none';
@@ -8747,7 +8749,7 @@ function zbSave(){
       const left=x.dbl.filter(k=>!a.ex.some(e=>e.n===k));if(left.length)w.push(`이중 등록 ${left.join(', ')}`);
       const late=x.late.filter(r=>!a.ex.some(e=>e.n===r.n));if(late.length)w.push(`말일 뒤 설치 ${late.map(r=>r.n).join(', ')}`);   // 아직 빼지 않은 말일 뒤 설치 방
       if(x.total>x.got)w.push(`서버가 알린 기기 ${x.total}대 중 ${x.got}대만 받음`);
-      if(x.dupDev.length)w.push(`같은 방 이름 기기 ${x.dupDev.join(', ')}`);}
+      if(x.dupDev.length)w.push(`같은 방 이름 기기 ${[...new Set(x.dupDev)].join(', ')}`);}   // 방 번호 한 번씩(기기가 셋이면 dupDev 에 두 번 들어 있다)
     if(Number(y.n)===0)w.push('0실 — 이 지점 직방 청구 줄이 없어집니다');   // [청구 내역에 반영]은 이 지점 직방 줄을 지우고 새 줄을 넣지 않는다
     if(!x.ok&&!x.keep&&x.prevN!=null&&y.n!==x.prevN)w.push(`지난달 ${x.prevN}실 → ${y.n}실 (직접 입력)`);
     return w.length?`  ${f.short}: ${w.join(' / ')}`:'';}).filter(Boolean);
@@ -8771,7 +8773,9 @@ function zbDoc(){
   if(!month){toast('e','대상 월','대상 월을 고르세요.');return null;}
   const rec=zbEnd(month);
   if(!rec){toast('e','먼저 저장하세요',`${escH(month)} 직방 말일 확정을 저장한 뒤 만들 수 있습니다.`);return null;}
-  if(zbDirty(month)){toast('e','저장 후 바뀐 입력이 있습니다','[저장]을 다시 한 뒤 만드세요.');return null;}
+  const dz=zbDirty(month);   // 'pre' 면 사람이 입력을 바꾼 게 아니라 말일 전 저장본 때문이다 — 빨간 줄과 같은 까닭을 알린다
+  if(dz==='pre'){toast('e','말일 전 저장본과 다릅니다','말일 기준으로 다시 [저장]한 뒤 하세요.');return null;}
+  if(dz){toast('e','저장 후 바뀐 입력이 있습니다','[저장]을 다시 한 뒤 만드세요.');return null;}
   const prev=zbEnd(ymPrev(month)),pc=zbPrevCounts(month),z=zbCfg();
   const fac=zbFacs(month).filter(f=>rec.fac[f.id]).map(f=>{const x=rec.fac[f.id],p=prev&&prev.fac[f.id];
     const rooms=Array.isArray(x.rooms)?x.rooms.map(r=>({n:zbNum(r&&r.n),at:isYmd(r&&r.at)?r.at:''})).filter(r=>r.n).sort(zbCmpRoom):null;
