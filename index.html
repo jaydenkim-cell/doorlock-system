@@ -8229,20 +8229,22 @@ function h2oMail(){
     const today=ymdLocal(new Date()),reply=addBizDays(today,2),pay=nextBizDay(m===12?`${yy+1}-01-10`:`${yy}-${String(m+1).padStart(2,'0')}-10`);
     body=`안녕하세요, ${contact}님. ${sender}입니다.\n\n${m}월 말일 기준 시설별 객실 목록을 첨부드립니다.\n\n- 월초 ${s0}실 / 당월 추가 ${a}실 / 당월 해지 ${r}실 / 말일 ${tot}실\n- 시설별 말일 객실 수 · 청구 금액 (부가세 별도)\n${perAmt}\n- 당월 추가·해지 (일할 대상)\n${chg}${car}\n\n- 청구 금액 (부가세 별도)\n  월정액 ${mon}실 × ${D.unit.toLocaleString()}원 = ${(mon*D.unit).toLocaleString()}원\n  일할 ${days}일 × ${D.pu}원 = ${(days*D.pu).toLocaleString()}원\n  공급가액 ${ex.toLocaleString()}원 / 부가세 ${vat.toLocaleString()}원 / 합계 ${(ex+vat).toLocaleString()}원\n\n확인하신 뒤 ${md(reply)}까지 회신 부탁드립니다. 확정되면 ${md(last)}일자로 세금계산서 발행 부탁드립니다.\n지급은 계약대로 ${md(pay)}에 진행하겠습니다.\n\n감사합니다.\n\n${sender} 드림`;
   }
-  showMailDraft(body);
+  const subject=D.mode==='start'?`[핸디즈] H2O 도어락 서비스 ${m}월 시설별 객실 목록 (${m}/1 월초 기준)`:`[핸디즈] H2O 도어락 서비스 ${m}월 시설별 객실 목록 · 청구 금액 (${md(last)} 말일 기준)`;   // 고쳐 쓸 수 있다
+  showMailDraft(body,subject);
 }
-function showMailDraft(body){
+function showMailDraft(body,subject){
   let mo=document.getElementById('mo-h2o-mail');
   if(!mo){mo=document.createElement('div');mo.className='mo';mo.id='mo-h2o-mail';
-    mo.innerHTML='<div class="mb" style="width:720px;max-width:95vw"><div class="mh"><span class="mt2">'+CI.mail+' H2O 메일 초안</span></div><div class="mbody"><textarea id="h2o-mail-body" style="width:100%;height:420px;font-size:14px;line-height:1.5;padding:10px;border:1px solid var(--border);border-radius:6px"></textarea><div style="font-size:12px;color:var(--text3);margin-top:6px">고칠 곳을 고친 뒤 [복사]를 눌러 메일에 붙여 넣으세요. 엑셀 파일은 [엑셀 다운로드]로 따로 받아 첨부합니다.</div></div><div class="mf mfoot"><button class="btn bo" onclick="closeMo(\'mo-h2o-mail\')">닫기</button><button class="btn bp" onclick="copyMailDraft()">복사</button></div></div>';
+    mo.innerHTML='<div class="mb" style="width:720px;max-width:95vw"><div class="mh"><span class="mt2">'+CI.mail+' H2O 메일 초안</span></div><div class="mbody"><label for="h2o-mail-subject" style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">제목</label><div style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input class="fi" id="h2o-mail-subject" type="text" style="flex:1;min-width:0"><button class="btn bo bsm" onclick="copyMailSubject()">제목 복사</button></div><label for="h2o-mail-body" style="display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:4px">본문</label><textarea id="h2o-mail-body" style="width:100%;height:420px;font-size:14px;line-height:1.5;padding:10px;border:1px solid var(--border);border-radius:6px"></textarea><div style="font-size:12px;color:var(--text3);margin-top:6px">고칠 곳을 고친 뒤 제목은 [제목 복사], 본문은 [본문 복사]로 메일에 붙여 넣으세요. 엑셀 파일은 [엑셀 다운로드]로 따로 받아 첨부합니다.</div></div><div class="mf mfoot"><button class="btn bo" onclick="closeMo(\'mo-h2o-mail\')">닫기</button><button class="btn bp" onclick="copyMailDraft()">본문 복사</button></div></div>';
     document.body.appendChild(mo);}
-  document.getElementById('h2o-mail-body').value=body;openMo('mo-h2o-mail');
+  document.getElementById('h2o-mail-subject').value=subject||'';document.getElementById('h2o-mail-body').value=body;openMo('mo-h2o-mail');
 }
-function copyMailDraft(){
-  const t=document.getElementById('h2o-mail-body').value;
-  const ok=()=>toast('s','복사 완료','메일에 붙여 넣으세요.'),fail=()=>toast('e','복사 실패','글자를 직접 선택해 복사해 주세요.');
+function mailCopy(t,what){
+  const ok=()=>toast('s',`${what} 복사 완료`,'메일에 붙여 넣으세요.'),fail=()=>toast('e','복사 실패','글자를 직접 선택해 복사해 주세요.');
   if(navigator.clipboard?.writeText)navigator.clipboard.writeText(t).then(ok).catch(()=>_fbCopy(t,ok,fail));else _fbCopy(t,ok,fail);
 }
+function copyMailDraft(){mailCopy(document.getElementById('h2o-mail-body').value,'본문');}
+function copyMailSubject(){mailCopy(document.getElementById('h2o-mail-subject').value,'제목');}
 
 const h2oGroupCh=ch=>{const m=new Map();ch.forEach(c=>{const k=[c.fid,c.type,c.from,c.to,c.days].join('|');(m.get(k)||m.set(k,[]).get(k)).push(c);});return[...m.values()];};
 /* 말일 확정본 → 청구 내역 줄. 월정액 = 월초 − 해지(한 달 내내 등록된 객실), 일할 = 변동 객실별 한 줄(0일은 뺀다) */
