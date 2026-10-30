@@ -7819,6 +7819,7 @@ function buildSvcAmaData(){
     const zs=zbApplyState(tgt);
     if(zs==='stale'){toast('e','직방 청구 내역이 말일 확정본과 다릅니다','직방 월 목록에서 [저장] 뒤 [청구 내역에 반영]을 다시 누르세요.');return null;}
     if(zs==='rows'){toast('e','직방 청구 줄이 반영한 것과 다릅니다','반영한 뒤 직방 줄을 고치거나 복사해 넣었습니다. 직방 월 목록에서 [청구 내역에 반영]을 다시 누르세요.');return null;}
+    if(zbPre(zbEnd(tgt),tgt))toast('w','말일 전 저장본',`${tgt} 직방은 말일 전에 저장한 기록으로 만듭니다 — 말일 뒤 다시 확정하세요.`);   // 막지는 않는다
   }
   if(zb&&ymdLocal(new Date())<ymLast(tgt))toast('w','말일 전입니다',`${tgt} 직방은 말일 운영 객실 수 기준입니다 — 말일에 객실 수를 다시 반영한 뒤 품의하세요.`);
   const won=n=>n.toLocaleString()+'원';
@@ -8460,7 +8461,8 @@ function h2oApply(){
    흐름: 말일(또는 다음 달 1~5일) [불러오기] → 대조·이중 등록·지난달 대비를 보고 빼기·넣기(자격증명이 없는 지점은 실수 직접 입력) → [저장] → 엑셀·메일 초안 → [청구 내역에 반영] → 품의서.
    · 서버 목록 = 게이트웨이 zb_rooms(관리자만 · 시크릿 ZIGBANG_CRED_<duck 지점 id>). 방 이름은 앞 0 을 떼어 보인다('0718' → '718'). 같은 방 이름 기기는 한 번만 센다.
    · 대조값 = duck 판매객실 − 솔리티(H2O 월 목록과 같은 식) · 이중 등록 = 그 지점 솔리티 계정에도 있는 방(어느 쪽이 맞는지는 사람이 본다 — [빼기] 한 번에).
-   · 지난달 = 그 달 직방 말일 확정 저장본(방 목록이 있으면 방 단위로 새로·사라짐), 없으면 그 달 청구 내역의 직방 월정액 줄(직방 월 목록을 쓰기 전 달 — 실수만).
+   · 말일 뒤 설치 = 설치일이 그 달 말일보다 뒤인 방. H2O 와 달리 자동으로 빼지 않는다(직방은 기기를 바꾸면 그 방의 설치일이 새로 바뀔 수 있다) — 이중 등록처럼 알리고 [빼기] 한 번에(사유 '말일 뒤 설치'), 저장 확인창에도 남은 방을 적는다.
+   · 지난달 =그 달 직방 말일 확정 저장본(방 목록이 있으면 방 단위로 새로·사라짐), 없으면 그 달 청구 내역의 직방 월정액 줄(직방 월 목록을 쓰기 전 달 — 실수만).
    · 자격증명이 없는 지점(양양)·조회 실패 지점은 실수를 직접 넣는다(기본값 = 대조값 — 판매객실을 못 읽었거나 0 이면 빈 칸, 지난달 저장값을 함께 보인다). 방 목록은 없다.
      단 말일 뒤에 저장한 그 달 저장본이 서버 원천인 지점은 조회에 실패해도 저장본 칸을 그대로 둔다(저장본 유지 — 다음 [불러오기]가 되면 풀린다). 말일 전에 저장한 기록은 그날의 서버 목록이라 굳히지 않는다 — 직접 입력(기본값 = 그 저장본의 실수).
    · 빼기 = 서버에 있지만 청구에서 뺄 방 · 넣기 = 서버에 없지만 셀 방 — 사유와 함께 저장본에 남는다. [저장] 전까지는 이 화면에만 있다.
@@ -8483,10 +8485,14 @@ const zbCfg=d=>{d=d||getSvc();const z=d&&d.zb&&typeof d.zb==='object'&&!Array.is
   return{to:String(z.to||''),contact:String(z.contact||''),sender:String(z.sender||''),months:z.months&&typeof z.months==='object'&&!Array.isArray(z.months)?z.months:{}};};
 const zbEnd=(month,d)=>{const e=(zbCfg(d).months[month]||{}).end;return e&&typeof e==='object'&&e.fac&&typeof e.fac==='object'?e:null;};
 const zbRecTotal=rec=>Object.values(rec.fac||{}).reduce((t,x)=>t+(Number(x&&x.n)||0),0);
+const zbPre=(rec,month)=>kstDate(rec.at)<ymLast(month);   // 말일 전에 저장한 기록인가(그날의 서버 목록일 뿐 — 말일 뒤 다시 확정해야 한다)
 // 직방 서버 조회 실패 코드(게이트웨이 zb_rooms) → 화면 글. 저장본의 why 는 코드 그대로 둔다(뜻은 화면에서만) · ZB_RETRY = 잠깐의 실패일 수 있는 코드(다시 불러오기를 권한다)
 const ZB_WHY={no_cred:'자격증명 없음',login_failed:'로그인 실패',list_failed:'목록 조회 실패',timeout:'응답 시간 초과',fetch_failed:'연결 실패'};
 const zbWhy=w=>Object.prototype.hasOwnProperty.call(ZB_WHY,w)?ZB_WHY[w]:'조회 실패 '+w;
 const ZB_RETRY=new Set(['timeout','fetch_failed','list_failed']);
+// [불러오기] 전체 실패(게이트웨이가 401·403·5xx·546 으로 답하거나 망이 끊김 — fetch 가 TypeError) → 한국어 글. 모르는 실패는 null(지금처럼 '실패: …')
+const zbFnErr=e=>{const s=e&&e.status;
+  return s===401?'로그인이 만료됐습니다 — 새로고침 뒤 다시 로그인하세요':s===403?'관리자만 쓸 수 있습니다':s>=500?'서버(게이트웨이) 오류 — 잠시 뒤 다시 [불러오기]':e instanceof TypeError?'연결 실패 — 인터넷 연결을 확인한 뒤 다시 [불러오기]':null;};
 // 저장본 유지 지점의 칸 — 지금 저장본의 그 지점 칸(그사이 다른 탭이 다시 저장했으면 그것), 쓸 수 없으면 불러올 때 본 칸
 const zbKept=(m,x)=>{const y=(zbEnd(m)||{fac:{}}).fac[x.f.id];return y&&typeof y==='object'&&/^\d{1,5}$/.test(String(y.n))?y:x.keep;};
 // 지난달 실수 — {src:'rec'(말일 확정 저장본) | 'bill'(청구 내역의 직방 월정액 줄 합), n:{<id>:수|null}} · 둘 다 없으면 null
@@ -8525,11 +8531,13 @@ async function zbLoad(){
   const st=document.getElementById('zb-status');
   const R={month,fac:{},adj:{},err:'',at:'',notes:[]};   // 다 만든 뒤에야 ZBL 에 넣는다(불러오는 중 저장되지 않게)
   zbSetBusy(true);ZBL=null;zbRender();
+  let plain=false;   // R.err 가 한국어로 푼 글인가 — 상태 글에 '실패: ' 를 붙이지 않는다
   try{
     st.textContent='직방 서버 기기 목록 가져오는 중...';
     let srv;
     try{srv=await kvFn('zb_rooms');}
-    catch(e){if(e&&e.status===400&&e.body&&e.body.error==='bad_op')throw new Error('서버(게이트웨이)가 아직 직방 목록을 모릅니다 — v13 배포 전입니다. 관리자에게 알려 주세요');throw e;}
+    catch(e){if(e&&e.status===400&&e.body&&e.body.error==='bad_op')throw new Error('서버(게이트웨이)가 아직 직방 목록을 모릅니다 — v13 배포 전입니다. 관리자에게 알려 주세요');
+      const k=zbFnErr(e);if(k){plain=true;throw new Error(k);}throw e;}
     if(!srv)throw new Error('로그인이 필요합니다');
     // duck·솔리티는 대조·이중 등록용 — 실패해도 목록은 만들고 대조만 건너뛴다
     st.textContent='판매객실(duck)·솔리티 객실 가져오는 중...';
@@ -8538,7 +8546,7 @@ async function zbLoad(){
     catch(e){duckOk=false;R.notes.push('판매객실(duck) 조회 실패 — 객실 수 대조를 건너뜁니다');}
     try{const sol=await kvFn('soliti_rooms',{});accMap=svcSolitiMap((sol&&sol.accounts)||{});if(sol&&sol.stale)R.notes.push('솔리티 조회 실패로 이전 값 사용');}
     catch(e){solOk=false;R.notes.push('솔리티 조회 실패 — 객실 수 대조·이중 등록 확인을 건너뜁니다');}
-    const saved=zbEnd(month),prev=zbEnd(ymPrev(month)),pc=zbPrevCounts(month);
+    const saved=zbEnd(month),prev=zbEnd(ymPrev(month)),pc=zbPrevCounts(month),last=ymLast(month);
     R.at=srv.fetchedAt||'';
     zbFacs(month).forEach(f=>{
       const h=(srv.branches||{})[f.id],b=getBr().find(x=>x.name===f.br);
@@ -8552,6 +8560,7 @@ async function zbLoad(){
       R.fac[f.id]={f,ok,why,server,got:ok?h.devices.length:0,total:ok?Math.max(0,Number(h.total)||0):0,dupDev,duck,soliti:sol.length,expected,duckOk:duckOk&&solOk,
         defOk:duckOk&&solOk&&!!b&&duck>0,   // 직접 입력 기본값(판매객실 − 솔리티)을 낼 수 있다 — 판매객실을 읽었고 지점을 찾았고 판매객실 > 0(아니면 빈 칸 — 0 이 청구 줄을 지우지 않게)
         dbl:ok&&solOk?server.filter(r=>solSet.has(r.n)).map(r=>r.n):[],
+        late:server.filter(r=>r.at>last),   // 말일 뒤 설치(설치일 > 그 달 말일) — 자동으로 빼지 않고 알린다(직방은 기기를 바꾸면 그 방의 설치일이 새로 바뀔 수 있다)
         prevN:pc?pc.n[f.id]:null,prevSrc:pc?pc.src:'',prevRooms:p&&Array.isArray(p.rooms)?p.rooms.map(r=>zbNum(r&&r.n)).filter(Boolean):null};
       // 처음 입력 — 이 달 저장본이 있으면 그 빼기·넣기·실수(빼기는 지금 서버에 있는 방만, 넣기는 없는 방만), 없으면 비움(직접 입력 = 대조값 · 기본값을 낼 수 없으면 빈 칸)
       const sv0=saved&&saved.fac[f.id],on=new Set(server.map(r=>r.n));
@@ -8560,11 +8569,11 @@ async function zbLoad(){
       // 이 달 저장본이 서버 원천인데 이번에 조회 실패 — 말일 뒤에 저장한 기록이면 직접 입력으로 바꾸지 않고 저장본 칸을 그대로 둔다(저장본 유지).
       // 말일 전에 저장한 기록은 그날의 서버 목록이라 굳히지 않는다 — 직접 입력(기본값 = 그 저장본의 실수 · x.pre 로 안내 줄에 밝힌다 · 저장본과 다르게 본다)
       if(!ok&&sv0&&sv0.src==='srv'&&/^\d{1,5}$/.test(String(sv0.n))){
-        if(kstDate(saved.at)>=ymLast(month))R.fac[f.id].keep=JSON.parse(JSON.stringify(sv0));
+        if(!zbPre(saved,month))R.fac[f.id].keep=JSON.parse(JSON.stringify(sv0));
         else{R.fac[f.id].pre=+sv0.n;R.adj[f.id].man=String(+sv0.n);}}
     });
-    st.textContent=`직방 서버 ${tKst(R.at)} 기준`;
-  }catch(e){R.err=String(e&&e.message||e);st.textContent='실패: '+R.err;}
+    const ts=tKst(R.at);st.textContent=ts?`직방 서버 ${ts} 기준`:'직방 서버 기준';   // 게이트웨이가 시각을 안 주면 시각 없이
+  }catch(e){R.err=String(e&&e.message||e);st.textContent=(plain?'':'실패: ')+R.err;}
   finally{ZBL=R;zbSetBusy(false);zbRender();}
 }
 
@@ -8574,7 +8583,7 @@ function zbSavedHtml(month){
   const ast=zbApplyState(month);
   return`✓ ${escH(month)} 말일 확정 저장됨 · ${escH(tKst(saved.at))}${saved.by?' · '+escH(saved.by):''} · ${zbRecTotal(saved)}실`
     +(ast==='ok'?' · ✓ 청구 내역 반영됨':ast==='rows'?' · <b class="zb-bad">청구 내역의 직방 줄이 반영한 것과 다릅니다 — [청구 내역에 반영]을 다시 누르세요</b>':' · <b class="zb-bad">청구 내역 반영 전</b>')
-    +(kstDate(saved.at)<ymLast(month)?' · <b class="zb-warn">말일 전에 저장한 기록 — 말일 뒤 [불러오기]→[저장]으로 다시 확정하세요</b>':'');
+    +(zbPre(saved,month)?' · <b class="zb-warn">말일 전에 저장한 기록 — 말일 뒤 [불러오기]→[저장]으로 다시 확정하세요</b>':'');
 }
 function zbRender(){
   const el=document.getElementById('zb-preview');if(!el)return;
@@ -8611,6 +8620,9 @@ function zbRender(){
       if(x.dbl.length){const left=x.dbl.filter(k=>!a.ex.some(e=>e.n===k));
         msgs.push(`<span class="zb-bad">이중 등록 ${x.dbl.length}실(솔리티 계정에도 있음): ${x.dbl.slice(0,10).map(escH).join(', ')}${x.dbl.length>10?' …':''} — 어느 쪽이 맞는지 확인하세요</span>`
           +left.slice(0,10).map(k=>` <button type="button" class="btn bo bsm"${zk(f.id,'dbl',k)} onclick="zbAct(${act({fid:f.id,n:k,kind:'ex',why:'솔리티와 이중 등록'})})">${escH(k)} 빼기</button>`).join(''));}
+      if(x.late.length){const left=x.late.filter(r=>!a.ex.some(e=>e.n===r.n));   // 말일 뒤 설치 — 자동으로 빼지 않는다(기기를 바꾸면 설치일이 새로 바뀔 수 있다 — 지난달 목록에 있던 방은 그렇게 밝힌다)
+        msgs.push(`<span class="zb-bad">말일 뒤 설치 ${x.late.length}실: ${x.late.slice(0,10).map(r=>`${escH(r.n)}(${escH(md(r.at))}${pk&&pk.has(r.n)?' · 지난달 목록에 있음 — 기기 교체일 수 있음':''})`).join(', ')}${x.late.length>10?' …':''}</span>`
+          +left.slice(0,10).map(r=>` <button type="button" class="btn bo bsm"${zk(f.id,'late',r.n)} onclick="zbAct(${act({fid:f.id,n:r.n,kind:'ex',why:'말일 뒤 설치'})})">${escH(r.n)} 빼기</button>`).join(''));}
       if(x.total>x.got)msgs.push(`<span class="zb-warn">서버가 알린 기기 ${x.total}대 중 ${x.got}대만 받았습니다(방 이름이 없는 기기 등) — 직방에 확인하세요</span>`);
       if(x.dupDev.length)msgs.push(`<span class="zb-dim">같은 방 이름 기기 ${x.dupDev.length}대(${few(x.dupDev)}) — 방 하나로 셉니다</span>`);
       msgs.push(`<span class="zb-dim">${add?`지난달 말일 대비 새로 ${add.length}실${add.length?`(${few(add)})`:''} · 사라짐 ${gone.length}실${gone.length?`(${few(gone)})`:''}`
@@ -8625,10 +8637,11 @@ function zbRender(){
       return`<span${k?` class="${k[0]}"`:''}>${escH(r.n)}${r.at?` <span class="zb-at">${escH(r.at)}</span>`:''}${k?`<span class="sr-only"> · ${k[1]}</span>`:''}</span>`;}).join('');
     return main+`<tr class="zb-sub"><td colspan="8"><div class="zb-adj"><input class="fi zb-in" id="zb-an-${i}" placeholder="713" aria-label="${escH(f.short)} 방 번호"><input class="fi zb-in zb-why" id="zb-aw-${i}" placeholder="사유" aria-label="${escH(f.short)} 빼기·넣기 사유"><button type="button" class="btn bo bsm"${zk(f.id,'ex')} onclick="zbAdj(${i},'ex')" title="서버에 있지만 청구에서 뺄 방">빼기</button><button type="button" class="btn bo bsm"${zk(f.id,'inc')} onclick="zbAdj(${i},'inc')" title="서버에 없지만 셀 방">넣기</button>${a.ex.map(e=>chip(e,'ex')).join('')}${a.inc.map(e=>chip(e,'inc')).join('')}</div>`
       +`<details class="zb-det" data-fid="${escH(f.id)}"${open.has(f.id)?' open':''}><summary>방 목록 ${L.length}실 (방 번호 · 설치일${newK.size?' · 굵은 글자 = 지난달 대비 새로':''}${L.some(r=>r.inc)?' · 색 글자 = 넣은 방':''})</summary><div class="zb-rooms">${list}</div></details></td></tr>`;}).join('');
+  const dz=zbDirty(month);   // false · 'pre'(말일 전 저장본 때문에만 다르다 — 사람은 입력을 안 바꿨다) · true(사람이 입력을 바꿨다)
   el.innerHTML=(ZBL.notes.length?`<div class="zb-line zb-warn">${ZBL.notes.map(escH).join(' · ')}</div>`:'')
     +`<table class="tbl" id="zb-tbl" style="margin-top:6px"><thead><tr><th>지점</th><th>원천</th><th class="num-r">지난달 말일</th><th class="num-r">새로</th><th class="num-r">사라짐</th><th class="num-r">이번 달 말일</th><th class="num-r" title="duck 판매객실 − 솔리티">대조값</th><th>확인</th></tr></thead>`
     +`<tbody>${rows}</tbody><tfoot><tr><td>합계</td><td></td><td class="num-r">${pmiss?'—':sumP}</td><td></td><td></td><td class="num-r" id="zb-sum">${zbSumText()}</td><td></td><td></td></tr></tfoot></table>`
-    +(zbDirty(month)?'<div class="zb-line zb-bad">저장한 뒤 빼기·넣기·직접 입력이 바뀌었습니다 — [저장]을 다시 눌러야 엑셀·메일·청구 반영에 들어갑니다.</div>':'')+savedLine;
+    +(dz?`<div class="zb-line zb-bad">${dz==='pre'?'말일 전 저장본과 다릅니다 — 말일 기준으로 다시 [저장]하세요':'저장한 뒤 빼기·넣기·직접 입력이 바뀌었습니다 — [저장]을 다시 눌러야 엑셀·메일·청구 반영에 들어갑니다.'}</div>`:'')+savedLine;
   keepV.forEach(([id,v])=>{const x=document.getElementById(id);if(x&&v)x.value=v;});
   if(fo){const bs=[...el.querySelectorAll('[data-zbk]')].filter(b=>b.dataset.zbf===fo.f);
     const t=bs.find(b=>b.dataset.zbk===fo.k)||(fo.n&&bs.find(b=>b.dataset.zbn===fo.n))||bs[fo.i]||bs[0];if(t)t.focus();}
@@ -8689,12 +8702,16 @@ const zbRowsSig=(month,recs)=>canon((recs||getSvc().records).filter(r=>r.month==
 // 입력(빼기·넣기·직접 입력 실수) 지문 — 저장본과 지금 화면을 견준다
 const zbInputsOf=fac=>canon(Object.fromEntries(Object.entries(fac).map(([id,x])=>[id,{ex:zbCleanAdj(x.ex).map(e=>e.n+'|'+e.why).sort(),inc:zbCleanAdj(x.inc).map(e=>e.n+'|'+e.why).sort(),man:x.src==='man'?String(x.n??''):''}])));
 // 저장 뒤 화면에서 입력을 바꿨는가(불러온 달만 — 서버 목록이 바뀐 것은 따지지 않는다) · 저장본 유지 지점은 저장본과 같다고 본다(저장하면 그 칸을 그대로 옮긴다) · 말일 전 저장본에서 직접 입력으로 바뀐 지점은 저장본(서버 원천)과 다르게 본다(다시 저장해야 한다)
+// 돌려주는 값 — false(같다) · 'pre'(말일 전 저장본 때문에만 다르다: 사람은 입력을 안 바꿨다) · true(사람이 입력을 바꿨다). 막는 쪽은 둘 다 '다름'으로 본다
 function zbDirty(month){
   if(!ZBL||ZBL.err||ZBL.month!==month)return false;
   const rec=zbEnd(month);if(!rec)return false;
-  const now={},was={};
-  zbFacs(month).forEach(f=>{const x=ZBL.fac[f.id],a=ZBL.adj[f.id];if(!x||!a||x.keep)return;now[f.id]={src:x.ok?'srv':'man',ex:a.ex,inc:a.inc,n:x.ok?null:zbCount(x,a,month)};was[f.id]=rec.fac[f.id]||{};});
-  return zbInputsOf(now)!==zbInputsOf(was);
+  const differs=skipPre=>{const now={},was={};
+    zbFacs(month).forEach(f=>{const x=ZBL.fac[f.id],a=ZBL.adj[f.id];if(!x||!a||x.keep)return;
+      if(skipPre&&x.pre!=null&&a.man===String(x.pre))return;   // 말일 전 저장본 때문에 직접 입력(기본값)이 된 지점 — 사람이 그 값을 안 바꿨으면 견주지 않는다
+      now[f.id]={src:x.ok?'srv':'man',ex:a.ex,inc:a.inc,n:x.ok?null:zbCount(x,a,month)};was[f.id]=rec.fac[f.id]||{};});
+    return zbInputsOf(now)!==zbInputsOf(was);};
+  return differs(false)?(differs(true)?true:'pre'):false;
 }
 // 그 달 직방 청구 내역이 말일 확정본과 짝이 맞는가 — none(저장본 없음) · stale(반영 전이거나 반영 뒤 저장본·입력이 바뀜) · rows(반영한 줄을 고침) · ok
 function zbApplyState(month){const e=zbEnd(month);if(!e)return'none';
@@ -8727,7 +8744,10 @@ function zbSave(){
   const chk=zbFacs(month).map(f=>{const x=R.fac[f.id],a=R.adj[f.id],y=rec.fac[f.id];if(!x||!a||!y)return'';const w=[];
     if(x.ok){const L=zbList(x,a);
       if(x.duckOk&&L.length!==x.expected)w.push(`청구 ${L.length}실 ≠ 대조값 ${x.expected}실`);
-      const left=x.dbl.filter(k=>!a.ex.some(e=>e.n===k));if(left.length)w.push(`이중 등록 ${left.join(', ')}`);}
+      const left=x.dbl.filter(k=>!a.ex.some(e=>e.n===k));if(left.length)w.push(`이중 등록 ${left.join(', ')}`);
+      const late=x.late.filter(r=>!a.ex.some(e=>e.n===r.n));if(late.length)w.push(`말일 뒤 설치 ${late.map(r=>r.n).join(', ')}`);   // 아직 빼지 않은 말일 뒤 설치 방
+      if(x.total>x.got)w.push(`서버가 알린 기기 ${x.total}대 중 ${x.got}대만 받음`);
+      if(x.dupDev.length)w.push(`같은 방 이름 기기 ${x.dupDev.join(', ')}`);}
     if(Number(y.n)===0)w.push('0실 — 이 지점 직방 청구 줄이 없어집니다');   // [청구 내역에 반영]은 이 지점 직방 줄을 지우고 새 줄을 넣지 않는다
     if(!x.ok&&!x.keep&&x.prevN!=null&&y.n!==x.prevN)w.push(`지난달 ${x.prevN}실 → ${y.n}실 (직접 입력)`);
     return w.length?`  ${f.short}: ${w.join(' / ')}`:'';}).filter(Boolean);
@@ -8832,7 +8852,8 @@ function zbApply(){
   const manual=old.filter(r=>r.src!=='zb'&&!/자동 반영|YOLO/.test(r.note||''));
   const t=svcTotal(add);
   showCfm(CI.calendar,`${month} 청구 내역에 반영`,`${month} 직방 ${D.fac.length}개 지점 기존 ${old.length}줄을 말일 확정 기준 ${add.length}줄로 바꿉니다.\n말일 ${t.rooms}실 × ${D.unit.toLocaleString()}원 · 합계 ${t.t.toLocaleString()}원 (부가세 포함)`
-    +(manual.length?`\n※ 손으로 넣은 줄 ${manual.length}개도 지워집니다: ${manual.slice(0,4).map(r=>`${amaBrName(r.branch)} ${r.rooms}${isProrate(r)?'일':'실'}${r.note?' ('+r.note+')':''}`).join(', ')}${manual.length>4?' …':''}`:''),()=>{
+    +(manual.length?`\n※ 손으로 넣은 줄 ${manual.length}개도 지워집니다: ${manual.slice(0,4).map(r=>`${amaBrName(r.branch)} ${r.rooms}${isProrate(r)?'일':'실'}${r.note?' ('+r.note+')':''}`).join(', ')}${manual.length>4?' …':''}`:'')
+    +(zbPre(D.rec,month)?`\n※ 말일(${md(ymLast(month))}) 전에 저장한 기록입니다 — 말일 뒤 [불러오기]→[저장]으로 다시 확정한 뒤 반영하는 것이 맞습니다.`:''),()=>{
     const d2=getSvc(),e=zbEnd(month,d2);
     if(!e||zbRecSig(e)!==sig){toast('e','저장본이 바뀌었습니다','다른 탭에서 직방 말일 확정을 다시 저장했습니다. 다시 [청구 내역에 반영]을 누르세요.');return;}   // 옛 수로 줄을 넣고 새 저장본에 '반영됨'을 찍지 않는다
     let nid=d2.records.length?Math.max(...d2.records.map(r=>Number(r.id)||0))+1:1;
