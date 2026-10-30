@@ -1380,10 +1380,12 @@ a.btn[hidden]{display:none;}
               <input class="fi" id="h2o-month" type="month" placeholder="예: 2026-10" style="width:140px" onchange="h2oReset()"></div>
             <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:12px;font-weight:600;color:var(--text2)">구분</label>
               <select class="fsel" id="h2o-mode" style="width:120px" onchange="h2oReset()"><option value="start">월초 목록</option><option value="end">말일 확정</option></select></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><label for="h2o-to" style="font-size:12px;font-weight:600;color:var(--text2)">받는 사람</label>
+              <input class="fi" id="h2o-to" type="email" style="width:200px" placeholder="H2O 담당자 메일" onchange="h2oSetCfg(this)"></div>
             <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:12px;font-weight:600;color:var(--text2)">H2O 담당자</label>
-              <input class="fi" id="h2o-contact" type="text" style="width:90px" placeholder="유아름"></div>
+              <input class="fi" id="h2o-contact" type="text" style="width:90px" placeholder="담당자" onchange="h2oSetCfg(this)"></div>
             <div style="display:flex;flex-direction:column;gap:4px"><label style="font-size:12px;font-weight:600;color:var(--text2)">보내는 사람</label>
-              <input class="fi" id="h2o-sender" type="text" style="width:170px" placeholder="핸디즈 구매소싱팀 김강현"></div>
+              <input class="fi" id="h2o-sender" type="text" style="width:170px" placeholder="핸디즈 구매소싱팀 김강현" onchange="h2oSetCfg(this)"></div>
             <button class="btn bp bsm" onclick="h2oLoad()">불러오기</button>
             <button class="btn bo bsm" onclick="h2oSave()">저장</button>
             <button class="btn bo bsm" onclick="h2oExcel()"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>엑셀 다운로드</button>
@@ -3303,7 +3305,7 @@ function goP(p){
   /* 메뉴로 들어올 때 그리는 목록. 30초 새로고침용 PAGE_RENDER(맨 아래)와 따로 있어서
      서비스요금·부자재가 그쪽에만 들어가 있었다 → 들어가면 빈 화면이고 필터를 바꾸거나
      30초를 기다려야 채워졌다. 새 페이지를 만들면 두 곳 모두에 넣을 것. */
-  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:()=>{renderSvc();zbFillCfg();},parts:renderParts,h2oreq:renderH2oReq,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock,settings:renderSettings};   // 서비스요금 — 직방 메일 설정 칸도 저장값으로(초점 없는 칸)
+  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:()=>{renderSvc();zbFillCfg();h2oFillCfg();},parts:renderParts,h2oreq:renderH2oReq,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock,settings:renderSettings};   // 서비스요금 — 직방·H2O 메일 설정 칸도 저장값으로(초점 없는 칸)
   FILL_FORCE=true;try{if(fns[p])fns[p]();}finally{FILL_FORCE=false;}
   if(['receipt','order','install','monthly','stock'].includes(p)){
     const tbr=document.getElementById('tb-r');
@@ -8167,14 +8169,26 @@ function h2oDrift(){
   return!!rec&&!Object.values(H2OL.fac).some(x=>x.failed)&&h2oRecSig(rec)!==h2oRecSig(h2oRecord(H2OL));
 }
 
+// 메일 설정 칸(받는 사람·담당자·보내는 사람) — 고친 칸 하나만 바로 저장(같으면 쓰지 않는다 · 다른 칸은 지금 저장값 그대로 — 칸에 남은 옛 글로 덮지 않게). 담당자·보내는 사람은 [저장](h2oSave)도 쓴다
+function h2oSetCfg(el){
+  const k={'h2o-to':'to','h2o-contact':'contact','h2o-sender':'sender'}[el&&el.id];if(!k)return;
+  const v=String(el.value||'').trim().slice(0,120),hl=getHL();
+  if(v===String(hl[k]||''))return;
+  hl[k]=v;sv(K_HL,hl);
+}
+// 메일 설정 칸을 저장값으로 — 초점이 없는 칸은 저장값으로 맞춘다(다른 탭이 바꾼 값이 이 탭 칸에도 보이게 · 치는 중인 칸은 둔다 · 저장값이 없으면 받는 사람은 빈 칸, 담당자·보내는 사람은 예전 기본값). H2O 패널을 그릴 때 · 서비스요금 화면에 들어올 때(goP)
+function h2oFillCfg(){
+  const hl=getHL(),ae=document.activeElement;
+  [['h2o-to','to',''],['h2o-contact','contact','유아름'],['h2o-sender','sender','핸디즈 구매소싱팀 김강현']].forEach(([id,k,d])=>{const e=document.getElementById(id);if(e&&e!==ae)e.value=String(hl[k]||d);});
+}
+
 function h2oRender(){
   const el=document.getElementById('h2o-preview');if(!el)return;
   h2oDefaults();
   const{month,mode}=h2oSel();
   const ab=document.getElementById('h2o-apply-btn');if(ab)ab.style.display=mode==='end'?'':'none';
   const hl=getHL();
-  const c=document.getElementById('h2o-contact'),sd=document.getElementById('h2o-sender');
-  if(c&&!c.value)c.value=hl.contact||'유아름';if(sd&&!sd.value)sd.value=hl.sender||'핸디즈 구매소싱팀 김강현';
+  h2oFillCfg();
   const mm=hl.months[month]||{},saved=mm[mode],locked=h2oLocked(month);
   const ast=mode==='end'&&saved?h2oApplyState(month):'';
   const applyState=ast==='ok'?' · ✓ 청구 내역 반영됨':ast==='rows'?' · <b style="color:var(--red)">청구 내역의 H2O 줄이 반영한 것과 다릅니다 — [청구 내역에 반영]을 다시 누르세요</b>':ast?' · <b style="color:var(--red)">청구 내역 반영 전</b>':'';
@@ -8357,6 +8371,7 @@ function h2oExcel(){
 function h2oMail(){
   if(H2O_BUSY)return;
   const D=h2oDoc();if(!D)return;
+  h2oFillCfg();   // 칸이 낡았으면(다른 탭이 바꾼 담당자·보내는 사람) 저장값으로 맞춘다 — 아래 인사·맺음이 저장값이 되게(치는 중인 칸은 그대로)
   const contact=(document.getElementById('h2o-contact').value||D.contact).trim(),sender=(document.getElementById('h2o-sender').value||D.sender).trim();
   const[yy,m]=D.month.split('-').map(Number),last=ymLast(D.month);
   const tot=D.fac.reduce((t,x)=>t+x.list.length,0);
@@ -8381,7 +8396,7 @@ function h2oMail(){
     body=`안녕하세요, ${contact}님. ${sender}입니다.\n\n${m}월 말일 기준 시설별 객실 목록을 첨부드립니다.\n\n- 월초 ${s0}실 / 당월 추가 ${a}실 / 당월 해지 ${r}실 / 말일 ${tot}실\n- 시설별 말일 객실 수 · 청구 금액 (부가세 별도)\n${perAmt}\n- 당월 추가·해지 (일할 대상)\n${chg}${car}\n\n- 청구 금액 (부가세 별도)\n  월정액 ${mon}실 × ${D.unit.toLocaleString()}원 = ${(mon*D.unit).toLocaleString()}원\n  일할 ${days}일 × ${D.pu}원 = ${(days*D.pu).toLocaleString()}원\n  공급가액 ${ex.toLocaleString()}원 / 부가세 ${vat.toLocaleString()}원 / 합계 ${(ex+vat).toLocaleString()}원\n\n확인하신 뒤 ${md(reply)}까지 회신 부탁드립니다. 확정되면 ${md(last)}일자로 세금계산서 발행 부탁드립니다.\n지급은 계약대로 ${md(pay)}에 진행하겠습니다.\n\n감사합니다.\n\n${sender} 드림`;
   }
   const subject=D.mode==='start'?`[핸디즈] H2O 도어락 서비스 ${m}월 시설별 객실 목록 (${m}/1 월초 기준)`:`[핸디즈] H2O 도어락 서비스 ${m}월 시설별 객실 목록 · 청구 금액 (${md(last)} 말일 기준)`;   // 고쳐 쓸 수 있다
-  showMailDraft(body,subject);
+  showMailDraft(body,subject,{to:String(getHL().to||'')});   // 받는 사람은 저장값(칸은 고치면 바로 저장되므로 칸을 읽지 않는다) — [메일 앱으로 열기] = mailto, 비었으면 받는 사람 없이
 }
 // opt(직방 등 — 없으면 H2O 그대로): title = 창 제목(아이콘 뒤 글자만 바꾼다) · to = 받는 사람(넘기면 [메일 앱으로 열기] = mailto, 빈 글자면 받는 사람 없이)
 function showMailDraft(body,subject,opt){
