@@ -987,7 +987,7 @@ b,strong{font-weight:600;}
 .zb-adj{display:flex;gap:4px;flex-wrap:wrap;align-items:center;}
 .fi.zb-in{width:80px;height:auto;padding:2px 6px;font-size:12px;line-height:20px;}
 .fi.zb-why{width:160px;}
-.zb-x{padding:0 2px;margin:0;background:none;border:0;border-radius:4px;font:inherit;color:var(--red);cursor:pointer;}
+.zb-x{padding:0 2px;margin:-4px;min-width:24px;min-height:24px;background:none;border:0;border-radius:4px;font:inherit;color:var(--red);cursor:pointer;}   /* 누르는 영역 24x24 이상 — 바깥 여백 -4px 로 칩 높이·모양은 그대로 */
 .zb-x:focus-visible,.zb-det summary:focus-visible{outline:2px solid var(--plott-color-action-primary);outline-offset:2px;box-shadow:var(--plott-focus-ring-default);}
 .zb-det{margin-top:6px;}
 .zb-det summary{cursor:pointer;font-size:12px;line-height:16px;color:var(--text3);}
@@ -1395,16 +1395,16 @@ a.btn[hidden]{display:none;}
         </div>
         <!-- 직방 월 객실 목록 (말일 확정 → 엑셀·메일 초안·청구 반영) -->
         <div class="panel" id="zb-panel" style="margin-bottom:16px">
-          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></svg>직방 월 객실 목록</span><span id="zb-status" style="font-size:12px;color:var(--text3)"></span></div>
+          <div class="ph"><span class="pt"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5h.01"/><path d="M3 12h.01"/><path d="M3 19h.01"/><path d="M8 5h13"/><path d="M8 12h13"/><path d="M8 19h13"/></svg>직방 월 객실 목록</span><span id="zb-status" aria-live="polite" style="font-size:12px;color:var(--text3)"></span></div>
           <div class="pb" id="zb-ctl" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
             <div style="display:flex;flex-direction:column;gap:4px"><label for="zb-month" style="font-size:12px;font-weight:600;color:var(--text2)">대상 월</label>
               <input class="fi" id="zb-month" type="month" placeholder="예: 2026-10" style="width:140px" onchange="zbReset()"></div>
             <div style="display:flex;flex-direction:column;gap:4px"><label for="zb-to" style="font-size:12px;font-weight:600;color:var(--text2)">받는 사람</label>
-              <input class="fi" id="zb-to" type="email" style="width:200px" placeholder="직방 담당자 메일" onchange="zbSetCfg()"></div>
+              <input class="fi" id="zb-to" type="email" style="width:200px" placeholder="직방 담당자 메일" onchange="zbSetCfg(this)"></div>
             <div style="display:flex;flex-direction:column;gap:4px"><label for="zb-contact" style="font-size:12px;font-weight:600;color:var(--text2)">직방 담당자</label>
-              <input class="fi" id="zb-contact" type="text" style="width:90px" placeholder="담당자" onchange="zbSetCfg()"></div>
+              <input class="fi" id="zb-contact" type="text" style="width:90px" placeholder="담당자" onchange="zbSetCfg(this)"></div>
             <div style="display:flex;flex-direction:column;gap:4px"><label for="zb-sender" style="font-size:12px;font-weight:600;color:var(--text2)">보내는 사람</label>
-              <input class="fi" id="zb-sender" type="text" style="width:170px" placeholder="핸디즈 구매소싱팀 김강현" onchange="zbSetCfg()"></div>
+              <input class="fi" id="zb-sender" type="text" style="width:170px" placeholder="핸디즈 구매소싱팀 김강현" onchange="zbSetCfg(this)"></div>
             <button class="btn bp bsm" onclick="zbLoad()">불러오기</button>
             <button class="btn bo bsm" onclick="zbSave()">저장</button>
             <button class="btn bo bsm" onclick="zbExcel()"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>엑셀 다운로드</button>
@@ -3303,7 +3303,7 @@ function goP(p){
   /* 메뉴로 들어올 때 그리는 목록. 30초 새로고침용 PAGE_RENDER(맨 아래)와 따로 있어서
      서비스요금·부자재가 그쪽에만 들어가 있었다 → 들어가면 빈 화면이고 필터를 바꾸거나
      30초를 기다려야 채워졌다. 새 페이지를 만들면 두 곳 모두에 넣을 것. */
-  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:renderSvc,parts:renderParts,h2oreq:renderH2oReq,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock,settings:renderSettings};
+  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:()=>{renderSvc();zbFillCfg();},parts:renderParts,h2oreq:renderH2oReq,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock,settings:renderSettings};   // 서비스요금 — 직방 메일 설정 칸도 저장값으로(비어 있는 칸만)
   FILL_FORCE=true;try{if(fns[p])fns[p]();}finally{FILL_FORCE=false;}
   if(['receipt','order','install','monthly','stock'].includes(p)){
     const tbr=document.getElementById('tb-r');
@@ -7410,7 +7410,11 @@ function svcApplyYolo(){
   });
   // H2O 월 목록으로 말일 확정한 달은 H2O 를 건너뛴다(svcApplyAuto 와 같은 이유 — 월중 추가 객실 이중 청구)
   if((getHL().months[mv]||{}).end){let n=0;[...agg.keys()].forEach(k=>{if(k.endsWith('|H2O')&&H2O_BRS.has(k.slice(0,-4))){agg.delete(k);n++;}});if(n)toast('i','H2O 는 건너뜁니다',`${mv} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);}
-  if(!agg.size){toast('e','반영할 항목 없음',(getHL().months[mv]||{}).end?'H2O 말고는 반영할 지점이 없습니다.':'지점·브랜드 지정을 먼저 채워주세요.');return;}
+  // 직방 월 목록으로 말일 확정한 달은 직방 네 지점도 건너뛴다(그 달 직방은 직방 월 목록의 [청구 내역에 반영]이 정본)
+  const zbDone=!!zbEnd(mv);
+  if(zbDone){let n=0;[...agg.keys()].forEach(k=>{if(k.endsWith('|직방')&&ZB_BRS.has(k.slice(0,-3))){agg.delete(k);n++;}});if(n)toast('i','직방은 건너뜁니다',`${mv} 직방은 직방 월 목록(말일 확정) 기준으로 반영합니다.`);}
+  const done=[(getHL().months[mv]||{}).end?'H2O':'',zbDone?'직방':''].filter(Boolean).join('·');   // 말일 확정한 업체(둘 다면 'H2O·직방')
+  if(!agg.size){toast('e','반영할 항목 없음',done?`${done} 말고는 반영할 지점이 없습니다.`:'지점·브랜드 지정을 먼저 채워주세요.');return;}
   const d=getSvc();
   const touched=[...agg].map(([k])=>k.split('|'));
   showCfm(CI.upload,'YOLO 기준으로 반영',
@@ -7606,11 +7610,12 @@ function copySvcMonth(){
   if(!tgt){toast('e','오류','대상 월을 입력하세요.');return;}
   if(src===tgt){toast('e','오류','원본과 대상 월이 같습니다.');return;}
   const d=getSvc();
-  // 일할 줄·H2O 월 목록 줄은 그 달 한정이라 복사하지 않는다. 대상 달이 H2O 말일 확정된 달이면 5개 시설 H2O 는 [청구 내역에 반영]이 정본
-  const h2oT=!!(getHL().months[tgt]||{}).end;
-  const srcRecs=d.records.filter(r=>r.month===src&&!isProrate(r)&&r.src!=='h2o'&&!(h2oT&&r.brand==='H2O'&&H2O_BRS.has(r.branch)));
+  // 일할 줄·H2O/직방 월 목록 줄은 그 달 한정이라 복사하지 않는다. 대상 달이 말일 확정된 달이면 H2O 5개 시설·직방 네 지점은 [청구 내역에 반영]이 정본
+  const h2oT=!!(getHL().months[tgt]||{}).end,zbT=!!zbEnd(tgt,d);
+  const srcRecs=d.records.filter(r=>r.month===src&&!isProrate(r)&&r.src!=='h2o'&&r.src!=='zb'&&!(h2oT&&r.brand==='H2O'&&H2O_BRS.has(r.branch))&&!(zbT&&r.brand==='직방'&&ZB_BRS.has(r.branch)));
   if(srcRecs.length===0){toast('e','오류',`${src}에 등록된 항목이 없습니다.`);return;}
   if(h2oT)toast('i','H2O 는 건너뜁니다',`${tgt} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);
+  if(zbT)toast('i','직방은 건너뜁니다',`${tgt} 직방은 직방 월 목록(말일 확정) 기준으로 반영합니다.`);
   const tgtExists=d.records.filter(r=>r.month===tgt);
   if(tgtExists.length>0&&!confirm(`${tgt}에 이미 ${tgtExists.length}개 항목이 있습니다. 추가로 복사하시겠습니까?`))return;
   let nid=d.records.length>0?Math.max(...d.records.map(r=>r.id))+1:1;
@@ -8450,7 +8455,8 @@ function h2oApply(){
    · 서버 목록 = 게이트웨이 zb_rooms(관리자만 · 시크릿 ZIGBANG_CRED_<duck 지점 id>). 방 이름은 앞 0 을 떼어 보인다('0718' → '718'). 같은 방 이름 기기는 한 번만 센다.
    · 대조값 = duck 판매객실 − 솔리티(H2O 월 목록과 같은 식) · 이중 등록 = 그 지점 솔리티 계정에도 있는 방(어느 쪽이 맞는지는 사람이 본다 — [빼기] 한 번에).
    · 지난달 = 그 달 직방 말일 확정 저장본(방 목록이 있으면 방 단위로 새로·사라짐), 없으면 그 달 청구 내역의 직방 월정액 줄(직방 월 목록을 쓰기 전 달 — 실수만).
-   · 자격증명이 없는 지점(양양)·조회 실패 지점은 실수를 직접 넣는다(기본값 = 대조값, 지난달 저장값을 함께 보인다). 방 목록은 없다.
+   · 자격증명이 없는 지점(양양)·조회 실패 지점은 실수를 직접 넣는다(기본값 = 대조값 — 판매객실을 못 읽었거나 0 이면 빈 칸, 지난달 저장값을 함께 보인다). 방 목록은 없다.
+     단 그 달 저장본이 서버 원천인 지점은 조회에 실패해도 저장본 칸을 그대로 둔다(저장본 유지 — 다음 [불러오기]가 되면 풀린다).
    · 빼기 = 서버에 있지만 청구에서 뺄 방 · 넣기 = 서버에 없지만 셀 방 — 사유와 함께 저장본에 남는다. [저장] 전까지는 이 화면에만 있다.
    · 저장 자리 = doorlock_svc 의 zb 칸(관리자 전용 지문 키 — 새 키를 만들지 않는다): { to, contact, sender, months: { 'YYYY-MM': { end } } }.
    ★ ZB_FAC 의 지점명은 지점관리에서 이름을 바꾸면 같이 고쳐야 한다(서비스요금 기록도 이 이름으로 묶인다). 지점이 끝나면 until:'YYYY-MM'(마지막 청구월)을 적는다.
@@ -8471,6 +8477,12 @@ const zbCfg=d=>{d=d||getSvc();const z=d&&d.zb&&typeof d.zb==='object'&&!Array.is
   return{to:String(z.to||''),contact:String(z.contact||''),sender:String(z.sender||''),months:z.months&&typeof z.months==='object'&&!Array.isArray(z.months)?z.months:{}};};
 const zbEnd=(month,d)=>{const e=(zbCfg(d).months[month]||{}).end;return e&&typeof e==='object'&&e.fac&&typeof e.fac==='object'?e:null;};
 const zbRecTotal=rec=>Object.values(rec.fac||{}).reduce((t,x)=>t+(Number(x&&x.n)||0),0);
+// 직방 서버 조회 실패 코드(게이트웨이 zb_rooms) → 화면 글. 저장본의 why 는 코드 그대로 둔다(뜻은 화면에서만) · ZB_RETRY = 잠깐의 실패일 수 있는 코드(다시 불러오기를 권한다)
+const ZB_WHY={no_cred:'자격증명 없음',login_failed:'로그인 실패',list_failed:'목록 조회 실패',timeout:'응답 시간 초과',fetch_failed:'연결 실패'};
+const zbWhy=w=>Object.prototype.hasOwnProperty.call(ZB_WHY,w)?ZB_WHY[w]:'조회 실패 '+w;
+const ZB_RETRY=new Set(['timeout','fetch_failed','list_failed']);
+// 저장본 유지 지점의 칸 — 지금 저장본의 그 지점 칸(그사이 다른 탭이 다시 저장했으면 그것), 쓸 수 없으면 불러올 때 본 칸
+const zbKept=(m,x)=>{const y=(zbEnd(m)||{fac:{}}).fac[x.f.id];return y&&typeof y==='object'&&/^\d{1,5}$/.test(String(y.n))?y:x.keep;};
 // 지난달 실수 — {src:'rec'(말일 확정 저장본) | 'bill'(청구 내역의 직방 월정액 줄 합), n:{<id>:수|null}} · 둘 다 없으면 null
 function zbPrevCounts(month){
   const pm=ymPrev(month),rec=zbEnd(pm);
@@ -8479,11 +8491,11 @@ function zbPrevCounts(month){
   if(!rs.length)return null;
   return{src:'bill',n:Object.fromEntries(zbFacs(month).map(f=>[f.id,rs.filter(r=>r.branch===f.br).reduce((t,r)=>t+(Number(r.rooms)||0),0)]))};
 }
-// 청구 목록 — 서버 − 빼기 + 넣기(서버 지점만, 직접 입력 지점은 null) · 실수(직접 입력은 0 이상 정수만, 아니면 null)
+// 청구 목록 — 서버 − 빼기 + 넣기(서버 지점만, 직접 입력 지점은 null) · 실수(저장본 유지는 저장본의 수 · 직접 입력은 0 이상 정수만, 아니면 null)
 const zbList=(x,a)=>{if(!x.ok)return null;const ex=new Set(a.ex.map(e=>e.n)),on=new Set(x.server.map(r=>r.n));
   return x.server.filter(r=>!ex.has(r.n)).concat(a.inc.filter(i=>!on.has(i.n)).map(i=>({n:i.n,at:'',inc:true}))).sort(zbCmpRoom);};
-const zbCount=(x,a)=>x.ok?zbList(x,a).length:(/^\d{1,5}$/.test(String(a.man).trim())?+a.man:null);
-const zbSumText=()=>{let t=0;for(const f of zbFacs(ZBL.month)){const x=ZBL.fac[f.id],a=ZBL.adj[f.id];if(!x||!a)continue;const n=zbCount(x,a);if(n==null)return'—';t+=n;}return String(t);};   // 이번 달 말일 합계 — 빈 직접 입력이 있으면 —
+const zbCount=(x,a,m)=>x.ok?zbList(x,a).length:x.keep?+zbKept(m,x).n:(/^\d{1,5}$/.test(String(a.man).trim())?+a.man:null);
+const zbSumText=()=>{let t=0;for(const f of zbFacs(ZBL.month)){const x=ZBL.fac[f.id],a=ZBL.adj[f.id];if(!x||!a)continue;const n=zbCount(x,a,ZBL.month);if(n==null)return'—';t+=n;}return String(t);};   // 이번 달 말일 합계 — 빈 직접 입력이 있으면 —
 let ZBL=null,ZB_BUSY=false,ZB_DEFAULTED=false,ZB_ACT=[];   // 불러온 결과(화면 상태 — 저장 전까지는 kv 에 쓰지 않는다) · 화면 단추가 가리키는 일(onclick 은 이 배열 번호만 넘긴다 — zbRender 가 그릴 때마다 비운다)
 
 // 처음 한 번만 날짜로 기본 월을 고른다 — 1~5일엔 지난달(말일 확정), 그 밖엔 이번 달(H2O 의 기본값과 같은 뜻)
@@ -8532,12 +8544,15 @@ async function zbLoad(){
       server.sort(zbCmpRoom);
       const solSet=new Set(sol.map(zbNum).filter(Boolean)),p=prev&&prev.fac[f.id];
       R.fac[f.id]={f,ok,why,server,got:ok?h.devices.length:0,total:ok?Math.max(0,Number(h.total)||0):0,dupDev,duck,soliti:sol.length,expected,duckOk:duckOk&&solOk,
+        defOk:duckOk&&solOk&&!!b&&duck>0,   // 직접 입력 기본값(판매객실 − 솔리티)을 낼 수 있다 — 판매객실을 읽었고 지점을 찾았고 판매객실 > 0(아니면 빈 칸 — 0 이 청구 줄을 지우지 않게)
         dbl:ok&&solOk?server.filter(r=>solSet.has(r.n)).map(r=>r.n):[],
         prevN:pc?pc.n[f.id]:null,prevSrc:pc?pc.src:'',prevRooms:p&&Array.isArray(p.rooms)?p.rooms.map(r=>zbNum(r&&r.n)).filter(Boolean):null};
-      // 처음 입력 — 이 달 저장본이 있으면 그 빼기·넣기·실수(빼기는 지금 서버에 있는 방만, 넣기는 없는 방만), 없으면 비움(직접 입력 = 대조값 · 대조할 수 없으면 빈 칸)
+      // 처음 입력 — 이 달 저장본이 있으면 그 빼기·넣기·실수(빼기는 지금 서버에 있는 방만, 넣기는 없는 방만), 없으면 비움(직접 입력 = 대조값 · 기본값을 낼 수 없으면 빈 칸)
       const sv0=saved&&saved.fac[f.id],on=new Set(server.map(r=>r.n));
       R.adj[f.id]={ex:ok?zbCleanAdj(sv0&&sv0.ex).filter(e=>on.has(e.n)):[],inc:ok?zbCleanAdj(sv0&&sv0.inc).filter(e=>!on.has(e.n)):[],
-        man:ok?'':(sv0&&sv0.src==='man'&&Number.isInteger(Number(sv0.n))?String(sv0.n):duckOk&&solOk?String(expected):'')};
+        man:ok?'':(sv0&&sv0.src==='man'&&Number.isInteger(Number(sv0.n))?String(sv0.n):R.fac[f.id].defOk?String(expected):'')};
+      // 이 달 저장본이 서버 원천인데 이번에 조회 실패 — 직접 입력으로 바꾸지 않고 저장본 칸을 그대로 둔다(저장본 유지)
+      if(!ok&&sv0&&sv0.src==='srv'&&/^\d{1,5}$/.test(String(sv0.n)))R.fac[f.id].keep=JSON.parse(JSON.stringify(sv0));
     });
     st.textContent=`직방 서버 ${tKst(R.at)} 기준`;
   }catch(e){R.err=String(e&&e.message||e);st.textContent='실패: '+R.err;}
@@ -8555,14 +8570,17 @@ function zbSavedHtml(month){
 function zbRender(){
   const el=document.getElementById('zb-preview');if(!el)return;
   zbDefaults();
-  const month=document.getElementById('zb-month').value,saved=zbEnd(month),zc=zbCfg();
-  [['zb-to','to'],['zb-contact','contact'],['zb-sender','sender']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&!e.value)e.value=zc[k]||(k==='sender'?'핸디즈 구매소싱팀 김강현':'');});   // 비어 있는 칸만 저장값으로(치는 중인 글은 두고)
+  const month=document.getElementById('zb-month').value,saved=zbEnd(month);
+  zbFillCfg();
   const savedLine=`<div class="zb-line" id="zb-saved">${zbSavedHtml(month)}</div>`;
   if(ZB_BUSY){el.innerHTML='<div class="zb-line">불러오는 중...</div>';return;}
   if(!ZBL||ZBL.month!==month){el.innerHTML=`<div class="zb-line">대상 월을 확인하고 [불러오기]를 누르세요.${saved?' 저장된 기록으로는 바로 [엑셀 다운로드]·[메일 초안]을 만들 수 있습니다.':''}</div>`+savedLine;return;}
   if(ZBL.err){el.innerHTML=`<div class="zb-line zb-bad">${escH(ZBL.err)}</div>`+savedLine;return;}
   const open=new Set([...el.querySelectorAll('details.zb-det[open]')].map(d=>d.dataset.fid));   // 펼쳐 둔 방 목록은 다시 그려도 펼친 채로
   const keepV=[...el.querySelectorAll('input[id^="zb-an-"],input[id^="zb-aw-"]')].map(x=>[x.id,x.value]);   // 적다 만 방 번호·사유도 그대로
+  // 키보드로 누른 단추는 다시 그린 뒤에도 그 자리에 초점 — 같은 단추 → 같은 지점·같은 방의 남은 단추 → 그 지점의 다음 단추 → 그 지점 첫 단추
+  const ae=document.activeElement,fo=ae&&ae.dataset&&ae.dataset.zbk&&el.contains(ae)?{k:ae.dataset.zbk,f:ae.dataset.zbf,n:ae.dataset.zbn,i:[...el.querySelectorAll('[data-zbk]')].filter(b=>b.dataset.zbf===ae.dataset.zbf).indexOf(ae)}:null;
+  const zk=(fid,kind,n='')=>` data-zbk="${escH(fid+'|'+kind+'|'+n)}" data-zbf="${escH(fid)}" data-zbn="${escH(n)}"`;   // 단추의 열쇠(지점|종류|방) — 초점을 되찾을 때만 읽는다
   ZB_ACT=[];const act=t=>ZB_ACT.push(t)-1;
   const few=l=>l.slice(0,5).map(escH).join(', ')+(l.length>5?' …':'');
   let sumP=0,pmiss=false;
@@ -8571,9 +8589,10 @@ function zbRender(){
     const pk=x.prevRooms&&new Set(x.prevRooms),lk=L&&new Set(L.map(r=>r.n));
     const add=L&&pk?L.filter(r=>!pk.has(r.n)).map(r=>r.n):null,gone=L&&pk?x.prevRooms.filter(k=>!lk.has(k)):null;
     const msgs=[];
-    if(!x.ok){
-      msgs.push(`<span class="zb-warn">직방 서버 ${x.why==='no_cred'?'자격증명 없음':'조회 실패('+escH(x.why)+')'} — 말일 운영 객실 수를 직접 넣으세요</span>`);
-      msgs.push(`<span class="zb-dim">${x.duckOk?`기본값 = 판매객실 ${x.duck} − 솔리티 ${x.soliti} = ${x.expected}실`:'판매객실·솔리티를 못 읽어 기본값이 없습니다'}${x.prevN!=null?` · 지난달 ${x.prevSrc==='bill'?'청구':'말일'} ${x.prevN}실`:''} · 방 목록 없음</span>`);
+    if(x.keep)msgs.push(`<span class="zb-warn">직방 서버 ${escH(zbWhy(x.why))} — 저장본 ${zbCount(x,a,month)}실 유지 · 잠시 뒤 다시 [불러오기]</span>`);
+    else if(!x.ok){
+      msgs.push(`<span class="zb-warn">직방 서버 ${escH(zbWhy(x.why))} — ${ZB_RETRY.has(x.why)?'잠시 뒤 다시 [불러오기] 하거나 ':''}말일 운영 객실 수를 직접 넣으세요</span>`);
+      msgs.push(`<span class="zb-dim">${x.defOk?`기본값 = 판매객실 ${x.duck} − 솔리티 ${x.soliti} = ${x.expected}실`:x.duckOk?'판매객실을 못 읽어 기본값이 없습니다':'판매객실·솔리티를 못 읽어 기본값이 없습니다'}${x.prevN!=null?` · 지난달 ${x.prevSrc==='bill'?'청구':'말일'} ${x.prevN}실`:''} · 방 목록 없음</span>`);
     }else{
       const exN=a.ex.filter(e=>x.server.some(r=>r.n===e.n)).length,incN=L.filter(r=>r.inc).length;
       const adjT=exN||incN?`${exN?` − 빼기 ${exN}`:''}${incN?` + 넣기 ${incN}`:''} = ${L.length}실`:'';
@@ -8582,25 +8601,28 @@ function zbRender(){
       else msgs.push(`<span class="zb-ok">✓ 서버 ${x.server.length}실${adjT} / 판매객실 ${x.duck} − 솔리티 ${x.soliti} = ${x.expected}실</span>`);
       if(x.dbl.length){const left=x.dbl.filter(k=>!a.ex.some(e=>e.n===k));
         msgs.push(`<span class="zb-bad">이중 등록 ${x.dbl.length}실(솔리티 계정에도 있음): ${x.dbl.slice(0,10).map(escH).join(', ')}${x.dbl.length>10?' …':''} — 어느 쪽이 맞는지 확인하세요</span>`
-          +left.slice(0,10).map(k=>` <button type="button" class="btn bo bsm" onclick="zbAct(${act({fid:f.id,n:k,kind:'ex',why:'솔리티와 이중 등록'})})">${escH(k)} 빼기</button>`).join(''));}
-      if(x.total>x.got)msgs.push(`<span class="zb-warn">서버가 알린 기기 ${x.total}대 중 ${x.got}대만 받았습니다(방 이름 없는 기기·5,000대 넘음) — 직방에 확인하세요</span>`);
+          +left.slice(0,10).map(k=>` <button type="button" class="btn bo bsm"${zk(f.id,'dbl',k)} onclick="zbAct(${act({fid:f.id,n:k,kind:'ex',why:'솔리티와 이중 등록'})})">${escH(k)} 빼기</button>`).join(''));}
+      if(x.total>x.got)msgs.push(`<span class="zb-warn">서버가 알린 기기 ${x.total}대 중 ${x.got}대만 받았습니다(방 이름이 없는 기기 등) — 직방에 확인하세요</span>`);
       if(x.dupDev.length)msgs.push(`<span class="zb-dim">같은 방 이름 기기 ${x.dupDev.length}대(${few(x.dupDev)}) — 방 하나로 셉니다</span>`);
       msgs.push(`<span class="zb-dim">${add?`지난달 말일 대비 새로 ${add.length}실${add.length?`(${few(add)})`:''} · 사라짐 ${gone.length}실${gone.length?`(${few(gone)})`:''}`
         :x.prevN!=null?`지난달 ${x.prevSrc==='bill'?'청구':'말일'} ${x.prevN}실(방 목록 없음 — 방 단위 대비는 건너뜁니다)`:'지난달 말일 확정·청구가 없어 대비를 건너뜁니다'}</span>`);
     }
-    const cnt=x.ok?String(L.length):`<input class="fi zb-in" id="zb-man-${i}" type="number" min="0" step="1" inputmode="numeric" value="${escH(a.man)}" data-i="${i}" aria-label="${escH(f.short)} 말일 운영 객실 수" oninput="zbManEl(this)">`;
-    const main=`<tr><td>${escH(f.short)}</td><td>${x.ok?'서버':'직접 입력'}</td><td class="num-r">${x.prevN==null?'—':x.prevN}</td><td class="num-r">${add?add.length:''}</td><td class="num-r">${gone?gone.length:''}</td><td class="num-r zb-n">${cnt}</td><td class="num-r">${x.duckOk?x.expected:'—'}</td><td class="zb-msg">${msgs.join('<br>')}</td></tr>`;
+    const cnt=x.ok?String(L.length):x.keep?String(zbCount(x,a,month)):`<input class="fi zb-in" id="zb-man-${i}" type="number" min="0" step="1" inputmode="numeric" value="${escH(a.man)}" data-i="${i}" aria-label="${escH(f.short)} 말일 운영 객실 수" oninput="zbManEl(this)">`;
+    const main=`<tr><td>${escH(f.short)}</td><td>${x.ok?'서버':x.keep?'저장본':'직접 입력'}</td><td class="num-r">${x.prevN==null?'—':x.prevN}</td><td class="num-r">${add?add.length:''}</td><td class="num-r">${gone?gone.length:''}</td><td class="num-r zb-n">${cnt}</td><td class="num-r">${(x.ok?x.duckOk:x.defOk)?x.expected:'—'}</td><td class="zb-msg">${msgs.join('<br>')}</td></tr>`;
     if(!x.ok)return main;
-    const chip=(e,kind)=>`<span class="chip cg">${escH(e.n)} ${kind==='ex'?'빼기':'넣기'} · ${escH(e.why)} <button type="button" class="zb-x" onclick="zbAct(${act({fid:f.id,n:e.n,kind:'undo'})})" aria-label="${escH(e.n)} ${kind==='ex'?'빼기':'넣기'} 취소">✕</button></span>`;
+    const chip=(e,kind)=>`<span class="chip cg">${escH(e.n)} ${kind==='ex'?'빼기':'넣기'} · ${escH(e.why)} <button type="button" class="zb-x"${zk(f.id,'x',e.n)} onclick="zbAct(${act({fid:f.id,n:e.n,kind:'undo'})})" aria-label="${escH(e.n)} ${kind==='ex'?'빼기':'넣기'} 취소">✕</button></span>`;
     const newK=new Set(add||[]);
-    const list=L.map(r=>`<span${r.inc?' class="zb-inc"':newK.has(r.n)?' class="zb-new"':''}>${escH(r.n)}${r.at?` <span class="zb-at">${escH(r.at)}</span>`:''}</span>`).join('');
-    return main+`<tr class="zb-sub"><td colspan="8"><div class="zb-adj"><input class="fi zb-in" id="zb-an-${i}" placeholder="713" aria-label="${escH(f.short)} 방 번호"><input class="fi zb-in zb-why" id="zb-aw-${i}" placeholder="사유" aria-label="${escH(f.short)} 빼기·넣기 사유"><button type="button" class="btn bo bsm" onclick="zbAdj(${i},'ex')" title="서버에 있지만 청구에서 뺄 방">빼기</button><button type="button" class="btn bo bsm" onclick="zbAdj(${i},'inc')" title="서버에 없지만 셀 방">넣기</button>${a.ex.map(e=>chip(e,'ex')).join('')}${a.inc.map(e=>chip(e,'inc')).join('')}</div>`
+    const list=L.map(r=>{const k=r.inc?['zb-inc','넣은 방']:newK.has(r.n)?['zb-new','지난달 대비 새로']:null;   // 색·굵기 표시에는 읽기 프로그램용 글(sr-only)도 붙인다
+      return`<span${k?` class="${k[0]}"`:''}>${escH(r.n)}${r.at?` <span class="zb-at">${escH(r.at)}</span>`:''}${k?`<span class="sr-only"> · ${k[1]}</span>`:''}</span>`;}).join('');
+    return main+`<tr class="zb-sub"><td colspan="8"><div class="zb-adj"><input class="fi zb-in" id="zb-an-${i}" placeholder="713" aria-label="${escH(f.short)} 방 번호"><input class="fi zb-in zb-why" id="zb-aw-${i}" placeholder="사유" aria-label="${escH(f.short)} 빼기·넣기 사유"><button type="button" class="btn bo bsm"${zk(f.id,'ex')} onclick="zbAdj(${i},'ex')" title="서버에 있지만 청구에서 뺄 방">빼기</button><button type="button" class="btn bo bsm"${zk(f.id,'inc')} onclick="zbAdj(${i},'inc')" title="서버에 없지만 셀 방">넣기</button>${a.ex.map(e=>chip(e,'ex')).join('')}${a.inc.map(e=>chip(e,'inc')).join('')}</div>`
       +`<details class="zb-det" data-fid="${escH(f.id)}"${open.has(f.id)?' open':''}><summary>방 목록 ${L.length}실 (방 번호 · 설치일${newK.size?' · 굵은 글자 = 지난달 대비 새로':''}${L.some(r=>r.inc)?' · 색 글자 = 넣은 방':''})</summary><div class="zb-rooms">${list}</div></details></td></tr>`;}).join('');
   el.innerHTML=(ZBL.notes.length?`<div class="zb-line zb-warn">${ZBL.notes.map(escH).join(' · ')}</div>`:'')
     +`<table class="tbl" id="zb-tbl" style="margin-top:6px"><thead><tr><th>지점</th><th>원천</th><th class="num-r">지난달 말일</th><th class="num-r">새로</th><th class="num-r">사라짐</th><th class="num-r">이번 달 말일</th><th class="num-r" title="duck 판매객실 − 솔리티">대조값</th><th>확인</th></tr></thead>`
     +`<tbody>${rows}</tbody><tfoot><tr><td>합계</td><td></td><td class="num-r">${pmiss?'—':sumP}</td><td></td><td></td><td class="num-r" id="zb-sum">${zbSumText()}</td><td></td><td></td></tr></tfoot></table>`
     +(zbDirty(month)?'<div class="zb-line zb-bad">저장한 뒤 빼기·넣기·직접 입력이 바뀌었습니다 — [저장]을 다시 눌러야 엑셀·메일·청구 반영에 들어갑니다.</div>':'')+savedLine;
   keepV.forEach(([id,v])=>{const x=document.getElementById(id);if(x&&v)x.value=v;});
+  if(fo){const bs=[...el.querySelectorAll('[data-zbk]')].filter(b=>b.dataset.zbf===fo.f);
+    const t=bs.find(b=>b.dataset.zbk===fo.k)||(fo.n&&bs.find(b=>b.dataset.zbn===fo.n))||bs[fo.i]||bs[0];if(t)t.focus();}
 }
 // 빼기·넣기 — 빼기는 서버에 있는 방만, 넣기는 서버에 없는 방만. 사유는 꼭(저장본에 남는다). 한 방은 둘 중 하나만
 function zbAdj(i,kind){
@@ -8638,12 +8660,17 @@ function zbPrune(z){
   const ms=Object.keys(z.months).filter(m=>/^\d{4}-\d{2}$/.test(m)&&z.months[m]&&z.months[m].end).sort().reverse();
   ms.slice(ZB_KEEP).forEach(m=>{const e=z.months[m].end;let cut=false;Object.values(e.fac||{}).forEach(x=>{if(x&&Array.isArray(x.rooms)){x.rooms=null;cut=true;}});if(cut)e.pruned=true;});
 }
-// 메일 설정 칸(받는 사람·담당자·보내는 사람) — 고치면 바로 저장(같으면 쓰지 않는다)
-function zbSetCfg(){
-  const v=id=>String(document.getElementById(id)?.value||'').trim().slice(0,120);
-  const d=getSvc(),z=zbBox(d),to=v('zb-to'),contact=v('zb-contact'),sender=v('zb-sender');
-  if(to===String(z.to||'')&&contact===String(z.contact||'')&&sender===String(z.sender||''))return;
-  z.to=to;z.contact=contact;z.sender=sender;saveSvc(d);
+// 메일 설정 칸(받는 사람·담당자·보내는 사람) — 고친 칸 하나만 바로 저장(같으면 쓰지 않는다 · 다른 칸은 지금 저장값 그대로 — 칸에 남은 옛 글로 덮지 않게)
+function zbSetCfg(el){
+  const k={'zb-to':'to','zb-contact':'contact','zb-sender':'sender'}[el&&el.id];if(!k)return;
+  const v=String(el.value||'').trim().slice(0,120),d=getSvc(),z=zbBox(d);
+  if(v===String(z[k]||''))return;
+  z[k]=v;saveSvc(d);
+}
+// 메일 설정 칸을 저장값으로 — 비어 있는 칸만(치는 중인 글은 둔다). 직방 패널을 그릴 때와 서비스요금 화면에 들어올 때(goP)
+function zbFillCfg(){
+  const zc=zbCfg();
+  [['zb-to','to'],['zb-contact','contact'],['zb-sender','sender']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&!e.value)e.value=zc[k]||(k==='sender'?'핸디즈 구매소싱팀 김강현':'');});
 }
 // 청구에 쓰는 값의 지문(지점별 원천·실수 · 단가) — 반영한 뒤 저장본이 바뀌었는지 본다
 const zbRecSig=rec=>canon({unit:Number(rec.unit)||0,fac:Object.fromEntries(Object.entries(rec.fac||{}).map(([id,x])=>[id,[x&&x.src,Number(x&&x.n)||0]]))});
@@ -8652,12 +8679,12 @@ const zbRowsSig=(month,recs)=>canon((recs||getSvc().records).filter(r=>r.month==
   .map(r=>[r.branch,isProrate(r)?'prorate':'',Number(r.rooms)||0,Number(svcUnit(r))||0].join('|')).sort());
 // 입력(빼기·넣기·직접 입력 실수) 지문 — 저장본과 지금 화면을 견준다
 const zbInputsOf=fac=>canon(Object.fromEntries(Object.entries(fac).map(([id,x])=>[id,{ex:zbCleanAdj(x.ex).map(e=>e.n+'|'+e.why).sort(),inc:zbCleanAdj(x.inc).map(e=>e.n+'|'+e.why).sort(),man:x.src==='man'?String(x.n??''):''}])));
-// 저장 뒤 화면에서 입력을 바꿨는가(불러온 달만 — 서버 목록이 바뀐 것은 따지지 않는다)
+// 저장 뒤 화면에서 입력을 바꿨는가(불러온 달만 — 서버 목록이 바뀐 것은 따지지 않는다) · 저장본 유지 지점은 저장본과 같다고 본다(저장하면 그 칸을 그대로 옮긴다)
 function zbDirty(month){
   if(!ZBL||ZBL.err||ZBL.month!==month)return false;
   const rec=zbEnd(month);if(!rec)return false;
   const now={},was={};
-  zbFacs(month).forEach(f=>{const x=ZBL.fac[f.id],a=ZBL.adj[f.id];if(!x||!a)return;now[f.id]={src:x.ok?'srv':'man',ex:a.ex,inc:a.inc,n:x.ok?null:zbCount(x,a)};was[f.id]=rec.fac[f.id]||{};});
+  zbFacs(month).forEach(f=>{const x=ZBL.fac[f.id],a=ZBL.adj[f.id];if(!x||!a||x.keep)return;now[f.id]={src:x.ok?'srv':'man',ex:a.ex,inc:a.inc,n:x.ok?null:zbCount(x,a,month)};was[f.id]=rec.fac[f.id]||{};});
   return zbInputsOf(now)!==zbInputsOf(was);
 }
 // 그 달 직방 청구 내역이 말일 확정본과 짝이 맞는가 — none(저장본 없음) · stale(반영 전이거나 반영 뒤 저장본·입력이 바뀜) · rows(반영한 줄을 고침) · ok
@@ -8670,7 +8697,8 @@ function zbRecord(R){
   zbFacs(R.month).forEach(f=>{const x=R.fac[f.id],a=R.adj[f.id];if(!x||!a)return;
     if(x.ok){const L=zbList(x,a),on=new Set(x.server.map(r=>r.n));
       fac[f.id]={src:'srv',n:L.length,rooms:L.map(r=>({n:r.n,at:r.at})),server:x.server.length,ex:a.ex.filter(e=>on.has(e.n)).map(e=>({n:e.n,why:e.why})),inc:a.inc.filter(e=>!on.has(e.n)).map(e=>({n:e.n,why:e.why}))};}
-    else fac[f.id]={src:'man',n:zbCount(x,a),why:x.why,rooms:null,ex:[],inc:[]};});
+    else if(x.keep)fac[f.id]=JSON.parse(JSON.stringify(zbKept(R.month,x)));   // 저장본 유지 — 그 칸을 그대로(방 목록·빼기/넣기·사유·서버 수까지 깊은 복사)
+    else fac[f.id]={src:'man',n:zbCount(x,a,R.month),why:x.why,rooms:null,ex:[],inc:[]};});
   return{at:new Date().toISOString(),by:(S&&(S.name||S.email))||'',unit:(getSvc().brandPrices||{})['직방']||SVC_DEF_PRICES['직방'],fac};
 }
 function zbSave(){
@@ -8678,25 +8706,26 @@ function zbSave(){
   if(!ZBL||ZBL.err||!ZBL.month){toast('e','먼저 불러오기','[불러오기]로 직방 서버 목록을 먼저 가져오세요.');return;}
   const R=ZBL,month=R.month;
   if(document.getElementById('zb-month').value!==month){toast('e','다시 불러오세요','대상 월이 불러온 것과 다릅니다.');return;}
-  const miss=zbFacs(month).filter(f=>R.fac[f.id]&&!R.fac[f.id].ok&&zbCount(R.fac[f.id],R.adj[f.id])==null);
+  const miss=zbFacs(month).filter(f=>R.fac[f.id]&&!R.fac[f.id].ok&&zbCount(R.fac[f.id],R.adj[f.id],month)==null);
   if(miss.length){toast('e','실수를 넣어 주세요',`${escH(miss.map(f=>f.short).join(', '))} — 말일 운영 객실 수를 숫자로 넣으세요.`);return;}
   const rec=zbRecord(R),total=zbRecTotal(rec),prev=zbEnd(month);
   const msgs=[`${month} 직방 말일 확정 ${total}실을 저장합니다.`];
-  zbFacs(month).forEach(f=>{const x=rec.fac[f.id];if(x)msgs.push(`  ${f.short} ${x.n}실${x.src==='man'?' (직접 입력)':''}${x.ex.length?` · 뺀 방 ${x.ex.map(e=>e.n).join(', ')}`:''}${x.inc.length?` · 넣은 방 ${x.inc.map(e=>e.n).join(', ')}`:''}`);});
+  zbFacs(month).forEach(f=>{const x=rec.fac[f.id];if(x)msgs.push(R.fac[f.id].keep?`  ${f.short} ${x.n}실 (저장본 유지 — 조회 실패)`:`  ${f.short} ${x.n}실${x.src==='man'?' (직접 입력)':''}${x.ex.length?` · 뺀 방 ${x.ex.map(e=>e.n).join(', ')}`:''}${x.inc.length?` · 넣은 방 ${x.inc.map(e=>e.n).join(', ')}`:''}`);});
   if(prev)msgs.push(`※ 이미 저장된 기록(${tKst(prev.at)}${prev.by?' · '+prev.by:''} · ${zbRecTotal(prev)}실)을 덮어씁니다.`);
   if(prev&&prev.appliedAt)msgs.push('※ 이미 청구 내역에 반영한 달입니다 — 저장 뒤 [청구 내역에 반영]을 다시 눌러야 품의서가 맞습니다.');
   if(ymdLocal(new Date())<ymLast(month))msgs.push(`※ 아직 말일(${md(ymLast(month))}) 전입니다. 말일 확정을 저장하면 이 달 직방은 자동 반영에서 빠집니다.`);
   if(R.notes.length)msgs.push('※ '+R.notes.join(' / '));
-  const chk=zbFacs(month).map(f=>{const x=R.fac[f.id],a=R.adj[f.id];if(!x||!a||!x.ok)return'';const L=zbList(x,a),w=[];
-    if(x.duckOk&&L.length!==x.expected)w.push(`청구 ${L.length}실 ≠ 대조값 ${x.expected}실`);
-    const left=x.dbl.filter(k=>!a.ex.some(e=>e.n===k));if(left.length)w.push(`이중 등록 ${left.join(', ')}`);
+  const chk=zbFacs(month).map(f=>{const x=R.fac[f.id],a=R.adj[f.id],y=rec.fac[f.id];if(!x||!a||!y)return'';const w=[];
+    if(x.ok){const L=zbList(x,a);
+      if(x.duckOk&&L.length!==x.expected)w.push(`청구 ${L.length}실 ≠ 대조값 ${x.expected}실`);
+      const left=x.dbl.filter(k=>!a.ex.some(e=>e.n===k));if(left.length)w.push(`이중 등록 ${left.join(', ')}`);}
+    if(Number(y.n)===0)w.push('0실 — 이 지점 직방 청구 줄이 없어집니다');   // [청구 내역에 반영]은 이 지점 직방 줄을 지우고 새 줄을 넣지 않는다
+    if(!x.ok&&!x.keep&&x.prevN!=null&&y.n!==x.prevN)w.push(`지난달 ${x.prevN}실 → ${y.n}실 (직접 입력)`);
     return w.length?`  ${f.short}: ${w.join(' / ')}`:'';}).filter(Boolean);
   if(chk.length)msgs.push('※ 확인 필요:\n'+chk.join('\n'));
   const doSave=hold=>showCfm(CI.calendar,`${month} 직방 말일 확정 저장`,msgs.join('\n'),()=>{
     const d=getSvc(),z=zbBox(d),mm=z.months[month]&&typeof z.months[month]==='object'&&!Array.isArray(z.months[month])?z.months[month]:(z.months[month]={});
-    mm.end=rec;zbPrune(z);
-    const v=id=>String(document.getElementById(id)?.value||'').trim().slice(0,120);
-    if(document.getElementById('zb-to')){z.to=v('zb-to');z.contact=v('zb-contact');z.sender=v('zb-sender');}
+    mm.end=rec;zbPrune(z);   // 메일 설정 칸은 쓰지 않는다(고친 칸은 zbSetCfg 가 바로 저장)
     saveSvc(d);zbAfterSave();logAudit('직방 월 목록 저장',month,`말일 ${total}실`);
     toast('s','저장 완료',`${month} 직방 말일 확정을 저장했습니다. 이어서 [청구 내역에 반영]을 누르세요.`);zbRender();
   },{hold});
@@ -8718,7 +8747,7 @@ function zbDoc(){
   const fac=zbFacs(month).filter(f=>rec.fac[f.id]).map(f=>{const x=rec.fac[f.id],p=prev&&prev.fac[f.id];
     const rooms=Array.isArray(x.rooms)?x.rooms.map(r=>({n:zbNum(r&&r.n),at:isYmd(r&&r.at)?r.at:''})).filter(r=>r.n).sort(zbCmpRoom):null;
     const pRooms=p&&Array.isArray(p.rooms)?p.rooms.map(r=>zbNum(r&&r.n)).filter(Boolean):null,pk=pRooms&&new Set(pRooms),rk=rooms&&new Set(rooms.map(r=>r.n));
-    return{f,src:x.src==='man'?'man':'srv',n:Number.isInteger(Number(x.n))&&Number(x.n)>=0?Number(x.n):0,rooms,why:h2oClean(x.why),pruned:!!rec.pruned,
+    return{f,src:x.src==='man'?'man':'srv',n:Number.isInteger(Number(x.n))&&Number(x.n)>=0?Number(x.n):0,rooms,pruned:!!rec.pruned,
       prev:pc?pc.n[f.id]:null,add:rooms&&pk?rooms.filter(r=>!pk.has(r.n)).map(r=>r.n):null,gone:rooms&&pk?pRooms.filter(k=>!rk.has(k)):null,
       ex:zbCleanAdj(x.ex),inc:zbCleanAdj(x.inc)};});
   const unit=Number(rec.unit)||(getSvc().brandPrices||{})['직방']||SVC_DEF_PRICES['직방'];   // 저장할 때의 단가
@@ -8731,7 +8760,7 @@ const zbAfterSave=()=>{const p=CAS_Q[K.SV];if(p)p.then(()=>zbSavedRefresh());};
 const zbBillRows=D=>D.fac.filter(x=>x.n>0).map(x=>({month:D.month,branch:x.f.br,brand:'직방',rooms:x.n,unitPrice:D.unit,note:`직방 월 목록 · 말일 ${x.n}실${x.src==='man'?' (직접 입력)':''}`,src:'zb'}));
 // 지점별 금액 — 청구 줄과 같은 계산(부가세는 지점 줄 단위 반올림). 메일·엑셀이 같은 값을 쓴다
 const zbFacAmt=D=>D.fac.map(x=>{const c=svcCalc({rooms:x.n,unitPrice:D.unit,brand:'직방'});return{ex:c.ex,vat:c.vat,t:c.t};});
-const zbNote=x=>x.src==='man'?`직접 입력(${x.why==='no_cred'?'직방 서버 자격증명 없음':'직방 서버 조회 실패 '+x.why}) — 방 목록 없음`
+const zbNote=x=>x.src==='man'?'직접 입력 — 방 목록 없음'   // 직방에 가는 글 — 조회 실패 까닭은 적지 않는다(까닭은 화면에서만)
   :[!x.rooms?'방 목록은 지난 기록이라 지웠습니다(최근 3달만 남김)':'',x.ex.length?`뺀 방 ${x.ex.length}(${x.ex.map(e=>e.n).join(', ')})`:'',x.inc.length?`넣은 방 ${x.inc.length}(${x.inc.map(e=>e.n).join(', ')})`:''].filter(Boolean).join(' · ');
 function zbExcel(){
   if(ZB_BUSY)return;
@@ -8789,16 +8818,18 @@ function zbMail(){
 function zbApply(){
   if(ZB_BUSY)return;
   const D=zbDoc();if(!D)return;
-  const month=D.month,add=zbBillRows(D);
+  const month=D.month,add=zbBillRows(D),sig=zbRecSig(D.rec);   // 확인창을 열 때의 저장본 지문 — 확인하는 사이 다른 탭이 다시 저장했으면 반영하지 않는다
   const d=getSvc(),old=d.records.filter(r=>r.month===month&&r.brand==='직방'&&ZB_BRS.has(r.branch));
   const manual=old.filter(r=>r.src!=='zb'&&!/자동 반영|YOLO/.test(r.note||''));
   const t=svcTotal(add);
   showCfm(CI.calendar,`${month} 청구 내역에 반영`,`${month} 직방 ${D.fac.length}개 지점 기존 ${old.length}줄을 말일 확정 기준 ${add.length}줄로 바꿉니다.\n말일 ${t.rooms}실 × ${D.unit.toLocaleString()}원 · 합계 ${t.t.toLocaleString()}원 (부가세 포함)`
     +(manual.length?`\n※ 손으로 넣은 줄 ${manual.length}개도 지워집니다: ${manual.slice(0,4).map(r=>`${amaBrName(r.branch)} ${r.rooms}${isProrate(r)?'일':'실'}${r.note?' ('+r.note+')':''}`).join(', ')}${manual.length>4?' …':''}`:''),()=>{
-    const d2=getSvc();let nid=d2.records.length?Math.max(...d2.records.map(r=>Number(r.id)||0))+1:1;
+    const d2=getSvc(),e=zbEnd(month,d2);
+    if(!e||zbRecSig(e)!==sig){toast('e','저장본이 바뀌었습니다','다른 탭에서 직방 말일 확정을 다시 저장했습니다. 다시 [청구 내역에 반영]을 누르세요.');return;}   // 옛 수로 줄을 넣고 새 저장본에 '반영됨'을 찍지 않는다
+    let nid=d2.records.length?Math.max(...d2.records.map(r=>Number(r.id)||0))+1:1;
     d2.records=d2.records.filter(r=>!(r.month===month&&r.brand==='직방'&&ZB_BRS.has(r.branch)));
     add.forEach(r=>d2.records.push({id:nid++,...r,createdAt:new Date().toISOString()}));
-    const e=zbEnd(month,d2);if(e){e.appliedAt=new Date().toISOString();e.appliedSig=zbRecSig(e);e.appliedRowsSig=zbRowsSig(month,d2.records);}
+    e.appliedAt=new Date().toISOString();e.appliedSig=zbRecSig(e);e.appliedRowsSig=zbRowsSig(month,d2.records);
     saveSvc(d2);zbAfterSave();
     logAudit('서비스요금 직방 월목록반영',month,`말일 ${t.rooms}실`);
     renderSvc();   // 필터 목록을 먼저 다시 만든 뒤 맞춘다
