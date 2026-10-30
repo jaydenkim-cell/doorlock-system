@@ -819,8 +819,8 @@ b,strong{font-weight:600;}
    숫자 열은 머리글과 값이 같은 변에 붙어야 어느 칸인지 읽힌다. */
 .tbl th.num-r{text-align:right}
 /* 서비스요금 표 정렬 머리글(10/30) — 머리글 글자를 그대로 단추로. 정렬 중인 칸만 화살표가 진하다 */
-.th-sort{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:4px;cursor:pointer;font:inherit;color:inherit;letter-spacing:inherit;border-radius:4px;}
-.th-sort svg{flex:none;opacity:.35;}
+.th-sort{all:unset;cursor:pointer;font:inherit;color:inherit;letter-spacing:inherit;border-radius:4px;}   /* 글줄 그대로(inline) — 머리글 줄의 글 흐름이 예전과 같다 */
+.th-sort svg{margin-left:4px;vertical-align:-2px;opacity:.35;}
 .th-sort[data-on] svg{opacity:1;}
 .th-sort:focus-visible{outline:2px solid var(--plott-color-action-primary);outline-offset:2px;box-shadow:var(--plott-focus-ring-default);}
 /* ── 기능① 설치 일정 달력(설계서 §3.1) — [목록 | 달력] 전환 · 달력 패널(#i-cal) · 칩 ── */
