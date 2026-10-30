@@ -3303,7 +3303,7 @@ function goP(p){
   /* 메뉴로 들어올 때 그리는 목록. 30초 새로고침용 PAGE_RENDER(맨 아래)와 따로 있어서
      서비스요금·부자재가 그쪽에만 들어가 있었다 → 들어가면 빈 화면이고 필터를 바꾸거나
      30초를 기다려야 채워졌다. 새 페이지를 만들면 두 곳 모두에 넣을 것. */
-  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:()=>{renderSvc();zbFillCfg();},parts:renderParts,h2oreq:renderH2oReq,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock,settings:renderSettings};   // 서비스요금 — 직방 메일 설정 칸도 저장값으로(비어 있는 칸만)
+  const fns={dashboard:renderD,receipt:renderR,order:renderO,draft:loadDCfg,install:renderI,monthly:renderM,svc:()=>{renderSvc();zbFillCfg();},parts:renderParts,h2oreq:renderH2oReq,branches:renderBr,archive:renderArchive,users:renderUsers,log:renderLog,stock:renderStock,settings:renderSettings};   // 서비스요금 — 직방 메일 설정 칸도 저장값으로(초점 없는 칸)
   FILL_FORCE=true;try{if(fns[p])fns[p]();}finally{FILL_FORCE=false;}
   if(['receipt','order','install','monthly','stock'].includes(p)){
     const tbr=document.getElementById('tb-r');
@@ -7408,12 +7408,12 @@ function svcApplyYolo(){
     if(bd==='_없음'){skip.set(bn,(skip.get(bn)||0)+1);return;}
     agg.set(bn+'|'+bd,(agg.get(bn+'|'+bd)||0)+1);
   });
-  // H2O 월 목록으로 말일 확정한 달은 H2O 를 건너뛴다(svcApplyAuto 와 같은 이유 — 월중 추가 객실 이중 청구)
-  if((getHL().months[mv]||{}).end){let n=0;[...agg.keys()].forEach(k=>{if(k.endsWith('|H2O')&&H2O_BRS.has(k.slice(0,-4))){agg.delete(k);n++;}});if(n)toast('i','H2O 는 건너뜁니다',`${mv} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);}
+  // H2O 월 목록으로 말일 확정한 달은 H2O 를 건너뛴다(svcApplyAuto 와 같은 이유 — 월중 추가 객실 이중 청구). 알림·빈 안내는 실제로 뺀 줄이 있는 업체만(nH·nZ)
+  let nH=0,nZ=0;
+  if((getHL().months[mv]||{}).end){[...agg.keys()].forEach(k=>{if(k.endsWith('|H2O')&&H2O_BRS.has(k.slice(0,-4))){agg.delete(k);nH++;}});if(nH)toast('i','H2O 는 건너뜁니다',`${mv} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);}
   // 직방 월 목록으로 말일 확정한 달은 직방 네 지점도 건너뛴다(그 달 직방은 직방 월 목록의 [청구 내역에 반영]이 정본)
-  const zbDone=!!zbEnd(mv);
-  if(zbDone){let n=0;[...agg.keys()].forEach(k=>{if(k.endsWith('|직방')&&ZB_BRS.has(k.slice(0,-3))){agg.delete(k);n++;}});if(n)toast('i','직방은 건너뜁니다',`${mv} 직방은 직방 월 목록(말일 확정) 기준으로 반영합니다.`);}
-  const done=[(getHL().months[mv]||{}).end?'H2O':'',zbDone?'직방':''].filter(Boolean).join('·');   // 말일 확정한 업체(둘 다면 'H2O·직방')
+  if(zbEnd(mv)){[...agg.keys()].forEach(k=>{if(k.endsWith('|직방')&&ZB_BRS.has(k.slice(0,-3))){agg.delete(k);nZ++;}});if(nZ)toast('i','직방은 건너뜁니다',`${mv} 직방은 직방 월 목록(말일 확정) 기준으로 반영합니다.`);}
+  const done=[nH?'H2O':'',nZ?'직방':''].filter(Boolean).join('·');   // 실제로 건너뛴 업체(둘 다면 'H2O·직방') — 건너뛴 게 없으면 지정이 비어 있는 것
   if(!agg.size){toast('e','반영할 항목 없음',done?`${done} 말고는 반영할 지점이 없습니다.`:'지점·브랜드 지정을 먼저 채워주세요.');return;}
   const d=getSvc();
   const touched=[...agg].map(([k])=>k.split('|'));
@@ -7612,10 +7612,16 @@ function copySvcMonth(){
   const d=getSvc();
   // 일할 줄·H2O/직방 월 목록 줄은 그 달 한정이라 복사하지 않는다. 대상 달이 말일 확정된 달이면 H2O 5개 시설·직방 네 지점은 [청구 내역에 반영]이 정본
   const h2oT=!!(getHL().months[tgt]||{}).end,zbT=!!zbEnd(tgt,d);
-  const srcRecs=d.records.filter(r=>r.month===src&&!isProrate(r)&&r.src!=='h2o'&&r.src!=='zb'&&!(h2oT&&r.brand==='H2O'&&H2O_BRS.has(r.branch))&&!(zbT&&r.brand==='직방'&&ZB_BRS.has(r.branch)));
-  if(srcRecs.length===0){toast('e','오류',`${src}에 등록된 항목이 없습니다.`);return;}
-  if(h2oT)toast('i','H2O 는 건너뜁니다',`${tgt} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);
-  if(zbT)toast('i','직방은 건너뜁니다',`${tgt} 직방은 직방 월 목록(말일 확정) 기준으로 반영합니다.`);
+  let nH=0,nZ=0;   // 대상 달이 말일 확정이라 실제로 걸러진 H2O·직방 줄 수 — 알림·빈 안내는 걸러진 줄이 있는 업체만
+  const srcRecs=d.records.filter(r=>{
+    if(r.month!==src||isProrate(r)||r.src==='h2o'||r.src==='zb')return false;
+    if(h2oT&&r.brand==='H2O'&&H2O_BRS.has(r.branch)){nH++;return false;}
+    if(zbT&&r.brand==='직방'&&ZB_BRS.has(r.branch)){nZ++;return false;}
+    return true;});
+  if(nH)toast('i','H2O 는 건너뜁니다',`${tgt} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);
+  if(nZ)toast('i','직방은 건너뜁니다',`${tgt} 직방은 직방 월 목록(말일 확정) 기준으로 반영합니다.`);
+  if(srcRecs.length===0){const names=[nH?'H2O':'',nZ?'직방':''].filter(Boolean).join('·');   // 알림을 먼저 보인 뒤 — 걸러진 것뿐이면 그 이름으로
+    if(names)toast('e','복사할 항목 없음',`${src} 항목은 모두 월 목록(말일 확정) 기준으로 반영하는 ${names} 입니다.`);else toast('e','오류',`${src}에 등록된 항목이 없습니다.`);return;}
   const tgtExists=d.records.filter(r=>r.month===tgt);
   if(tgtExists.length>0&&!confirm(`${tgt}에 이미 ${tgtExists.length}개 항목이 있습니다. 추가로 복사하시겠습니까?`))return;
   let nid=d.records.length>0?Math.max(...d.records.map(r=>r.id))+1:1;
@@ -8456,7 +8462,7 @@ function h2oApply(){
    · 대조값 = duck 판매객실 − 솔리티(H2O 월 목록과 같은 식) · 이중 등록 = 그 지점 솔리티 계정에도 있는 방(어느 쪽이 맞는지는 사람이 본다 — [빼기] 한 번에).
    · 지난달 = 그 달 직방 말일 확정 저장본(방 목록이 있으면 방 단위로 새로·사라짐), 없으면 그 달 청구 내역의 직방 월정액 줄(직방 월 목록을 쓰기 전 달 — 실수만).
    · 자격증명이 없는 지점(양양)·조회 실패 지점은 실수를 직접 넣는다(기본값 = 대조값 — 판매객실을 못 읽었거나 0 이면 빈 칸, 지난달 저장값을 함께 보인다). 방 목록은 없다.
-     단 그 달 저장본이 서버 원천인 지점은 조회에 실패해도 저장본 칸을 그대로 둔다(저장본 유지 — 다음 [불러오기]가 되면 풀린다).
+     단 말일 뒤에 저장한 그 달 저장본이 서버 원천인 지점은 조회에 실패해도 저장본 칸을 그대로 둔다(저장본 유지 — 다음 [불러오기]가 되면 풀린다). 말일 전에 저장한 기록은 그날의 서버 목록이라 굳히지 않는다 — 직접 입력(기본값 = 그 저장본의 실수).
    · 빼기 = 서버에 있지만 청구에서 뺄 방 · 넣기 = 서버에 없지만 셀 방 — 사유와 함께 저장본에 남는다. [저장] 전까지는 이 화면에만 있다.
    · 저장 자리 = doorlock_svc 의 zb 칸(관리자 전용 지문 키 — 새 키를 만들지 않는다): { to, contact, sender, months: { 'YYYY-MM': { end } } }.
    ★ ZB_FAC 의 지점명은 지점관리에서 이름을 바꾸면 같이 고쳐야 한다(서비스요금 기록도 이 이름으로 묶인다). 지점이 끝나면 until:'YYYY-MM'(마지막 청구월)을 적는다.
@@ -8551,8 +8557,11 @@ async function zbLoad(){
       const sv0=saved&&saved.fac[f.id],on=new Set(server.map(r=>r.n));
       R.adj[f.id]={ex:ok?zbCleanAdj(sv0&&sv0.ex).filter(e=>on.has(e.n)):[],inc:ok?zbCleanAdj(sv0&&sv0.inc).filter(e=>!on.has(e.n)):[],
         man:ok?'':(sv0&&sv0.src==='man'&&Number.isInteger(Number(sv0.n))?String(sv0.n):R.fac[f.id].defOk?String(expected):'')};
-      // 이 달 저장본이 서버 원천인데 이번에 조회 실패 — 직접 입력으로 바꾸지 않고 저장본 칸을 그대로 둔다(저장본 유지)
-      if(!ok&&sv0&&sv0.src==='srv'&&/^\d{1,5}$/.test(String(sv0.n)))R.fac[f.id].keep=JSON.parse(JSON.stringify(sv0));
+      // 이 달 저장본이 서버 원천인데 이번에 조회 실패 — 말일 뒤에 저장한 기록이면 직접 입력으로 바꾸지 않고 저장본 칸을 그대로 둔다(저장본 유지).
+      // 말일 전에 저장한 기록은 그날의 서버 목록이라 굳히지 않는다 — 직접 입력(기본값 = 그 저장본의 실수 · x.pre 로 안내 줄에 밝힌다 · 저장본과 다르게 본다)
+      if(!ok&&sv0&&sv0.src==='srv'&&/^\d{1,5}$/.test(String(sv0.n))){
+        if(kstDate(saved.at)>=ymLast(month))R.fac[f.id].keep=JSON.parse(JSON.stringify(sv0));
+        else{R.fac[f.id].pre=+sv0.n;R.adj[f.id].man=String(+sv0.n);}}
     });
     st.textContent=`직방 서버 ${tKst(R.at)} 기준`;
   }catch(e){R.err=String(e&&e.message||e);st.textContent='실패: '+R.err;}
@@ -8589,10 +8598,10 @@ function zbRender(){
     const pk=x.prevRooms&&new Set(x.prevRooms),lk=L&&new Set(L.map(r=>r.n));
     const add=L&&pk?L.filter(r=>!pk.has(r.n)).map(r=>r.n):null,gone=L&&pk?x.prevRooms.filter(k=>!lk.has(k)):null;
     const msgs=[];
-    if(x.keep)msgs.push(`<span class="zb-warn">직방 서버 ${escH(zbWhy(x.why))} — 저장본 ${zbCount(x,a,month)}실 유지 · 잠시 뒤 다시 [불러오기]</span>`);
+    if(x.keep)msgs.push(`<span class="zb-warn">직방 서버 ${escH(zbWhy(x.why))} — 저장본 ${zbCount(x,a,month)}실 유지 · ${ZB_RETRY.has(x.why)?'잠시 뒤':'직방 계정(시크릿)을 확인한 뒤'} 다시 [불러오기]</span>`);   // 기다리면 낫는 실패만 '잠시 뒤' — 로그인 실패·자격증명 없음은 계정(시크릿)부터
     else if(!x.ok){
       msgs.push(`<span class="zb-warn">직방 서버 ${escH(zbWhy(x.why))} — ${ZB_RETRY.has(x.why)?'잠시 뒤 다시 [불러오기] 하거나 ':''}말일 운영 객실 수를 직접 넣으세요</span>`);
-      msgs.push(`<span class="zb-dim">${x.defOk?`기본값 = 판매객실 ${x.duck} − 솔리티 ${x.soliti} = ${x.expected}실`:x.duckOk?'판매객실을 못 읽어 기본값이 없습니다':'판매객실·솔리티를 못 읽어 기본값이 없습니다'}${x.prevN!=null?` · 지난달 ${x.prevSrc==='bill'?'청구':'말일'} ${x.prevN}실`:''} · 방 목록 없음</span>`);
+      msgs.push(`<span class="zb-dim">${x.pre!=null?`기본값 = 말일 전 저장본 ${x.pre}실`:x.defOk?`기본값 = 판매객실 ${x.duck} − 솔리티 ${x.soliti} = ${x.expected}실`:x.duckOk?'판매객실을 못 읽어 기본값이 없습니다':'판매객실·솔리티를 못 읽어 기본값이 없습니다'}${x.prevN!=null?` · 지난달 ${x.prevSrc==='bill'?'청구':'말일'} ${x.prevN}실`:''} · 방 목록 없음</span>`);
     }else{
       const exN=a.ex.filter(e=>x.server.some(r=>r.n===e.n)).length,incN=L.filter(r=>r.inc).length;
       const adjT=exN||incN?`${exN?` − 빼기 ${exN}`:''}${incN?` + 넣기 ${incN}`:''} = ${L.length}실`:'';
@@ -8667,10 +8676,10 @@ function zbSetCfg(el){
   if(v===String(z[k]||''))return;
   z[k]=v;saveSvc(d);
 }
-// 메일 설정 칸을 저장값으로 — 비어 있는 칸만(치는 중인 글은 둔다). 직방 패널을 그릴 때와 서비스요금 화면에 들어올 때(goP)
+// 메일 설정 칸을 저장값으로 — 초점이 없는 칸은 저장값으로 맞춘다(다른 탭이 바꾼 값이 이 탭 칸에도 보이게 · 치는 중인 칸은 둔다). 직방 패널을 그릴 때 · 서비스요금 화면에 들어올 때(goP) · 메일 초안을 만들 때
 function zbFillCfg(){
-  const zc=zbCfg();
-  [['zb-to','to'],['zb-contact','contact'],['zb-sender','sender']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&!e.value)e.value=zc[k]||(k==='sender'?'핸디즈 구매소싱팀 김강현':'');});
+  const zc=zbCfg(),ae=document.activeElement;
+  [['zb-to','to'],['zb-contact','contact'],['zb-sender','sender']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&e!==ae)e.value=zc[k]||(k==='sender'?'핸디즈 구매소싱팀 김강현':'');});
 }
 // 청구에 쓰는 값의 지문(지점별 원천·실수 · 단가) — 반영한 뒤 저장본이 바뀌었는지 본다
 const zbRecSig=rec=>canon({unit:Number(rec.unit)||0,fac:Object.fromEntries(Object.entries(rec.fac||{}).map(([id,x])=>[id,[x&&x.src,Number(x&&x.n)||0]]))});
@@ -8679,7 +8688,7 @@ const zbRowsSig=(month,recs)=>canon((recs||getSvc().records).filter(r=>r.month==
   .map(r=>[r.branch,isProrate(r)?'prorate':'',Number(r.rooms)||0,Number(svcUnit(r))||0].join('|')).sort());
 // 입력(빼기·넣기·직접 입력 실수) 지문 — 저장본과 지금 화면을 견준다
 const zbInputsOf=fac=>canon(Object.fromEntries(Object.entries(fac).map(([id,x])=>[id,{ex:zbCleanAdj(x.ex).map(e=>e.n+'|'+e.why).sort(),inc:zbCleanAdj(x.inc).map(e=>e.n+'|'+e.why).sort(),man:x.src==='man'?String(x.n??''):''}])));
-// 저장 뒤 화면에서 입력을 바꿨는가(불러온 달만 — 서버 목록이 바뀐 것은 따지지 않는다) · 저장본 유지 지점은 저장본과 같다고 본다(저장하면 그 칸을 그대로 옮긴다)
+// 저장 뒤 화면에서 입력을 바꿨는가(불러온 달만 — 서버 목록이 바뀐 것은 따지지 않는다) · 저장본 유지 지점은 저장본과 같다고 본다(저장하면 그 칸을 그대로 옮긴다) · 말일 전 저장본에서 직접 입력으로 바뀐 지점은 저장본(서버 원천)과 다르게 본다(다시 저장해야 한다)
 function zbDirty(month){
   if(!ZBL||ZBL.err||ZBL.month!==month)return false;
   const rec=zbEnd(month);if(!rec)return false;
@@ -8801,8 +8810,8 @@ function zbExcel(){
 function zbMail(){
   if(ZB_BUSY)return;
   const D=zbDoc();if(!D)return;
-  const v=id=>String(document.getElementById(id)?.value||'').trim();
-  const to=v('zb-to')||D.to,contact=v('zb-contact')||D.contact,sender=v('zb-sender')||D.sender;
+  zbFillCfg();   // 받는 사람·담당자·보내는 사람은 저장값(D) — 칸은 고치면 바로 저장되므로 칸을 읽지 않는다. 칸이 낡았으면(다른 탭이 바꿈) 저장값으로 맞춘다
+  const{to,contact,sender}=D;
   const[yy,m]=D.month.split('-').map(Number),last=ymLast(D.month),won=n=>n.toLocaleString()+'원',amt=zbFacAmt(D),t=svcTotal(zbBillRows(D));
   // 지점마다 말일 객실 수와 금액(부가세 별도 · 괄호는 포함) — H2O 메일과 같은 꼴
   const per=D.fac.map((x,i)=>`  · ${x.f.br} ${x.n.toLocaleString()}실 · ${won(amt[i].ex)} (부가세 포함 ${won(amt[i].t)})`).join('\n');
