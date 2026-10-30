@@ -1382,6 +1382,10 @@ b,strong{font-weight:600;}
                 <label style="font-size:12px;font-weight:600;color:var(--text2)">반영할 청구월</label>
                 <input class="fi" id="auto-month" type="month" placeholder="예: 2026-10" style="width:140px">
               </div>
+              <div style="display:flex;flex-direction:column;gap:4px">
+                <label for="auto-brand" style="font-size:12px;font-weight:600;color:var(--text2)">브랜드</label>
+                <select class="fsel" id="auto-brand" style="width:110px" onchange="svcAutoBrandSet(this.value)"><option value="">전체</option><option value="직방">직방</option><option value="H2O">H2O</option><option value="더엠알">더엠알</option></select>
+              </div>
               <button class="btn bp" onclick="svcAutoFetch(false)">불러오기</button>
               <button class="btn bo" onclick="svcAutoFetch(true)" title="캐시를 무시하고 솔리티·duck 을 새로 조회합니다">지금 새로 조회</button>
               <span style="font-size:12px;color:var(--text3)" id="auto-status">지점 객실 수(duck)와 솔리티 등록 객실을 가져옵니다.</span>
@@ -6684,6 +6688,8 @@ function getSvc(){return ld(K.SV,{brandPrices:{...SVC_DEF_PRICES},records:[]});}
    직접 부를 수 없고(공개 저장소·CORS) 불러서도 안 된다. 게이트웨이가 대신 부른다. */
 let AUTO={rows:[],updatedAt:'',solitiAt:'',err:'',orphan:[]};
 let svcShowAll=false;                 // 기본은 요금 대상 지점만 — 29곳 전부 보면 고를 게 없다
+let svcAutoBrand='';                  // 브랜드 고르기(10/30) — 고르면 표·소계·[반영] 모두 그 브랜드만. 비면 전체(새로 열면 전체)
+function svcAutoBrandSet(v){svcAutoBrand=SVC_BRANDS.includes(v)?v:'';svcAutoPreview();}
 const SVC_NONE='_없음';
 
 /* 서비스요금을 내는 지점과 브랜드 (2026-09-16 Jayden 확인).
@@ -6865,12 +6871,13 @@ function svcAutoPreview(){
 
   /* 기본은 과금 대상만 보여준다. 솔리티 전용 지점까지 29줄을 늘어놓으면
      정작 봐야 할 9줄이 묻힌다. 새 지점을 지정하려면 토글로 전체를 연다. */
-  const shown=svcShowAll?AUTO.rows
-    :AUTO.rows.filter(r=>{const b=svcBranchBrand(r.branch);return b&&b!==SVC_NONE;});
-  if(!shown.length&&!svcShowAll){
+  const shown=(svcShowAll?AUTO.rows
+    :AUTO.rows.filter(r=>{const b=svcBranchBrand(r.branch);return b&&b!==SVC_NONE;}))
+    .filter(r=>!svcAutoBrand||svcBranchBrand(r.branch)===svcAutoBrand);   // 브랜드를 고르면 그 브랜드만
+  if(!shown.length&&(!svcShowAll||svcAutoBrand)){
     const d=document.createElement('div');
     d.style.cssText='font-size:14px;color:var(--text3);margin-bottom:10px';
-    d.textContent='요금 대상으로 지정된 지점이 없습니다. [전체 지점 보기]에서 브랜드를 지정하세요.';
+    d.textContent=svcAutoBrand?`브랜드가 ${svcAutoBrand}인 지점이 없습니다.`:'요금 대상으로 지정된 지점이 없습니다. [전체 지점 보기]에서 브랜드를 지정하세요.';
     el.appendChild(d);
   }
   const tw=document.createElement('div');
@@ -6968,7 +6975,7 @@ function svcAutoPreview(){
   const foot=document.createElement('div');
   foot.style.cssText='margin-top:12px;display:flex;gap:12px;align-items:center;flex-wrap:wrap';
   const btn=document.createElement('button');
-  btn.className='btn bp';btn.textContent=`${mv||'월 선택'} 청구 항목에 반영`;
+  btn.className='btn bp';btn.textContent=`${mv||'월 선택'} ${svcAutoBrand?svcAutoBrand+' ':''}청구 항목에 반영`;
   btn.addEventListener('click',svcApplyAuto);
   foot.appendChild(btn);
   const tog=document.createElement('button');
@@ -7046,15 +7053,15 @@ function svcApplyAuto(){
      그 지점 요금이 사라지고, 다음 달 대사에서야 드러난다. */
   /* H2O 월 목록으로 말일 확정한 달은 H2O 를 건너뛴다 — 여기서 덮으면 '말일 실수'가 월정액이 되어
      월중 추가된 객실이 월정액과 일할로 두 번 청구된다(그 달 H2O 는 [청구 내역에 반영]이 정본). */
-  const h2oDone=!!((getHL().months[mv]||{}).end);
+  const h2oDone=!!((getHL().months[mv]||{}).end),pick=svcAutoBrand;   // 브랜드를 골랐으면 그 브랜드만 반영한다(표·단추 이름과 같다)
   const use=AUTO.rows.map(r=>({...r,brand:svcBranchBrand(r.branch)}))
-                     .filter(r=>r.brand&&r.brand!==SVC_NONE&&r.total>0&&r.target>0&&!(h2oDone&&r.brand==='H2O'&&H2O_BRS.has(r.branch)));
-  const h2oSkipped=h2oDone&&AUTO.rows.some(r=>svcBranchBrand(r.branch)==='H2O'&&H2O_BRS.has(r.branch));
+                     .filter(r=>r.brand&&r.brand!==SVC_NONE&&(!pick||r.brand===pick)&&r.total>0&&r.target>0&&!(h2oDone&&r.brand==='H2O'&&H2O_BRS.has(r.branch)));
+  const h2oSkipped=h2oDone&&(!pick||pick==='H2O')&&AUTO.rows.some(r=>svcBranchBrand(r.branch)==='H2O'&&H2O_BRS.has(r.branch));
   if(h2oSkipped)toast('i','H2O 는 건너뜁니다',`${mv} H2O 는 월 목록(말일 확정) 기준으로 반영합니다.`);
-  if(!use.length){toast('e','반영할 항목 없음',h2oSkipped?'H2O 말고는 반영할 지점이 없습니다.':'브랜드를 지정한 지점이 없습니다.');return;}
+  if(!use.length){toast('e','반영할 항목 없음',h2oSkipped?(pick?'H2O 는 월 목록 기준이라 여기서 반영하지 않습니다.':'H2O 말고는 반영할 지점이 없습니다.'):pick?`브랜드가 ${pick}인 지점이 없습니다.`:'브랜드를 지정한 지점이 없습니다.');return;}
   const d=getSvc();
   showCfm(CI.zap,'자동 반영',
-    `${mv} 서비스요금을 솔리티·duck 기준으로 덮어씁니다. 대상 ${use.length}개 지점 — `
+    `${mv} ${pick?pick+' ':''}서비스요금을 솔리티·duck 기준으로 덮어씁니다. 대상 ${use.length}개 지점 — `
     +`${use.slice(0,4).map(r=>`${r.branch} ${r.brand} ${r.target}실`).join(', ')}`
     +`${use.length>4?` 외 ${use.length-4}곳`:''}. 진행할까요?`,
     ()=>{
