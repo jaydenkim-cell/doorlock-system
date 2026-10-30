@@ -8181,7 +8181,7 @@ function h2oExcel(){
   if(amt)[['H','monEx'],['I','prEx'],['J','ex'],['K','vat'],['L','t']].forEach(([c,k])=>{ws[`${c}${tr}`]={t:'n',v:amt.reduce((t,o)=>t+o[k],0),f:`SUM(${c}5:${c}${tr-1})`,z:W};});
   XLSX.utils.sheet_add_aoa(ws,[[],[`※ 산정 기준: 당월 1일부터 말일까지 계속 등록된 객실은 월정액(객실당 월 ${D.unit.toLocaleString()}원), 월중 추가·해지된 객실은 등록일수 × ${D.pu}원(등록일·해지일 당일 포함, 월정액 초과 불가). 금액은 부가세 별도.`],
     ['※ 해지 기준일은 당사의 삭제 요청 메일(solution.op@h2ohospitality.io)이 도달한 날입니다.'],
-    ...(amt?[['※ 금액은 시설별 청구 금액입니다(공급가액 = 월정액 + 일할, 부가세는 청구 줄 단위 반올림 합산 — 메일 본문의 금액과 같습니다).']]:[])],{origin:`A${tr+1}`});
+    ...(amt?[['※ 금액은 시설별 청구 금액입니다(공급가액 = 월정액 + 일할, 부가세 별도 10%). 메일 본문의 금액과 같습니다.']]:[])],{origin:`A${tr+1}`});
   ws['!ref']=`A1:${NC}${tr+(amt?4:3)}`;ws['!cols']=[{wch:5},{wch:28},{wch:34},{wch:12},{wch:9},{wch:9},{wch:12},...(amt?[{wch:12},{wch:10},{wch:13},{wch:11},{wch:13}]:[]),{wch:50}];
   XLSX.utils.book_append_sheet(wb,ws,'요약');
   D.fac.forEach(x=>{
@@ -8219,7 +8219,8 @@ function h2oMail(){
     const mon=recs.filter(x=>!isProrate(x)).reduce((t,x)=>t+x.rooms,0),days=recs.filter(isProrate).reduce((t,x)=>t+x.rooms,0);
     const ex=recs.reduce((t,x)=>t+svcCalc(x).ex,0),vat=recs.reduce((t,x)=>t+svcCalc(x).vat,0);
     // 시설마다 말일 객실 수와 금액(부가세 별도 · 괄호는 포함) — 일할이 있는 시설은 월정액·일할을 나눠 적는다
-    const won=n=>n.toLocaleString()+'원',perAmt=h2oFacAmt(D,recs).map(o=>`  · ${o.f.short} ${o.rooms}실 · ${won(o.ex)} (부가세 포함 ${won(o.t)})${o.days?` — 월정액 ${o.mon}실 ${won(o.monEx)} + 일할 ${o.days}일 ${won(o.prEx)}`:''}`).join('\n');
+    const won=n=>n.toLocaleString()+'원',perAmt=h2oFacAmt(D,recs).map(o=>{const part=[o.mon?`월정액 ${o.mon.toLocaleString()}실 ${won(o.monEx)}`:'',`일할 ${o.days.toLocaleString()}일 ${won(o.prEx)}`].filter(Boolean).join(' + ');   // 월정액이 0실(말일 전 모두 해지)이면 일할만
+      return`  · ${o.f.short} ${o.rooms.toLocaleString()}실 · ${won(o.ex)} (부가세 포함 ${won(o.t)})${o.days?` — ${part}`:''}`;}).join('\n');
     // 같은 기간 4실 이상은 한 줄로(호실은 첨부 엑셀 '추가·해지' 시트에 모두 있다)
     const chg=D.changes.length?h2oGroupCh(D.changes).flatMap(g=>g.length>=4
       ?[`  · ${g[0].f.short} ${g[0].type} ${g.length}실 (${g[0].days===0?md(g[0].to)+' 도달 · 이번 달 0일':`${md(g[0].from)}~${md(g[0].to)}, 각 ${g[0].days}일`}) — 호실은 첨부 '추가·해지' 시트`]
