@@ -823,6 +823,10 @@ b,strong{font-weight:600;}
 .th-sort svg{margin-left:4px;vertical-align:-2px;opacity:.35;}
 .th-sort[data-on] svg{opacity:1;}
 .th-sort:focus-visible{outline:2px solid var(--plott-color-action-primary);outline-offset:2px;box-shadow:var(--plott-focus-ring-default);}
+/* 서비스요금 표 칸 순서 창(10/30) — 칸마다 앞으로·뒤로 */
+.svc-cols{list-style:none;margin:0;padding:0;}
+.svc-cols li{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);}
+.svc-cols li span{flex:1;}
 /* ── 기능① 설치 일정 달력(설계서 §3.1) — [목록 | 달력] 전환 · 달력 패널(#i-cal) · 칩 ── */
 .seg{display:inline-flex;margin-left:auto;}
 .seg-b{height:38px;padding:0 16px;background:var(--plott-color-bg-surface);border:1px solid var(--plott-color-border-strong);color:var(--plott-color-neutral700);font-size:14px;line-height:20px;font-weight:600;cursor:pointer;}
@@ -1464,6 +1468,7 @@ b,strong{font-weight:600;}
             <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
               <button class="btn bo bsm" onclick="openAmaranthModal('svc')" style="display:flex;align-items:center;gap:4px"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg> 품의서 복사</button>
               <button class="btn bo bsm" onclick="exportToExcel('svc')"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg> 엑셀 다운로드</button>
+              <button class="btn bo bsm" onclick="svcColsOpen('rec')">칸 순서</button>
               <select class="fsel" id="svc-f-month" onchange="renderSvc()"><option value="">전체 월</option></select>
               <select class="fsel" id="svc-f-branch" onchange="renderSvc()"><option value="">전체 지점</option></select>
               <select class="fsel" id="svc-f-brand" onchange="renderSvc()">
@@ -6786,6 +6791,47 @@ async function svcAutoFetch(force){
 const SVC_SORT_KEY='dl.svc.sort';
 let SVC_SORT=(()=>{try{const v=JSON.parse(localStorage.getItem(SVC_SORT_KEY)||'{}');return v&&typeof v==='object'&&!Array.isArray(v)?v:{};}catch{return{};}})();
 const svcBrandRank=b=>{const i=SVC_BRANDS.indexOf(b);return i>=0?i:(b===SVC_NONE?SVC_BRANDS.length+1:SVC_BRANDS.length);};   // 직방 → H2O → 더엠알 → 지정 안 됨 → 대상 아님
+/* ── 서비스요금 표 칸 순서(10/30 Jayden) — [칸 순서] 창에서 칸마다 앞으로·뒤로 옮기고 [처음대로]로 되돌린다. 이 브라우저에만 기억한다(못 읽으면 처음 순서) ── */
+const SVC_COLS={
+  rec:[['month','청구월'],['branch','지점'],['brand','브랜드'],['rooms','운영실수'],['unit','단가(별도)'],['ex','공급가액'],['vat','부가세(10%)'],['t','합계(포함)'],['note','비고']],
+  auto:[['branch','지점'],['brand','브랜드'],['total','판매객실(duck)'],['soliti','솔리티'],['target','요금대상'],['unit','단가'],['amt','공급가액'],['vat','부가세'],['t','합계(포함)'],['now','현재입력'],['diff','차이']],
+};
+const SVC_COLS_KEY='dl.svc.cols';
+let SVC_COLS_SAVED=(()=>{try{const v=JSON.parse(localStorage.getItem(SVC_COLS_KEY)||'{}');return v&&typeof v==='object'&&!Array.isArray(v)?v:{};}catch{return{};}})();
+let SVC_COLS_TBL='rec';
+function svcColOrder(tbl){   // 모르는 칸은 빼고, 빠진 칸은 처음 순서대로 뒤에
+  const all=SVC_COLS[tbl].map(c=>c[0]),saved=Array.isArray(SVC_COLS_SAVED[tbl])?SVC_COLS_SAVED[tbl]:[];
+  const ord=saved.filter((k,i)=>all.includes(k)&&saved.indexOf(k)===i);
+  return ord.concat(all.filter(k=>!ord.includes(k)));
+}
+const svcColLabel=(tbl,k)=>(SVC_COLS[tbl].find(c=>c[0]===k)||[k,k])[1];
+function svcColsSave(tbl,ord){
+  if(ord)SVC_COLS_SAVED[tbl]=ord;else delete SVC_COLS_SAVED[tbl];
+  try{localStorage.setItem(SVC_COLS_KEY,JSON.stringify(SVC_COLS_SAVED));}catch{}
+  if(tbl==='rec')renderSvc();else svcAutoPreview();
+}
+function svcColsOpen(tbl){
+  SVC_COLS_TBL=tbl;
+  let mo=document.getElementById('mo-svc-cols');
+  if(!mo){mo=document.createElement('div');mo.className='mo';mo.id='mo-svc-cols';
+    mo.innerHTML='<div class="mb" style="width:380px;max-width:95vw"><div class="mh"><span class="mt2" id="svc-cols-title"></span></div><div class="mbody"><ol class="svc-cols" id="svc-cols-list"></ol></div><div class="mf mfoot"><button class="btn bo" onclick="svcColsReset()">처음대로</button><button class="btn bp" onclick="closeMo(\'mo-svc-cols\')">닫기</button></div></div>';
+    document.body.appendChild(mo);}
+  document.getElementById('svc-cols-title').textContent=`칸 순서 — ${tbl==='rec'?'청구 내역':'자동 불러오기'}`;
+  svcColsPaint();openMo('mo-svc-cols');
+  document.querySelector('#svc-cols-list button:not([disabled])')?.focus();
+}
+function svcColsPaint(){
+  const tbl=SVC_COLS_TBL,ord=svcColOrder(tbl),up=`<svg ${_s} width="14" height="14"><polyline points="6 15 12 9 18 15"/></svg>`,dn=`<svg ${_s} width="14" height="14"><polyline points="6 9 12 15 18 9"/></svg>`;
+  document.getElementById('svc-cols-list').innerHTML=ord.map((k,i)=>{const l=escH(svcColLabel(tbl,k));
+    return`<li><span>${l}</span><button type="button" class="btn bo bsm" aria-label="${l} 앞으로" onclick="svcColMove(${i},-1)"${i===0?' disabled':''}>${up}</button><button type="button" class="btn bo bsm" aria-label="${l} 뒤로" onclick="svcColMove(${i},1)"${i===ord.length-1?' disabled':''}>${dn}</button></li>`;}).join('');
+}
+function svcColMove(i,d){
+  const tbl=SVC_COLS_TBL,ord=svcColOrder(tbl),j=i+d;if(j<0||j>=ord.length)return;
+  [ord[i],ord[j]]=[ord[j],ord[i]];svcColsSave(tbl,ord);svcColsPaint();
+  const bs=document.querySelectorAll('#svc-cols-list li')[j]?.querySelectorAll('button');   // 옮긴 칸의 같은 쪽 단추에 초점(끝에 닿았으면 반대쪽)
+  if(bs)(bs[d<0?0:1].disabled?bs[d<0?1:0]:bs[d<0?0:1]).focus();
+}
+function svcColsReset(){svcColsSave(SVC_COLS_TBL,null);svcColsPaint();document.querySelector('#svc-cols-list button:not([disabled])')?.focus();}
 function svcSortSet(tbl,k){
   const s=SVC_SORT[tbl]||{};
   SVC_SORT[tbl]=s.k!==k?{k,d:1}:s.d===1?{k,d:-1}:{};
@@ -6830,11 +6876,7 @@ function svcAutoPreview(){
   const tw=document.createElement('div');
   tw.style.cssText='overflow-x:auto';
   const tb=document.createElement('table');tb.className='tbl';
-  tb.innerHTML=`<thead><tr>${svcTh('auto','branch','지점')}${svcTh('auto','brand','브랜드')}
-    ${svcTh('auto','total','판매객실(duck)','num-r')}${svcTh('auto','soliti','솔리티','num-r')}
-    ${svcTh('auto','target','요금대상','num-r')}${svcTh('auto','unit','단가','num-r')}
-    ${svcTh('auto','amt','공급가액','num-r')}${svcTh('auto','vat','부가세','num-r')}${svcTh('auto','t','합계(포함)','num-r')}
-    ${svcTh('auto','now','현재입력','num-r')}${svcTh('auto','diff','차이','num-r')}</tr></thead>`;
+  tb.innerHTML=`<thead><tr>${svcColOrder('auto').map(k=>svcTh('auto',k,svcColLabel('auto',k),k==='branch'||k==='brand'?'':'num-r')).join('')}</tr></thead>`;   // 칸 순서대로
   const body=document.createElement('tbody');
   let money=0, unset=0, sumRooms=0, sumAmt=0, sumVat=0;
   const byBrand=new Map();      // 브랜드별 소계 — 청구는 브랜드(업체)별로 나가므로 합계도 그 단위여야 한다
@@ -6844,11 +6886,11 @@ function svcAutoPreview(){
     return k==='branch'?r.branch:k==='brand'?svcBrandRank(b||''):k==='total'?r.total:k==='soliti'?r.soliti:k==='target'?r.target:k==='unit'?u
       :k==='amt'?amt:k==='vat'?svcVat(amt):k==='t'?amt+svcVat(amt):k==='now'?now:k==='diff'?(bill?r.target-now:0):0;};
   svcSorted('auto',shown,aVal,(a,b)=>svcBrandRank(svcBranchBrand(a.branch)||'')-svcBrandRank(svcBranchBrand(b.branch)||'')||a.branch.localeCompare(b.branch,'ko')).forEach(r=>{
-    const tr=document.createElement('tr');
+    const tr=document.createElement('tr'),C={};   // 칸마다 만들어 두고 맨 끝에 칸 순서대로 붙인다
     const td=(txt,cls,style)=>{const c=document.createElement('td');
       if(cls)c.className=cls; if(style)c.style.cssText=style; c.textContent=txt; return c;};
     const noDuck=r.total===0;
-    tr.appendChild(td(r.branch,'',noDuck?'color:var(--plott-color-danger700);font-weight:600':''));
+    C.branch=(td(r.branch,'',noDuck?'color:var(--plott-color-danger700);font-weight:600':''));
     // 브랜드 지정
     const bc=document.createElement('td');
     const sel=document.createElement('select');
@@ -6858,24 +6900,24 @@ function svcAutoPreview(){
     const rBrand=svcBranchBrand(r.branch);   // 저장소에서 매번 읽는다
     sel.value=rBrand||'';
     sel.addEventListener('change',()=>svcSetBranchBrand(r.branch,sel.value));
-    bc.appendChild(sel);tr.appendChild(bc);
-    tr.appendChild(td(noDuck?'못 찾음':String(r.total),'num-r',
+    bc.appendChild(sel);C.brand=bc;
+    C.total=(td(noDuck?'못 찾음':String(r.total),'num-r',
       noDuck?'color:var(--plott-color-danger700);font-weight:600':''));
-    tr.appendChild(td(r.noAccount?'계정 없음':String(r.soliti),'num-r',
+    C.soliti=(td(r.noAccount?'계정 없음':String(r.soliti),'num-r',
       r.noAccount?'color:var(--text3);font-size:12px':''));
-    tr.appendChild(td(String(r.target),'num-r'));
+    C.target=(td(String(r.target),'num-r'));
     const billable=rBrand&&rBrand!==SVC_NONE;
     /* 단가는 브랜드가 정한다 — 직방 2,000 / H2O·더엠알 3,000 (브랜드 단가 설정에서 바꿀 수 있다).
        금액은 요금대상 × 단가, 부가세 별도. 표에서 바로 청구액을 읽을 수 있어야 한다. */
     const unit=billable?(prices[rBrand]||SVC_DEF_PRICES[rBrand]||0):0;
     const amt=billable?r.target*unit:0;
-    tr.appendChild(td(billable?unit.toLocaleString():'—','num-r','color:var(--text3)'));
+    C.unit=(td(billable?unit.toLocaleString():'—','num-r','color:var(--text3)'));
     /* 부가세는 svcVat(건별 반올림) — 기존 서비스요금 표·엑셀과 같은 기준이라 합계가 어긋나지 않는다 */
     const vat=billable?svcVat(amt):0;
-    tr.appendChild(td(billable?amt.toLocaleString():'—','num-r',
+    C.amt=(td(billable?amt.toLocaleString():'—','num-r',
       billable?'font-weight:600':'color:var(--text3)'));
-    tr.appendChild(td(billable?vat.toLocaleString():'—','num-r','color:var(--text3);font-size:12px'));
-    tr.appendChild(td(billable?(amt+vat).toLocaleString():'—','num-r',
+    C.vat=(td(billable?vat.toLocaleString():'—','num-r','color:var(--text3);font-size:12px'));
+    C.t=(td(billable?(amt+vat).toLocaleString():'—','num-r',
       billable?'font-weight:600;color:var(--accent)':'color:var(--text3)'));
     sumRooms+=billable?r.target:0; sumAmt+=amt; sumVat+=vat;
     if(billable){
@@ -6884,12 +6926,13 @@ function svcAutoPreview(){
       byBrand.set(rBrand,b);
     }
     const now=billable?cur.filter(x=>x.branch===r.branch&&x.brand===rBrand).reduce((s,x)=>s+(Number(x.rooms)||0),0):0;
-    tr.appendChild(td(billable?(now||'—').toString():'—','num-r','color:var(--text3)'));
+    C.now=(td(billable?(now||'—').toString():'—','num-r','color:var(--text3)'));
     const diff=billable?r.target-now:0;
-    tr.appendChild(td(billable?(diff>0?'+':'')+diff:'—','num-r',
+    C.diff=(td(billable?(diff>0?'+':'')+diff:'—','num-r',
       `font-weight:600;color:${diff===0?'var(--text3)':(diff<0?'var(--green)':'var(--plott-color-danger700)')}`));
     if(billable)money+=diff*(prices[rBrand]||SVC_DEF_PRICES[rBrand]||0);
     if(!rBrand)unset++;
+    svcColOrder('auto').forEach(k=>tr.appendChild(C[k]));
     body.appendChild(tr);
   });
   tb.appendChild(body);
@@ -6902,18 +6945,17 @@ function svcAutoPreview(){
       tr.style.cssText=strong
         ? 'font-weight:600;background:var(--bg2);border-top:2px solid var(--bd)'
         : 'font-weight:600;background:var(--bg2)';
-      const c1=document.createElement('td');c1.colSpan=4;
-      c1.style.cssText='text-align:right';
-      c1.textContent=cnt==null?label:`${label} (${cnt}곳)`;
-      tr.appendChild(c1);
+      // 칸 순서를 따른다 — 앞쪽의 값 없는 칸들은 한 칸으로 합쳐 이름(처음 순서면 4칸), 그 뒤는 칸마다
+      const ord=svcColOrder('auto'),val={target:[rooms.toLocaleString()+'실'],amt:[amt.toLocaleString()],vat:[vat.toLocaleString(),'color:var(--text3);font-size:12px'],t:[(amt+vat).toLocaleString(),'color:var(--accent)']};
+      const name=cnt==null?label:`${label} (${cnt}곳)`;let lead=0,named=false;
+      while(lead<ord.length&&!val[ord[lead]])lead++;
+      if(lead){const c1=document.createElement('td');c1.colSpan=lead;
+        c1.style.cssText='text-align:right';
+        c1.textContent=name;
+        tr.appendChild(c1);named=true;}
       const add=(t,st)=>{const c=document.createElement('td');c.className='num-r';
         if(st)c.style.cssText=st;c.textContent=t;tr.appendChild(c);};
-      add(rooms.toLocaleString()+'실');
-      add('');
-      add(amt.toLocaleString());
-      add(vat.toLocaleString(),'color:var(--text3);font-size:12px');
-      add((amt+vat).toLocaleString(),'color:var(--accent)');
-      add('');add('');
+      ord.slice(lead).forEach(k=>{if(val[k])add(...val[k]);else if(!named){add(name,'text-align:right');named=true;}else add('');});
       return tr;
     };
     [...byBrand].sort((a,b)=>b[1].amt-a[1].amt)
@@ -6934,6 +6976,10 @@ function svcAutoPreview(){
   tog.textContent=svcShowAll?`요금 대상만 보기`:`전체 지점 보기 (${AUTO.rows.length}곳)`;
   tog.addEventListener('click',()=>{svcShowAll=!svcShowAll;svcAutoPreview();});
   foot.appendChild(tog);
+  const colsBtn=document.createElement('button');   // 칸 순서 창
+  colsBtn.className='btn bo';colsBtn.textContent='칸 순서';
+  colsBtn.addEventListener('click',()=>svcColsOpen('auto'));
+  foot.appendChild(colsBtn);
   const note=document.createElement('span');
   note.style.cssText='font-size:14px;color:var(--text2)';
   note.textContent=(svcShowAll&&unset)
@@ -7390,7 +7436,7 @@ function renderSvc(){
       :k==='ex'?svcCalc(r).ex:k==='vat'?svcCalc(r).vat:k==='t'?svcCalc(r).t:0,
     (a,b)=>svcBrandRank(a.brand)-svcBrandRank(b.brand)||b.month.localeCompare(a.month)||a.branch.localeCompare(b.branch,'ko')||(isProrate(a)?1:0)-(isProrate(b)?1:0)||(Number(a.id)||0)-(Number(b.id)||0));
   const th=document.getElementById('svc-thead');
-  if(th)th.innerHTML=`<tr>${svcTh('rec','month','청구월')}${svcTh('rec','branch','지점')}${svcTh('rec','brand','브랜드')}${svcTh('rec','rooms','운영실수')}${svcTh('rec','unit','단가(별도)')}${svcTh('rec','ex','공급가액')}${svcTh('rec','vat','부가세(10%)')}${svcTh('rec','t','합계(포함)')}<th>비고</th><th></th></tr>`;
+  if(th)th.innerHTML=`<tr>${svcColOrder('rec').map(k=>k==='note'?'<th>비고</th>':svcTh('rec',k,svcColLabel('rec',k))).join('')}<th></th></tr>`;   // 칸 순서대로(수정·삭제 칸은 늘 맨 끝)
   const fmt=n=>n.toLocaleString()+'원';
   const brandBadge=br=>`<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:12px;font-weight:600;background:${br==='직방'?'var(--plott-banner-info-background-color)':br==='H2O'?'var(--plott-banner-success-background-color)':'var(--plott-banner-warning-background-color)'};color:${br==='직방'?'var(--plott-banner-info-text-color)':br==='H2O'?'var(--plott-banner-success-text-color)':'var(--plott-banner-warning-text-color)'}">${escH(br)}</span>`;
   document.getElementById('svc-body').innerHTML=recs.length===0
@@ -7398,37 +7444,30 @@ function renderSvc(){
     :recs.map(r=>{
       const up=svcUnit(r);
       const {ex,vat}=svcCalc(r);
+      const ord=svcColOrder('rec');   // 칸 순서 — 처음 순서면 예전과 같은 줄이 나온다(수정·삭제 칸은 늘 맨 끝)
       if(svcEditId===r.id){
         const brOpts=brs.map(b=>`<option value="${escH(b.name)}"${b.name===r.branch?' selected':''}>${escH(b.name)}</option>`).join('');
         const brndOpts=SVC_BRANDS.map(br=>`<option value="${br}"${br===r.brand?' selected':''}>${br}</option>`).join('');
-        return`<tr style="background:var(--accent-l)">
-          <td>${escH(r.month)}</td>
-          <td><select id="se-branch-${r.id}" style="padding:3px 4px;border:1px solid var(--border);border-radius:4px;font-size:12px;max-width:140px">${brOpts}</select></td>
-          <td><select id="se-brand-${r.id}" style="padding:3px 4px;border:1px solid var(--border);border-radius:4px;font-size:12px">${brndOpts}</select></td>
-          <td><input id="se-rooms-${r.id}" type="number" min="1" value="${escH(r.rooms)}" style="width:70px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"></td>
-          <td><input id="se-price-${r.id}" type="number" value="${up}" style="width:80px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"></td>
-          <td style="text-align:right;color:var(--text3);font-size:12px">자동계산</td>
-          <td style="text-align:right;color:var(--text3);font-size:12px">자동계산</td>
-          <td style="text-align:right;color:var(--text3);font-size:12px">자동계산</td>
-          <td><input id="se-note-${r.id}" type="text" value="${escH(r.note||'')}" style="width:140px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" placeholder="비고"></td>
+        const E={month:`<td>${escH(r.month)}</td>`,branch:`<td><select id="se-branch-${r.id}" style="padding:3px 4px;border:1px solid var(--border);border-radius:4px;font-size:12px;max-width:140px">${brOpts}</select></td>`,brand:`<td><select id="se-brand-${r.id}" style="padding:3px 4px;border:1px solid var(--border);border-radius:4px;font-size:12px">${brndOpts}</select></td>`,rooms:`<td><input id="se-rooms-${r.id}" type="number" min="1" value="${escH(r.rooms)}" style="width:70px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"></td>`,unit:`<td><input id="se-price-${r.id}" type="number" value="${up}" style="width:80px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px"></td>`,ex:`<td style="text-align:right;color:var(--text3);font-size:12px">자동계산</td>`,vat:`<td style="text-align:right;color:var(--text3);font-size:12px">자동계산</td>`,t:`<td style="text-align:right;color:var(--text3);font-size:12px">자동계산</td>`,note:`<td><input id="se-note-${r.id}" type="text" value="${escH(r.note||'')}" style="width:140px;padding:3px 6px;border:1px solid var(--border);border-radius:4px;font-size:12px" placeholder="비고"></td>`};
+        return`<tr style="background:var(--accent-l)">${ord.map(k=>'\n          '+E[k]).join('')}
           <td style="white-space:nowrap"><button class="btn bp bsm" onclick="saveEditSvc(${r.id})" style="margin-right:4px">저장</button><button class="btn bo bsm" onclick="cancelSvcEdit()">취소</button></td>
         </tr>`;
       }
-      return`<tr>
-        <td>${escH(r.month)}</td>
-        <td>${escH(r.branch)}</td>
-        <td>${brandBadge(r.brand)}</td>
-        <td style="text-align:right">${isProrate(r)?`<span class="chip cg" style="margin-right:4px">일할</span>${r.rooms}일`:r.rooms.toLocaleString()+'실'}</td>
-        <td style="text-align:right">${fmt(up)}</td>
-        <td style="text-align:right">${fmt(ex)}</td>
-        <td style="text-align:right">${fmt(vat)}</td>
-        <td style="text-align:right;font-weight:600">${fmt(ex+vat)}</td>
-        <td style="font-size:12px;color:var(--text3)">${escH(r.note||'')}</td>
+      const V={month:`<td>${escH(r.month)}</td>`,branch:`<td>${escH(r.branch)}</td>`,brand:`<td>${brandBadge(r.brand)}</td>`,rooms:`<td style="text-align:right">${isProrate(r)?`<span class="chip cg" style="margin-right:4px">일할</span>${r.rooms}일`:r.rooms.toLocaleString()+'실'}</td>`,unit:`<td style="text-align:right">${fmt(up)}</td>`,ex:`<td style="text-align:right">${fmt(ex)}</td>`,vat:`<td style="text-align:right">${fmt(vat)}</td>`,t:`<td style="text-align:right;font-weight:600">${fmt(ex+vat)}</td>`,note:`<td style="font-size:12px;color:var(--text3)">${escH(r.note||'')}</td>`};
+      return`<tr>${ord.map(k=>'\n        '+V[k]).join('')}
         <td style="white-space:nowrap"><button class="btn bo bsm" onclick="editSvcEntry(${r.id})" style="margin-right:4px">수정</button><button class="btn bo bsm" onclick="deleteSvcEntry(${r.id})">삭제</button></td>
       </tr>`;
     }).join('');
   const st=svcTotal(recs);
-  document.getElementById('svc-tfoot').innerHTML=recs.length>0?`<tr style="font-weight:600;background:var(--bg2)"><td colspan="5" style="text-align:right">합계</td><td style="text-align:right">${fmt(st.ex)}</td><td style="text-align:right">${fmt(st.vat)}</td><td style="text-align:right">${fmt(st.t)}</td><td colspan="2"></td></tr>`:'';
+  // 합계 줄 — 칸 순서를 따른다: 앞쪽의 금액 없는 칸은 한 칸으로 합쳐 '합계', 금액 칸(공급가액·부가세·합계)은 금액, 그 밖에 이어지는 빈 칸(맨 끝 수정·삭제 칸 포함)은 한 칸으로 — 처음 순서면 예전과 같은 줄
+  const ordR=svcColOrder('rec'),fv={ex:st.ex,vat:st.vat,t:st.t};let tfr='',lead=0,gap=0,needLab=false;
+  while(lead<ordR.length&&!(ordR[lead] in fv))lead++;
+  needLab=!lead;
+  const flush=()=>{if(!gap)return;tfr+=needLab?`<td${gap>1?` colspan="${gap}"`:''} style="text-align:right">합계</td>`:gap>1?`<td colspan="${gap}"></td>`:'<td></td>';needLab=false;gap=0;};
+  ordR.slice(lead).forEach(k=>{if(k in fv){flush();tfr+=`<td style="text-align:right">${fmt(fv[k])}</td>`;}else gap++;});
+  gap++;flush();
+  const labR=lead?`<td${lead>1?` colspan="${lead}"`:''} style="text-align:right">합계</td>`:'';
+  document.getElementById('svc-tfoot').innerHTML=recs.length>0?`<tr style="font-weight:600;background:var(--bg2)">${labR}${tfr}</tr>`:'';
   // 요약 카드 — 표 합계와 같은 기준(청구건별 반올림 합산)
   const sumRecs=d.records.filter(r=>(!fm||r.month===fm)&&(!fb||r.branch===fb));
   const brandSum=SVC_BRANDS.map(br=>{
